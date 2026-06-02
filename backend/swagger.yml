@@ -1,0 +1,2423 @@
+openapi: 3.0.3
+
+info:
+  title: Community Incident Reporting & Response Platform API
+  description: API documentation for the Community Incident Reporting & Response Platform
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local Development
+
+tags:
+  - name: Auth
+    description: Authentication and account endpoints
+  - name: Users
+    description: User management and community verification endpoints
+  - name: Complaints
+    description: Complaint reporting and workflow endpoints
+  - name: Media
+    description: Complaint media upload and management endpoints
+  - name: Activity Logs
+    description: Audit trail and complaint history endpoints
+  - name: Categories
+    description: Complaint category endpoints
+  - name: Emergency Hotlines
+    description: Emergency hotline endpoints
+  - name: FAQs
+    description: Frequently asked questions for residents
+  - name: Dashboard
+    description: Summary and analytics endpoints
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Unauthorized
+        error:
+          type: string
+          example: Invalid token
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Request successful
+
+    AuthTokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          example: 3600
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: resident@example.com
+        password:
+          type: string
+          example: P@ssw0rd123
+
+    RegisterRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - email
+        - password
+      properties:
+        firstName:
+          type: string
+          example: Juan
+        lastName:
+          type: string
+          example: Dela Cruz
+        email:
+          type: string
+          format: email
+          example: juan.delacruz@example.com
+        password:
+          type: string
+          example: P@ssw0rd123
+        phoneNumber:
+          type: string
+          example: "09171234567"
+        address:
+          type: string
+          example: Block 10 Lot 5, Barangay Example
+        profileImageUrl:
+          type: string
+          example: https://example.com/profile.jpg
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: Juan
+        lastName:
+          type: string
+          example: Dela Cruz
+        phoneNumber:
+          type: string
+          example: "09171234567"
+        address:
+          type: string
+          example: Block 10 Lot 5, Barangay Example
+        profileImageUrl:
+          type: string
+          example: https://example.com/profile.jpg
+
+    VerificationSubmitRequest:
+      type: object
+      required:
+        - verificationType
+        - file
+      properties:
+        verificationType:
+          type: string
+          enum:
+            - ID
+            - UTILITY_BILL
+            - BARANGAY_CERTIFICATE
+            - OTHER
+          example: ID
+        file:
+          type: string
+          format: binary
+          description: Proof of residency. Deleted after admin review.
+
+    VerificationReviewRequest:
+      type: object
+      required:
+        - verificationStatus
+      properties:
+        verificationStatus:
+          type: string
+          enum:
+            - APPROVED
+            - REJECTED
+          example: APPROVED
+        remarks:
+          type: string
+          example: Valid government ID presented.
+
+    User:
+      type: object
+      properties:
+        userId:
+          type: integer
+          example: 1
+        firstName:
+          type: string
+          example: Juan
+        lastName:
+          type: string
+          example: Dela Cruz
+        email:
+          type: string
+          format: email
+          example: juan.delacruz@example.com
+        phoneNumber:
+          type: string
+          example: "09171234567"
+        roleId:
+          type: integer
+          example: 2
+        roleName:
+          type: string
+          example: Resident
+        verificationType:
+          type: string
+          example: ID
+        verificationStatus:
+          type: string
+          enum:
+            - NOT_SUBMITTED
+            - PENDING
+            - APPROVED
+            - REJECTED
+          example: PENDING
+        address:
+          type: string
+          example: Block 10 Lot 5, Barangay Example
+        isVerified:
+          type: boolean
+          example: false
+        verificationSubmittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        verificationReviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+          example: true
+        profileImageUrl:
+          type: string
+          example: https://example.com/profile.jpg
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-06-01T08:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2026-06-01T09:00:00Z
+
+    Role:
+      type: object
+      properties:
+        roleId:
+          type: integer
+          example: 1
+        roleName:
+          type: string
+          example: Admin
+        roleLevel:
+          type: integer
+          example: 10
+
+    ComplaintCategory:
+      type: object
+      properties:
+        categoryId:
+          type: integer
+          example: 1
+        categoryName:
+          type: string
+          example: Noise Complaint
+        description:
+          type: string
+          example: Loud music, karaoke, or other excessive noise issues
+
+    ComplaintCategoryCreateRequest:
+      type: object
+      required:
+        - categoryName
+      properties:
+        categoryName:
+          type: string
+          example: Noise Complaint
+        description:
+          type: string
+          example: Loud music, karaoke, or other excessive noise issues
+
+    ComplaintCategoryUpdateRequest:
+      type: object
+      properties:
+        categoryName:
+          type: string
+          example: Noise Complaint
+        description:
+          type: string
+          example: Updated category description
+
+    Complaint:
+      type: object
+      properties:
+        complaintId:
+          type: integer
+          example: 101
+        publicReference:
+          type: string
+          example: CMP-2026-00101
+        userId:
+          type: integer
+          nullable: true
+          description: Complainant ID. Admin and complaint owner only.
+          example: 1
+        assignedBy:
+          type: integer
+          nullable: true
+          example: 3
+        assignedToUserId:
+          type: integer
+          nullable: true
+          example: 4
+        assignedAt:
+          type: string
+          format: date-time
+          nullable: true
+        categoryId:
+          type: integer
+          example: 1
+        categoryName:
+          type: string
+          example: Noise Complaint
+        title:
+          type: string
+          example: Loud karaoke until 2 AM
+        description:
+          type: string
+          example: Neighbor is singing loudly after midnight for several nights.
+        locationText:
+          type: string
+          example: Block 4, Main Road
+        latitude:
+          type: number
+          format: double
+          example: 14.5995
+        longitude:
+          type: number
+          format: double
+          example: 120.9842
+        complaintStatus:
+          type: string
+          enum:
+            - PENDING
+            - VERIFIED
+            - ASSIGNED
+            - IN_PROGRESS
+            - RESOLVED
+            - REJECTED
+          example: PENDING
+        priorityLevel:
+          type: string
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+            - CRITICAL
+          example: MEDIUM
+        remarks:
+          type: string
+          example: Initial complaint submitted by resident
+        resolutionStatement:
+          type: string
+          nullable: true
+          example: Warning issued and issue resolved.
+        resolutionProofUrl:
+          type: string
+          nullable: true
+          example: https://res.cloudinary.com/demo/image/upload/v1/resolution.jpg
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-06-01T08:30:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2026-06-01T08:35:00Z
+
+    ComplaintCreateRequest:
+      type: object
+      required:
+        - categoryId
+        - title
+        - description
+      properties:
+        categoryId:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Loud karaoke until 2 AM
+        description:
+          type: string
+          example: Neighbor is singing loudly after midnight for several nights.
+        locationText:
+          type: string
+          example: Block 4, Main Road
+        latitude:
+          type: number
+          format: double
+          example: 14.5995
+        longitude:
+          type: number
+          format: double
+          example: 120.9842
+        files:
+          type: array
+          items:
+            type: string
+            format: binary
+
+    ComplaintStatusUpdateRequest:
+      type: object
+      required:
+        - complaintStatus
+      properties:
+        complaintStatus:
+          type: string
+          enum:
+            - VERIFIED
+            - ASSIGNED
+            - IN_PROGRESS
+            - REJECTED
+          example: VERIFIED
+        remarks:
+          type: string
+          example: Complaint validated by barangay staff.
+
+    ComplaintAssignRequest:
+      type: object
+      required:
+        - assignedToUserId
+      properties:
+        assignedToUserId:
+          type: integer
+          example: 4
+        remarks:
+          type: string
+          example: Assigned to Tanod on duty.
+
+    ComplaintPriorityUpdateRequest:
+      type: object
+      required:
+        - priorityLevel
+      properties:
+        priorityLevel:
+          type: string
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+            - CRITICAL
+          example: CRITICAL
+        remarks:
+          type: string
+          example: Escalated due to repeated incidents.
+
+    ComplaintResolveRequest:
+      type: object
+      required:
+        - resolutionStatement
+      properties:
+        resolutionStatement:
+          type: string
+          example: Issue addressed and resolved.
+        file:
+          type: string
+          format: binary
+          description: Optional photo proof of resolution.
+
+    ComplaintMedia:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        complaintId:
+          type: integer
+          example: 101
+        uploadedByUserId:
+          type: integer
+          example: 1
+        mediaUrl:
+          type: string
+          example: https://res.cloudinary.com/demo/image/upload/v1/sample.jpg
+        mediaType:
+          type: string
+          enum:
+            - IMAGE
+            - VIDEO
+            - RESOLUTION_PROOF
+          example: IMAGE
+        uploadedAt:
+          type: string
+          format: date-time
+          example: 2026-06-01T08:32:00Z
+
+    ComplaintMediaUploadRequest:
+      type: object
+      required:
+        - files
+      properties:
+        files:
+          type: array
+          items:
+            type: string
+            format: binary
+
+    ActivityLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        complaintId:
+          type: integer
+          example: 101
+        performedBy:
+          type: integer
+          example: 3
+        actionType:
+          type: string
+          enum:
+            - COMPLAINT_CREATED
+            - STATUS_UPDATED
+            - ASSIGNED
+            - PRIORITY_CHANGED
+            - RESOLVED
+            - MEDIA_UPLOADED
+            - MEDIA_DELETED
+            - VERIFICATION_REVIEWED
+          example: STATUS_UPDATED
+        oldValue:
+          type: string
+          example: PENDING
+        newValue:
+          type: string
+          example: ASSIGNED
+        description:
+          type: string
+          example: Complaint status changed from PENDING to ASSIGNED
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-06-01T09:15:00Z
+
+    EmergencyHotline:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        agencyName:
+          type: string
+          example: Barangay Hall
+        contactNumber:
+          type: string
+          example: "09171234567"
+        description:
+          type: string
+          example: Main emergency hotline for community concerns
+
+    EmergencyHotlineCreateRequest:
+      type: object
+      required:
+        - agencyName
+        - contactNumber
+      properties:
+        agencyName:
+          type: string
+          example: Barangay Hall
+        contactNumber:
+          type: string
+          example: "09171234567"
+        description:
+          type: string
+          example: Main emergency hotline for community concerns
+
+    EmergencyHotlineUpdateRequest:
+      type: object
+      properties:
+        agencyName:
+          type: string
+          example: Barangay Hall
+        contactNumber:
+          type: string
+          example: "09171234567"
+        description:
+          type: string
+          example: Updated description
+
+    Faq:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        question:
+          type: string
+          example: How do I track my complaint?
+        answer:
+          type: string
+          example: Open My Complaints in the app to see status updates.
+        sortOrder:
+          type: integer
+          example: 1
+        isPublished:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-06-01T08:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2026-06-01T09:00:00Z
+
+    FaqCreateRequest:
+      type: object
+      required:
+        - question
+        - answer
+      properties:
+        question:
+          type: string
+          example: How do I track my complaint?
+        answer:
+          type: string
+          example: Open My Complaints in the app to see status updates.
+        sortOrder:
+          type: integer
+          example: 1
+        isPublished:
+          type: boolean
+          example: true
+
+    FaqUpdateRequest:
+      type: object
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+        sortOrder:
+          type: integer
+        isPublished:
+          type: boolean
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalComplaints:
+          type: integer
+          example: 120
+        pendingComplaints:
+          type: integer
+          example: 15
+        verifiedComplaints:
+          type: integer
+          example: 20
+        assignedComplaints:
+          type: integer
+          example: 18
+        inProgressComplaints:
+          type: integer
+          example: 12
+        resolvedComplaints:
+          type: integer
+          example: 50
+        rejectedComplaints:
+          type: integer
+          example: 5
+        totalUsers:
+          type: integer
+          example: 240
+        totalResidents:
+          type: integer
+          example: 210
+        totalHotlines:
+          type: integer
+          example: 8
+
+    DashboardRecentComplaint:
+      type: object
+      properties:
+        complaintId:
+          type: integer
+          example: 101
+        publicReference:
+          type: string
+          example: CMP-2026-00101
+        title:
+          type: string
+          example: Loud karaoke until 2 AM
+        complaintStatus:
+          type: string
+          example: PENDING
+        priorityLevel:
+          type: string
+          example: HIGH
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-06-01T08:30:00Z
+
+    PaginatedComplaintResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Complaints retrieved successfully
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Complaint'
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            totalItems:
+              type: integer
+              example: 120
+            totalPages:
+              type: integer
+              example: 12
+
+    SingleComplaintResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Complaint retrieved successfully
+        data:
+          $ref: '#/components/schemas/Complaint'
+
+    ComplaintMediaResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Media uploaded successfully
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplaintMedia'
+
+    ActivityLogListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Activity logs retrieved successfully
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityLog'
+
+    HotlineListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Emergency hotlines retrieved successfully
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmergencyHotline'
+
+    FaqListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: FAQs retrieved successfully
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Faq'
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register resident
+      description: Create a new resident account. Submit community verification separately.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              example1:
+                value:
+                  firstName: Juan
+                  lastName: Dela Cruz
+                  email: juan.delacruz@example.com
+                  password: P@ssw0rd123
+                  phoneNumber: "09171234567"
+                  address: Block 10 Lot 5, Barangay Example
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Registration successful
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login user
+      description: Authenticate a user and return JWT tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              example1:
+                value:
+                  email: resident@example.com
+                  password: P@ssw0rd123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Login successful
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      tokens:
+                        $ref: '#/components/schemas/AuthTokens'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get current user
+      description: Get the profile of the authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Current user retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Logout user
+      description: Invalidate the current refresh token.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh-token:
+    post:
+      tags:
+        - Auth
+      summary: Refresh access token
+      description: Generate a new access token using a valid refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Token refreshed successfully
+                  data:
+                    $ref: '#/components/schemas/AuthTokens'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/me/verification:
+    post:
+      tags:
+        - Users
+      summary: Submit community verification
+      description: Resident uploads proof of residency. File is deleted after admin review.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VerificationSubmitRequest'
+      responses:
+        '200':
+          description: Verification submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Verification submitted successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Get users
+      description: Admin only. Returns user list with optional filters.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: roleId
+          schema:
+            type: integer
+          description: Filter by role ID
+        - in: query
+          name: isActive
+          schema:
+            type: boolean
+          description: Filter by active status
+        - in: query
+          name: verificationStatus
+          schema:
+            type: string
+            enum:
+              - NOT_SUBMITTED
+              - PENDING
+              - APPROVED
+              - REJECTED
+          description: Filter by verification status
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: User list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Users retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      totalItems:
+                        type: integer
+                        example: 50
+                      totalPages:
+                        type: integer
+                        example: 5
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get user details
+      description: Admin only, or the authenticated user accessing their own userId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: User details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '403':
+          description: Forbidden
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags:
+        - Users
+      summary: Update user
+      description: Update user profile. Users may update own profile; Admin may update any user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            examples:
+              example1:
+                value:
+                  firstName: Juan
+                  lastName: Dela Cruz
+                  phoneNumber: "09171234567"
+                  address: Block 10 Lot 5, Barangay Example
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User updated successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '403':
+          description: Forbidden
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}/verification/review:
+    patch:
+      tags:
+        - Users
+      summary: Review community verification
+      description: Admin only. Approve or reject verification. Deletes uploaded document after decision.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationReviewRequest'
+            examples:
+              example1:
+                value:
+                  verificationStatus: APPROVED
+                  remarks: Valid barangay ID presented.
+      responses:
+        '200':
+          description: Verification reviewed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Verification reviewed successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '403':
+          description: Forbidden
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}/activate:
+    patch:
+      tags:
+        - Users
+      summary: Activate user
+      description: Admin only. Activate a user account.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: User activated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Forbidden
+
+  /users/{userId}/deactivate:
+    patch:
+      tags:
+        - Users
+      summary: Deactivate user
+      description: Admin only. Deactivate a user account.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: User deactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Forbidden
+
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: Get complaint categories
+      description: Retrieve all complaint categories.
+      responses:
+        '200':
+          description: Category list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Categories retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ComplaintCategory'
+    post:
+      tags:
+        - Categories
+      summary: Create complaint category
+      description: Admin only. Create a new complaint category.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintCategoryCreateRequest'
+            examples:
+              example1:
+                value:
+                  categoryName: Noise Complaint
+                  description: Loud music, karaoke, or other excessive noise issues
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Category created successfully
+                  data:
+                    $ref: '#/components/schemas/ComplaintCategory'
+        '403':
+          description: Forbidden
+
+  /categories/{categoryId}:
+    get:
+      tags:
+        - Categories
+      summary: Get category details
+      description: Retrieve a complaint category by ID.
+      parameters:
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Category retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Category retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/ComplaintCategory'
+    patch:
+      tags:
+        - Categories
+      summary: Update category
+      description: Admin only. Update a complaint category.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintCategoryUpdateRequest'
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Category updated successfully
+                  data:
+                    $ref: '#/components/schemas/ComplaintCategory'
+        '403':
+          description: Forbidden
+    delete:
+      tags:
+        - Categories
+      summary: Delete category
+      description: Admin only. Delete a complaint category.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Forbidden
+
+  /complaints:
+    post:
+      tags:
+        - Complaints
+      summary: Create complaint
+      description: Submit a new community complaint with optional media. Status is PENDING; priority defaults to MEDIUM.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ComplaintCreateRequest'
+            examples:
+              example1:
+                value:
+                  categoryId: 1
+                  title: Loud karaoke until 2 AM
+                  description: Neighbor is singing loudly after midnight for several nights.
+                  locationText: Block 4, Main Road
+                  latitude: 14.5995
+                  longitude: 120.9842
+      responses:
+        '201':
+          description: Complaint created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Complaint created successfully
+                  data:
+                    $ref: '#/components/schemas/Complaint'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Complaints
+      summary: Get complaints
+      description: Staff dashboard. Complainant userId omitted except for Admin role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum:
+              - PENDING
+              - VERIFIED
+              - ASSIGNED
+              - IN_PROGRESS
+              - RESOLVED
+              - REJECTED
+          description: Filter by complaint status
+        - in: query
+          name: categoryId
+          schema:
+            type: integer
+          description: Filter by category ID
+        - in: query
+          name: priorityLevel
+          schema:
+            type: string
+            enum:
+              - LOW
+              - MEDIUM
+              - HIGH
+              - CRITICAL
+          description: Filter by priority level
+        - in: query
+          name: assignedToUserId
+          schema:
+            type: integer
+          description: Filter by assigned officer user ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Complaint list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedComplaintResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+
+  /complaints/my:
+    get:
+      tags:
+        - Complaints
+      summary: Get my complaints
+      description: Retrieve complaints submitted by the authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum:
+              - PENDING
+              - VERIFIED
+              - ASSIGNED
+              - IN_PROGRESS
+              - RESOLVED
+              - REJECTED
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: My complaints retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedComplaintResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /complaints/{complaintId}:
+    get:
+      tags:
+        - Complaints
+      summary: Get complaint details
+      description: Staff see complaint without complainant PII. Admin and owner see full record.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: integer
+          example: 101
+      responses:
+        '200':
+          description: Complaint retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleComplaintResponse'
+        '404':
+          description: Complaint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /complaints/{complaintId}/status:
+    patch:
+      tags:
+        - Complaints
+      summary: Update complaint status
+      description: Kagawad or Admin. Use /resolve endpoint to mark RESOLVED with proof.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: integer
+          example: 101
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintStatusUpdateRequest'
+            examples:
+              example1:
+                value:
+                  complaintStatus: VERIFIED
+                  remarks: Complaint validated by barangay staff.
+      responses:
+        '200':
+          description: Complaint status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleComplaintResponse'
+        '403':
+          description: Forbidden
+        '404':
+          description: Complaint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /complaints/{complaintId}/assign:
+    patch:
+      tags:
+        - Complaints
+      summary: Assign complaint
+      description: Assign a complaint to an officer. Sets assignedToUserId and status to ASSIGNED.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: integer
+          example: 101
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintAssignRequest'
+            examples:
+              example1:
+                value:
+                  assignedToUserId: 4
+                  remarks: Assigned to Tanod on duty.
+      responses:
+        '200':
+          description: Complaint assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleComplaintResponse'
+        '403':
+          description: Forbidden
+
+  /complaints/{complaintId}/priority:
+    patch:
+      tags:
+        - Complaints
+      summary: Update complaint priority
+      description: Kagawad or Admin only. Change the priority level of a complaint.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: integer
+          example: 101
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintPriorityUpdateRequest'
+            examples:
+              example1:
+                value:
+                  priorityLevel: CRITICAL
+                  remarks: Escalated due to repeated incidents.
+      responses:
+        '200':
+          description: Priority updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleComplaintResponse'
+        '403':
+          description: Forbidden
+
+  /complaints/{complaintId}/resolve:
+    patch:
+      tags:
+        - Complaints
+      summary: Resolve complaint
+      description: Resolve with statement and optional proof. Sets status to RESOLVED.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: integer
+          example: 101
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ComplaintResolveRequest'
+            examples:
+              example1:
+                value:
+                  resolutionStatement: Issue addressed and resolved.
+      responses:
+        '200':
+          description: Complaint resolved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleComplaintResponse'
+        '403':
+          description: Forbidden
+        '404':
+          description: Complaint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /complaints/{complaintId}/media:
+    post:
+      tags:
+        - Media
+      summary: Upload complaint media
+      description: Upload image or video evidence for a complaint.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: integer
+          example: 101
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ComplaintMediaUploadRequest'
+      responses:
+        '201':
+          description: Media uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintMediaResponse'
+        '400':
+          description: Invalid media upload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Media
+      summary: Get complaint media
+      description: Retrieve all media files attached to a complaint.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: integer
+          example: 101
+      responses:
+        '200':
+          description: Media retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintMediaResponse'
+
+  /complaints/{complaintId}/media/{mediaId}:
+    delete:
+      tags:
+        - Media
+      summary: Delete complaint media
+      description: Delete a specific media record attached to a complaint.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: integer
+          example: 101
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Media deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /complaints/{complaintId}/logs:
+    get:
+      tags:
+        - Activity Logs
+      summary: Get complaint activity logs
+      description: Retrieve the audit trail for a complaint.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: integer
+          example: 101
+      responses:
+        '200':
+          description: Activity logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityLogListResponse'
+
+  /logs:
+    get:
+      tags:
+        - Activity Logs
+      summary: Get all activity logs
+      description: Admin or Kagawad only. Retrieve all activity logs across complaints.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Logs retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActivityLog'
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 20
+                      totalItems:
+                        type: integer
+                        example: 100
+                      totalPages:
+                        type: integer
+                        example: 5
+        '403':
+          description: Forbidden
+
+  /faqs:
+    get:
+      tags:
+        - FAQs
+      summary: Get FAQs
+      description: Public. Returns published FAQ entries only.
+      responses:
+        '200':
+          description: FAQs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FaqListResponse'
+    post:
+      tags:
+        - FAQs
+      summary: Create FAQ
+      description: Admin only. Create a new FAQ entry.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaqCreateRequest'
+            examples:
+              example1:
+                value:
+                  question: How do I track my complaint?
+                  answer: Open My Complaints in the app to see status updates.
+                  sortOrder: 1
+                  isPublished: true
+      responses:
+        '201':
+          description: FAQ created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: FAQ created successfully
+                  data:
+                    $ref: '#/components/schemas/Faq'
+        '403':
+          description: Forbidden
+
+  /faqs/{faqId}:
+    get:
+      tags:
+        - FAQs
+      summary: Get FAQ details
+      description: Retrieve a single FAQ entry by ID.
+      parameters:
+        - in: path
+          name: faqId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: FAQ retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: FAQ retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/Faq'
+    patch:
+      tags:
+        - FAQs
+      summary: Update FAQ
+      description: Admin only. Update an FAQ entry.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: faqId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaqUpdateRequest'
+      responses:
+        '200':
+          description: FAQ updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: FAQ updated successfully
+                  data:
+                    $ref: '#/components/schemas/Faq'
+        '403':
+          description: Forbidden
+    delete:
+      tags:
+        - FAQs
+      summary: Delete FAQ
+      description: Admin only. Delete an FAQ entry.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: faqId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: FAQ deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Forbidden
+
+  /hotlines:
+    get:
+      tags:
+        - Emergency Hotlines
+      summary: Get emergency hotlines
+      description: Retrieve all emergency hotline entries.
+      responses:
+        '200':
+          description: Hotlines retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HotlineListResponse'
+    post:
+      tags:
+        - Emergency Hotlines
+      summary: Create emergency hotline
+      description: Admin only. Create a new emergency hotline entry.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergencyHotlineCreateRequest'
+      responses:
+        '201':
+          description: Hotline created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Hotline created successfully
+                  data:
+                    $ref: '#/components/schemas/EmergencyHotline'
+        '403':
+          description: Forbidden
+
+  /hotlines/{hotlineId}:
+    get:
+      tags:
+        - Emergency Hotlines
+      summary: Get hotline details
+      description: Retrieve a single emergency hotline entry by ID.
+      parameters:
+        - in: path
+          name: hotlineId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Hotline retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Hotline retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/EmergencyHotline'
+    patch:
+      tags:
+        - Emergency Hotlines
+      summary: Update hotline
+      description: Admin only. Update an emergency hotline entry.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: hotlineId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergencyHotlineUpdateRequest'
+      responses:
+        '200':
+          description: Hotline updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Hotline updated successfully
+                  data:
+                    $ref: '#/components/schemas/EmergencyHotline'
+        '403':
+          description: Forbidden
+    delete:
+      tags:
+        - Emergency Hotlines
+      summary: Delete hotline
+      description: Admin only. Delete an emergency hotline entry.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: hotlineId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Hotline deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Forbidden
+
+  /dashboard/summary:
+    get:
+      tags:
+        - Dashboard
+      summary: Get dashboard summary
+      description: Admin or Kagawad only. Retrieve top-level complaint and user counts.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Dashboard summary retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/DashboardSummary'
+        '403':
+          description: Forbidden
+
+  /dashboard/recent-complaints:
+    get:
+      tags:
+        - Dashboard
+      summary: Get recent complaints
+      description: Admin or Kagawad only. Recent complaints without complainant PII.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 5
+      responses:
+        '200':
+          description: Recent complaints retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Recent complaints retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DashboardRecentComplaint'
+        '403':
+          description: Forbidden
+
+  /dashboard/statistics:
+    get:
+      tags:
+        - Dashboard
+      summary: Get dashboard statistics
+      description: Admin or Kagawad only. Retrieve complaint statistics for charts.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Dashboard statistics retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      byStatus:
+                        type: object
+                        example:
+                          PENDING: 15
+                          VERIFIED: 20
+                          ASSIGNED: 18
+                          IN_PROGRESS: 12
+                          RESOLVED: 50
+                          REJECTED: 5
+                      byPriority:
+                        type: object
+                        example:
+                          LOW: 25
+                          MEDIUM: 40
+                          HIGH: 30
+                          CRITICAL: 10
+                      byCategory:
+                        type: object
+                        example:
+                          1: 12
+                          2: 8
+                          3: 10
+        '403':
+          description: Forbidden
+
+  /dashboard/status-breakdown:
+    get:
+      tags:
+        - Dashboard
+      summary: Get complaint status breakdown
+      description: Admin or Kagawad only. Retrieve complaint counts grouped by status.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Status breakdown retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Status breakdown retrieved successfully
+                  data:
+                    type: object
+                    example:
+                      PENDING: 15
+                      VERIFIED: 20
+                      ASSIGNED: 18
+                      IN_PROGRESS: 12
+                      RESOLVED: 50
+                      REJECTED: 5
+        '403':
+          description: Forbidden
+
+  /dashboard/category-breakdown:
+    get:
+      tags:
+        - Dashboard
+      summary: Get complaint category breakdown
+      description: Admin or Kagawad only. Retrieve complaint counts grouped by category.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Category breakdown retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Category breakdown retrieved successfully
+                  data:
+                    type: object
+                    example:
+                      1: 12
+                      2: 8
+                      3: 10
+        '403':
+          description: Forbidden
