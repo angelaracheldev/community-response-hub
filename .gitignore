@@ -1,2 +1,29 @@
 node_modules/
 .expo/
+
+# Environment variables (keep secrets out of version control)
+.env.local
+.env
+.env.*.local
+
+# Database backups
+*.sql
+!backend/init-db.sql
+backup.sql
+dump.sql
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Uploads
+uploads/
