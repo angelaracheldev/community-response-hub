@@ -2,8 +2,18 @@ openapi: 3.0.3
 
 info:
   title: Community Incident Reporting & Response Platform API
-  description: API documentation for the Community Incident Reporting & Response Platform
-  version: 1.0.0
+  description: |
+    API for the Community Incident Reporting & Response Platform.
+
+    Aligned with database ERD (USER, ROLE, RESIDENT_VERIFICATIONS, COMPLAINTS,
+    COMPLAINT_CATEGORIES, COMPLAINT_MEDIA, COMPLAINT_ASSIGNMENTS, ACTIVITY_LOGS,
+    EMERGENCY_HOTLINES, FAQs).
+
+    Roles: Admin, Resident, Responder.
+
+    Privacy: Complainant residentId is hidden from Responder responses. Admin sees full PII.
+    Verification documents are temporary and removed after admin review.
+  version: 1.1.0
 
 servers:
   - url: http://localhost:5000/api/v1
@@ -13,7 +23,11 @@ tags:
   - name: Auth
     description: Authentication and account endpoints
   - name: Users
-    description: User management and community verification endpoints
+    description: User management endpoints
+  - name: Verifications
+    description: Resident verification (RESIDENT_VERIFICATIONS table)
+  - name: Assignments
+    description: Complaint officer assignments (COMPLAINT_ASSIGNMENTS table)
   - name: Complaints
     description: Complaint reporting and workflow endpoints
   - name: Media
@@ -114,9 +128,6 @@ components:
         phoneNumber:
           type: string
           example: "09171234567"
-        address:
-          type: string
-          example: Block 10 Lot 5, Barangay Example
         profileImageUrl:
           type: string
           example: https://example.com/profile.jpg
@@ -133,9 +144,6 @@ components:
         phoneNumber:
           type: string
           example: "09171234567"
-        address:
-          type: string
-          example: Block 10 Lot 5, Barangay Example
         profileImageUrl:
           type: string
           example: https://example.com/profile.jpg
@@ -144,6 +152,7 @@ components:
       type: object
       required:
         - verificationType
+        - address
         - file
       properties:
         verificationType:
@@ -154,18 +163,23 @@ components:
             - BARANGAY_CERTIFICATE
             - OTHER
           example: ID
+        address:
+          type: string
+          description: Maps to RESIDENT_VERIFICATIONS.ADDRESS
+          example: Block 10 Lot 5, Barangay Example
         file:
           type: string
           format: binary
-          description: Proof of residency. Deleted after admin review.
+          description: Proof of residency. Deleted from storage after admin review.
 
     VerificationReviewRequest:
       type: object
       required:
-        - verificationStatus
+        - status
       properties:
-        verificationStatus:
+        status:
           type: string
+          description: Maps to RESIDENT_VERIFICATIONS.STATUS
           enum:
             - APPROVED
             - REJECTED
@@ -174,12 +188,71 @@ components:
           type: string
           example: Valid government ID presented.
 
-    User:
+    ResidentVerification:
       type: object
+      description: RESIDENT_VERIFICATIONS table
       properties:
+        verificationId:
+          type: integer
+          example: 1
         userId:
           type: integer
           example: 1
+        verificationType:
+          type: string
+          example: ID
+        documentUrl:
+          type: string
+          nullable: true
+          description: Admin only during review. Not returned after approval.
+        address:
+          type: string
+          example: Block 10 Lot 5, Barangay Example
+        status:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - REJECTED
+          example: PENDING
+        reviewedBy:
+          type: integer
+          nullable: true
+          example: 3
+        submittedAt:
+          type: string
+          format: date-time
+          example: 2026-06-01T10:00:00Z
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    User:
+      type: object
+      description: USER table. Verification details in ResidentVerification.
+      properties:
+        userId:
+          type: integer
+          description: USER_ID
+          example: 1
+        roleId:
+          type: integer
+          description: ROLE_ID
+          example: 2
+        roleName:
+          type: string
+          example: Resident
+        residentId:
+          type: string
+          nullable: true
+          description: RESIDENT_ID (optional resident reference code)
+          example: RES-2026-0001
+        employeeCode:
+          type: string
+          nullable: true
+          description: EMPLOYEE_CODE (Responder/Admin staff code)
+          example: EMP-004
         firstName:
           type: string
           example: Juan
@@ -193,43 +266,18 @@ components:
         phoneNumber:
           type: string
           example: "09171234567"
-        roleId:
-          type: integer
-          example: 2
-        roleName:
-          type: string
-          example: Resident
-        verificationType:
-          type: string
-          example: ID
-        verificationStatus:
-          type: string
-          enum:
-            - NOT_SUBMITTED
-            - PENDING
-            - APPROVED
-            - REJECTED
-          example: PENDING
-        address:
-          type: string
-          example: Block 10 Lot 5, Barangay Example
         isVerified:
           type: boolean
+          description: USER.IS_VERIFIED (true when latest verification is APPROVED)
           example: false
-        verificationSubmittedAt:
-          type: string
-          format: date-time
-          nullable: true
-        verificationReviewedAt:
-          type: string
-          format: date-time
-          nullable: true
         isActive:
           type: boolean
           example: true
         profileImageUrl:
           type: string
           example: https://example.com/profile.jpg
+        latestVerification:
+          $ref: '#/components/schemas/ResidentVerification'
         createdAt:
           type: string
           format: date-time
@@ -241,12 +289,17 @@ components:
 
     Role:
       type: object
+      description: ROLE table
       properties:
         roleId:
           type: integer
           example: 1
         roleName:
           type: string
+          enum:
+            - Admin
+            - Resident
+            - Responder
           example: Admin
         roleLevel:
           type: integer
@@ -254,9 +307,11 @@ components:
 
     ComplaintCategory:
       type: object
+      description: COMPLAINT_CATEGORIES table
       properties:
         categoryId:
           type: integer
+          description: CATEGORY_ID
           example: 1
         categoryName:
           type: string
@@ -287,34 +342,55 @@ components:
           type: string
           example: Updated category description
 
-    Complaint:
+    ComplaintAssignment:
       type: object
+      description: COMPLAINT_ASSIGNMENTS table
       properties:
+        assignmentId:
+          type: integer
+          example: 1
         complaintId:
           type: integer
           example: 101
-        publicReference:
-          type: string
-          example: CMP-2026-00101
-        userId:
+        assignedTo:
           type: integer
-          nullable: true
-          description: Complainant ID. Admin and complaint owner only.
-          example: 1
+          description: ASSIGNED_TO (USER_ID of Responder)
+          example: 4
+        assignedToName:
+          type: string
+          example: Pedro Tanod
         assignedBy:
           type: integer
-          nullable: true
+          description: ASSIGNED_BY (USER_ID)
           example: 3
-        assignedToUserId:
-          type: integer
-          nullable: true
-          example: 4
+        isActive:
+          type: boolean
+          example: true
         assignedAt:
           type: string
           format: date-time
+          example: 2026-06-01T09:00:00Z
+
+    Complaint:
+      type: object
+      description: COMPLAINTS table. Assignment history in ComplaintAssignment.
+      properties:
+        complaintId:
+          type: integer
+          description: COMPLAINT_ID
+          example: 101
+        publicReference:
+          type: string
+          description: Public tracking code (app-generated, not in ERD)
+          example: CMP-2026-00101
+        residentId:
+          type: integer
           nullable: true
+          description: RESIDENT_ID (FK USER). Hidden from Responder; visible to Admin and owner.
+          example: 1
         categoryId:
           type: integer
+          description: CATEGORY_ID
           example: 1
         categoryName:
           type: string
@@ -327,6 +403,7 @@ components:
           example: Neighbor is singing loudly after midnight for several nights.
         locationText:
           type: string
+          description: LOCATION_TEXT
           example: Block 4, Main Road
         latitude:
           type: number
@@ -338,6 +415,7 @@ components:
           example: 120.9842
         complaintStatus:
           type: string
+          description: Maps to COMPLAINTS.STATUS
           enum:
             - PENDING
             - VERIFIED
@@ -348,6 +426,7 @@ components:
           example: PENDING
         priorityLevel:
           type: string
+          description: PRIORITY_LEVEL
           enum:
             - LOW
             - MEDIUM
@@ -357,14 +436,15 @@ components:
         remarks:
           type: string
           example: Initial complaint submitted by resident
+        activeAssignment:
+          $ref: '#/components/schemas/ComplaintAssignment'
         resolutionStatement:
           type: string
           nullable: true
-          example: Warning issued and issue resolved.
+          description: Resolution notes (stored in remarks or extension field on resolve)
         resolutionProofUrl:
           type: string
           nullable: true
-          example: https://res.cloudinary.com/demo/image/upload/v1/resolution.jpg
         resolvedAt:
           type: string
           format: date-time
@@ -431,14 +511,15 @@ components:
     ComplaintAssignRequest:
       type: object
       required:
-        - assignedToUserId
+        - assignedTo
       properties:
-        assignedToUserId:
+        assignedTo:
           type: integer
+          description: ASSIGNED_TO userId (must be Responder or Admin role)
           example: 4
         remarks:
           type: string
-          example: Assigned to Tanod on duty.
+          example: Assigned to responder on duty.
 
     ComplaintPriorityUpdateRequest:
       type: object
@@ -472,15 +553,18 @@ components:
 
     ComplaintMedia:
       type: object
+      description: COMPLAINT_MEDIA table
       properties:
-        id:
+        mediaId:
           type: integer
+          description: MEDIA_ID
           example: 1
         complaintId:
           type: integer
           example: 101
-        uploadedByUserId:
+        uploadedBy:
           type: integer
+          description: UPLOADED_BY (USER_ID)
           example: 1
         mediaUrl:
           type: string
@@ -510,15 +594,18 @@ components:
 
     ActivityLog:
       type: object
+      description: ACTIVITY_LOGS table
       properties:
-        id:
+        activityLogId:
           type: integer
+          description: ACTIVITY_LOG_ID
           example: 1
         complaintId:
           type: integer
           example: 101
         performedBy:
           type: integer
+          description: PERFORMED_BY (USER_ID)
           example: 3
         actionType:
           type: string
@@ -548,9 +635,11 @@ components:
 
     EmergencyHotline:
       type: object
+      description: EMERGENCY_HOTLINES table
       properties:
-        id:
+        hotlineId:
           type: integer
+          description: HOTLINE_ID
           example: 1
         agencyName:
           type: string
@@ -824,7 +913,6 @@ paths:
                   email: juan.delacruz@example.com
                   password: P@ssw0rd123
                   phoneNumber: "09171234567"
-                  address: Block 10 Lot 5, Barangay Example
       responses:
         '201':
           description: Registration successful
@@ -990,7 +1078,7 @@ paths:
   /users/me/verification:
     post:
       tags:
-        - Users
+        - Verifications
       summary: Submit community verification
       description: Resident uploads proof of residency. File is deleted after admin review.
       security:
@@ -1016,7 +1104,7 @@ paths:
                     type: string
                     example: Verification submitted successfully
                   data:
-                    $ref: '#/components/schemas/User'
+                    $ref: '#/components/schemas/ResidentVerification'
         '400':
           description: Validation error
           content:
@@ -1025,6 +1113,46 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}/verification:
+    get:
+      tags:
+        - Verifications
+      summary: Get resident verification
+      description: Resident (own record) or Admin. Latest RESIDENT_VERIFICATIONS row for user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Verification retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Verification retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/ResidentVerification'
+        '403':
+          description: Forbidden
+        '404':
+          description: Verification not found
           content:
             application/json:
               schema:
@@ -1050,15 +1178,14 @@ paths:
             type: boolean
           description: Filter by active status
         - in: query
-          name: verificationStatus
+          name: status
           schema:
             type: string
             enum:
-              - NOT_SUBMITTED
               - PENDING
               - APPROVED
               - REJECTED
-          description: Filter by verification status
+          description: Filter by latest RESIDENT_VERIFICATIONS.STATUS
         - in: query
           name: page
           schema:
@@ -1177,7 +1304,6 @@ paths:
                   firstName: Juan
                   lastName: Dela Cruz
                   phoneNumber: "09171234567"
-                  address: Block 10 Lot 5, Barangay Example
       responses:
         '200':
           description: User updated successfully
@@ -1206,9 +1332,9 @@ paths:
   /users/{userId}/verification/review:
     patch:
       tags:
-        - Users
+        - Verifications
       summary: Review community verification
-      description: Admin only. Approve or reject verification. Deletes uploaded document after decision.
+      description: Admin only. Approve or reject RESIDENT_VERIFICATIONS. Deletes document after decision. Sets USER.IS_VERIFIED on APPROVED.
       security:
         - bearerAuth: []
       parameters:
@@ -1227,7 +1353,7 @@ paths:
             examples:
               example1:
                 value:
-                  verificationStatus: APPROVED
+                  status: APPROVED
                   remarks: Valid barangay ID presented.
       responses:
         '200':
@@ -1244,7 +1370,7 @@ paths:
                     type: string
                     example: Verification reviewed successfully
                   data:
-                    $ref: '#/components/schemas/User'
+                    $ref: '#/components/schemas/ResidentVerification'
         '403':
           description: Forbidden
         '404':
@@ -1512,7 +1638,7 @@ paths:
       tags:
         - Complaints
       summary: Get complaints
-      description: Staff dashboard. Complainant userId omitted except for Admin role.
+      description: Responder or Admin dashboard. Complainant residentId omitted except for Admin role.
       security:
         - bearerAuth: []
       parameters:
@@ -1544,10 +1670,10 @@ paths:
               - CRITICAL
           description: Filter by priority level
         - in: query
-          name: assignedToUserId
+          name: assignedTo
           schema:
             type: integer
-          description: Filter by assigned officer user ID
+          description: Filter by active COMPLAINT_ASSIGNMENTS.ASSIGNED_TO
         - in: query
           name: page
           schema:
@@ -1623,7 +1749,7 @@ paths:
       tags:
         - Complaints
       summary: Get complaint details
-      description: Staff see complaint without complainant PII. Admin and owner see full record.
+      description: Responder sees complaint without residentId. Admin and owning Resident see full record.
       security:
         - bearerAuth: []
       parameters:
@@ -1652,7 +1778,7 @@ paths:
       tags:
         - Complaints
       summary: Update complaint status
-      description: Kagawad or Admin. Use /resolve endpoint to mark RESOLVED with proof.
+      description: Responder or Admin. Use /resolve endpoint to mark RESOLVED with proof.
       security:
         - bearerAuth: []
       parameters:
@@ -1694,7 +1820,7 @@ paths:
       tags:
         - Complaints
       summary: Assign complaint
-      description: Assign a complaint to an officer. Sets assignedToUserId and status to ASSIGNED.
+      description: Creates COMPLAINT_ASSIGNMENTS row (deactivates prior active). Sets complaint status to ASSIGNED.
       security:
         - bearerAuth: []
       parameters:
@@ -1713,8 +1839,8 @@ paths:
             examples:
               example1:
                 value:
-                  assignedToUserId: 4
-                  remarks: Assigned to Tanod on duty.
+                  assignedTo: 4
+                  remarks: Assigned to responder on duty.
       responses:
         '200':
           description: Complaint assigned successfully
@@ -1725,12 +1851,60 @@ paths:
         '403':
           description: Forbidden
 
+  /complaints/{complaintId}/assignments:
+    get:
+      tags:
+        - Assignments
+      summary: Get complaint assignments
+      description: Responder or Admin. Assignment history from COMPLAINT_ASSIGNMENTS.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: integer
+          example: 101
+        - in: query
+          name: activeOnly
+          schema:
+            type: boolean
+            default: false
+          description: If true, return only rows where IS_ACTIVE is true
+      responses:
+        '200':
+          description: Assignments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Assignments retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ComplaintAssignment'
+        '403':
+          description: Forbidden
+        '404':
+          description: Complaint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /complaints/{complaintId}/priority:
     patch:
       tags:
         - Complaints
       summary: Update complaint priority
-      description: Kagawad or Admin only. Change the priority level of a complaint.
+      description: Responder or Admin only. Change the priority level of a complaint.
       security:
         - bearerAuth: []
       parameters:
@@ -1916,7 +2090,7 @@ paths:
       tags:
         - Activity Logs
       summary: Get all activity logs
-      description: Admin or Kagawad only. Retrieve all activity logs across complaints.
+      description: Admin or Responder only. Retrieve all activity logs across complaints.
       security:
         - bearerAuth: []
       parameters:
@@ -2250,7 +2424,7 @@ paths:
       tags:
         - Dashboard
       summary: Get dashboard summary
-      description: Admin or Kagawad only. Retrieve top-level complaint and user counts.
+      description: Admin or Responder only. Retrieve top-level complaint and user counts.
       security:
         - bearerAuth: []
       responses:
@@ -2277,7 +2451,7 @@ paths:
       tags:
         - Dashboard
       summary: Get recent complaints
-      description: Admin or Kagawad only. Recent complaints without complainant PII.
+      description: Admin or Responder only. Recent complaints without complainant PII.
       security:
         - bearerAuth: []
       parameters:
@@ -2312,7 +2486,7 @@ paths:
       tags:
         - Dashboard
       summary: Get dashboard statistics
-      description: Admin or Kagawad only. Retrieve complaint statistics for charts.
+      description: Admin or Responder only. Retrieve complaint statistics for charts.
       security:
         - bearerAuth: []
       responses:
@@ -2362,7 +2536,7 @@ paths:
       tags:
         - Dashboard
       summary: Get complaint status breakdown
-      description: Admin or Kagawad only. Retrieve complaint counts grouped by status.
+      description: Admin or Responder only. Retrieve complaint counts grouped by status.
       security:
         - bearerAuth: []
       responses:
@@ -2396,7 +2570,7 @@ paths:
       tags:
         - Dashboard
       summary: Get complaint category breakdown
-      description: Admin or Kagawad only. Retrieve complaint counts grouped by category.
+      description: Admin or Responder only. Retrieve complaint counts grouped by category.
       security:
         - bearerAuth: []
       responses:
