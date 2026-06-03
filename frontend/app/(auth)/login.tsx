@@ -8,9 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
+
+const API_URL = 'https://BACKEND_API_URL_HERE/api/login';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -19,15 +22,55 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Controls loading indicators
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    // 1. Basic Validation
     if (!email || !password) {
       alert('Please fill out all fields');
       return;
     }
 
-    console.log('Logging in user:', { email, password });
-    router.replace('/(resident)/home');
+    // 2. Turn on loading indicator and disable button
+    setIsLoading(true);
+
+    try {
+      // 3. Make HTTP POST Request matching your JSON layout schema
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      // 4. Handle Server Response Pipeline
+      if (response.ok) {
+        console.log('Login Success Data Matrix:', data);
+        
+        // Optional: If your API returns a token, store it here (e.g., SecureStore or AsyncStorage)
+        // await SecureStore.setItemAsync('userToken', data.token);
+
+        // Routing transition to the authenticated dashboard area
+        router.replace('/(resident)/home');
+      } else {
+        // Handle server-side errors (e.g., 401 Unauthorized, 404 User Not Found)
+        alert(data.message || 'Invalid email or password. Please try again.');
+      }
+    } catch (error) {
+      // Handle network errors, timeouts, or dropped connections
+      console.error('API Network Connectivity Error:', error);
+      alert('Network connectivity error. Please check your internet connection.');
+    } finally {
+      // 5. Always turn off loading states when processing resolves
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -45,8 +88,9 @@ export default function LoginScreen() {
             onPress={() => router.push('/')} 
             style={styles.backButton}
             activeOpacity={0.7}
+            disabled={isLoading}
           >
-            <Text style={styles.backButtonText}>← Back</Text>
+            <Text style={[styles.backButtonText, isLoading && { opacity: 0.5 }]}>← Back</Text>
           </TouchableOpacity>
 
           {/* Header Section */}
@@ -71,6 +115,7 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!isLoading} // Disables input when sending data
               />
             </View>
 
@@ -89,10 +134,12 @@ export default function LoginScreen() {
                   secureTextEntry={secureText}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  editable={!isLoading}
                 />
                 <TouchableOpacity
                   onPress={() => setSecureText(!secureText)}
                   style={styles.toggleButton}
+                  disabled={isLoading}
                 >
                   <Text style={styles.toggleText}>
                     {secureText ? 'Show' : 'Hide'}
@@ -102,23 +149,35 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={() => alert('Forgot password functionality coming soon!')}
                 style={{ marginTop: 8, alignSelf: 'flex-end' }}
+                disabled={isLoading}
               >
-                <Text style={styles.forgotPasswordText}>Forgot?</Text>
+                <Text style={[styles.forgotPasswordText, isLoading && { opacity: 0.5 }]}>Forgot?</Text>
               </TouchableOpacity>
             </View>
 
             {/* Login Button */}
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
-              <Text style={styles.buttonText}>Sign In</Text>
+            <TouchableOpacity 
+              style={[styles.button, isLoading && styles.disabledButton]} 
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color="#ffffff" />
+                  <Text style={styles.buttonText}> Authenticating...</Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>Sign In</Text>
+              )}
             </TouchableOpacity>
           </View>
 
           {/* Footer Section */}
           <View style={styles.footerContainer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
-            <Link href="/(auth)/register" asChild>
+            <Link href="/(auth)/register" asChild disabled={isLoading}>
               <TouchableOpacity>
-                <Text style={styles.linkText}>Sign Up</Text>
+                <Text style={[styles.linkText, isLoading && { opacity: 0.5 }]}>Sign Up</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -235,6 +294,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
     boxShadow: '0px 4px 6px -1px rgba(79, 70, 229, 0.2)',
+  },
+  disabledButton: {
+    backgroundColor: '#a5b4fc', // Lighter faded purple color when disabled
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     color: '#ffffff',
