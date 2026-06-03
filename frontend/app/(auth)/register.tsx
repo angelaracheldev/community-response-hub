@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
-  Platform, 
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,34 +14,74 @@ import { Link, useRouter } from 'expo-router';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  
+
   // Form State
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!fullName || !email || !password) {
       alert('Please fill out all fields');
       return;
     }
-    
-    console.log('Registering user:', { fullName, email, password });
-    router.replace('/(resident)/home');
+
+    // 1. Process the fullName state to match the API Schema (firstName, lastName)
+    const nameParts = fullName.trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || 'N/A'; // Fallback if no last name entered
+
+    // 2. Build the exact Request Body payload required by your Swagger doc
+    const requestBody = {
+      firstName: firstName,
+      lastName: lastName,
+      email: email.trim().toLowerCase(),
+      password: password,
+      phoneNumber: '09171234567', // Static placeholder for testing
+      address: 'Block 10 Lot 5, Barangay Example', // Static placeholder for testing
+    };
+
+    try {
+      // 3. Make the network request to your endpoint
+      // NOTE: Replace this mock URL with your actual backend server IP/domain
+      const response = await fetch('https://your-api-url.com/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('Server registration success:', data);
+        alert('Account created successfully!');
+        router.replace('/(auth)/login');
+      } else {
+        // Displays error messages sent back by the backend validator
+        alert(data.message || 'Registration failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('API Error:', error);
+      alert('Network error. Make sure your backend server is running.');
+    }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Back Button */}
-          <TouchableOpacity 
-            onPress={() => router.push('/')} 
+          <TouchableOpacity
+            onPress={() => router.push('/')}
             style={styles.backButton}
             activeOpacity={0.7}
           >
@@ -51,16 +91,17 @@ export default function RegisterScreen() {
           {/* Header Section */}
           <View style={styles.headerContainer}>
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join your community platform to stay connected and report issues.</Text>
+            <Text style={styles.subtitle}>
+              Join your community platform to stay connected and report issues.
+            </Text>
           </View>
 
           {/* Form Fields */}
           <View style={styles.formContainer}>
-            
             {/* Full Name Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Full Name</Text>
-              <TextInput 
+              <TextInput
                 style={styles.input}
                 placeholder="John Doe"
                 placeholderTextColor="#9ca3af"
@@ -73,7 +114,7 @@ export default function RegisterScreen() {
             {/* Email Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
-              <TextInput 
+              <TextInput
                 style={styles.input}
                 placeholder="you@example.com"
                 placeholderTextColor="#9ca3af"
@@ -89,7 +130,7 @@ export default function RegisterScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
               <View style={styles.passwordContainer}>
-                <TextInput 
+                <TextInput
                   style={styles.passwordInput}
                   placeholder="••••••••"
                   placeholderTextColor="#9ca3af"
@@ -99,11 +140,13 @@ export default function RegisterScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => setSecureText(!secureText)}
                   style={styles.toggleButton}
                 >
-                  <Text style={styles.toggleText}>{secureText ? 'Show' : 'Hide'}</Text>
+                  <Text style={styles.toggleText}>
+                    {secureText ? 'Show' : 'Hide'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -112,7 +155,6 @@ export default function RegisterScreen() {
             <TouchableOpacity style={styles.button} onPress={handleRegister}>
               <Text style={styles.buttonText}>Sign Up</Text>
             </TouchableOpacity>
-
           </View>
 
           {/* Footer Section */}
@@ -124,7 +166,6 @@ export default function RegisterScreen() {
               </TouchableOpacity>
             </Link>
           </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -134,7 +175,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f9fafb', 
+    backgroundColor: '#f9fafb',
   },
   container: {
     flex: 1,
@@ -146,8 +187,8 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     justifyContent: 'center',
     width: '100%',
-    maxWidth: 450, 
-    alignSelf: 'center', 
+    maxWidth: 450,
+    alignSelf: 'center',
   },
   backButton: {
     alignSelf: 'flex-start',
@@ -166,12 +207,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#111827', 
+    color: '#111827',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280', 
+    color: '#6b7280',
     lineHeight: 24,
   },
   formContainer: {
@@ -195,7 +236,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
     color: '#111827',
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)', 
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -217,7 +258,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   toggleText: {
-    color: '#4f46e5', 
+    color: '#4f46e5',
     fontWeight: '600',
     fontSize: 14,
   },
