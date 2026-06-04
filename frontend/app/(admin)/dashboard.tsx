@@ -169,13 +169,13 @@ export default function AdminDashboard() {
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tabButton, selectedTab === 'users' && styles.activeTab]}
-          onPress={() => setSelectedTab('users')}
+          onPress={() => router.push('/(admin)/users')}
         >
           <Text style={[styles.tabText, selectedTab === 'users' && styles.activeTabText]}>Manage Users</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tabButton, selectedTab === 'complaints' && styles.activeTab]}
-          onPress={() => setSelectedTab('complaints')}
+          onPress={() => router.push('/(admin)/complaints')}
         >
           <Text style={[styles.tabText, selectedTab === 'complaints' && styles.activeTabText]}>Manage Complaints</Text>
         </TouchableOpacity>

@@ -43,6 +43,16 @@ router.post(
         ]
       );
 
+      // Insert activity log for complaint creation
+      try {
+        await db.query(
+          `INSERT INTO activity_logs (complaint_id, performed_by, action_type, description) VALUES ($1, $2, $3, $4)`,
+          [result.rows[0].complaint_id, req.user.user_id, 'complaint_created', 'Complaint created by user']
+        );
+      } catch (err) {
+        console.error('Failed to insert activity log for complaint creation:', err.message);
+      }
+
       res.status(201).json({ status: 'ok', message: 'Complaint created successfully', data: result.rows[0], timestamp: new Date().toISOString() });
     } catch (error) {
       console.error('Failed to create complaint:', error.message);
@@ -84,7 +94,33 @@ router.get('/', authMiddleware, async (req, res) => {
       filters.push(`c.reported_by = $${params.length}`);
     }
 
+    if (req.query.search) {
+      params.push(`%${req.query.search.toLowerCase()}%`);
+      filters.push(`(LOWER(c.title) LIKE $${params.length} OR LOWER(c.description) LIKE $${params.length})`);
+    }
+
+    // support status groups for convenience (active/closed/resolved)
+    if (req.query.statusGroup) {
+      const g = req.query.statusGroup.toLowerCase();
+      if (g === 'active') {
+        filters.push(`c.status IN ('pending','under_review','assigned','in_progress')`);
+      } else if (g === 'closed') {
+        filters.push(`c.status IN ('cancelled','rejected')`);
+      } else if (g === 'resolved') {
+        filters.push(`c.status = 'resolved'`);
+      }
+    }
+
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+
+    const page = Math.max(1, parseInt(req.query.page || '1', 10));
+    const pageSize = Math.max(1, Math.min(100, parseInt(req.query.pageSize || '10', 10)));
+    const offset = (page - 1) * pageSize;
+
+    const countQuery = `SELECT COUNT(*)::int AS total FROM complaints c LEFT JOIN complaint_assignments ca ON ca.complaint_id = c.complaint_id ${whereClause}`;
+    const countResult = await db.query(countQuery, params);
+    const total = countResult.rows[0].total;
+
     const query = `
       SELECT c.complaint_id, c.reported_by, c.category_id, cc.category_name, c.title, c.description, c.location_text, c.latitude, c.longitude, c.status, c.priority_level, c.remarks, c.created_at, c.updated_at,
              ca.assigned_to, u.first_name AS assigned_to_first_name, u.last_name AS assigned_to_last_name
@@ -94,10 +130,11 @@ router.get('/', authMiddleware, async (req, res) => {
       LEFT JOIN users u ON u.user_id = ca.assigned_to
       ${whereClause}
       ORDER BY c.created_at DESC
-      LIMIT 100`;
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
 
+    params.push(pageSize, offset);
     const result = await db.query(query, params);
-    res.json({ status: 'ok', count: result.rowCount, complaints: result.rows, timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', total, page, pageSize, complaints: result.rows, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('Failed to list complaints:', error.message);
     res.status(500).json({ status: 'error', message: 'Unable to retrieve complaints', error: error.message });
@@ -182,6 +219,16 @@ router.patch(
         return res.status(404).json({ status: 'error', message: 'Complaint not found' });
       }
 
+      // Insert activity log for status update
+      try {
+        await db.query(
+          `INSERT INTO activity_logs (complaint_id, performed_by, action_type, old_value, new_value, description) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [id, req.user.user_id, 'status_updated', null, status, `Status updated to ${status}`]
+        );
+      } catch (err) {
+        console.error('Failed to insert activity log for status update:', err.message);
+      }
+
       res.json({ status: 'ok', message: 'Complaint status updated successfully', data: result.rows[0], timestamp: new Date().toISOString() });
     } catch (error) {
       console.error('Failed to update complaint status:', error.message);
@@ -217,6 +264,16 @@ router.patch(
         [id, assignedToUserId, req.user.user_id]
       );
       await db.query('UPDATE complaints SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE complaint_id = $2', ['assigned', id]);
+
+      // Insert activity log for assignment
+      try {
+        await db.query(
+          `INSERT INTO activity_logs (complaint_id, performed_by, action_type, description, new_value) VALUES ($1, $2, $3, $4, $5)`,
+          [id, req.user.user_id, 'assigned', `Assigned to user ${assignedToUserId}`, assignedToUserId]
+        );
+      } catch (err) {
+        console.error('Failed to insert activity log for assignment:', err.message);
+      }
 
       res.json({ status: 'ok', message: 'Complaint assigned successfully', data: assignment.rows[0], timestamp: new Date().toISOString() });
     } catch (error) {

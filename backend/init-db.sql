@@ -435,6 +435,32 @@ CREATE TABLE activity_logs (
 
 -- ---
 
+-- # USER ACTIVITY LOGS
+-- Purpose: store admin/user related audit logs not tied to complaints
+
+CREATE TABLE IF NOT EXISTS user_activity_logs (
+    user_activity_log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    user_id UUID NOT NULL
+        REFERENCES users(user_id)
+        ON DELETE CASCADE,
+
+    performed_by UUID
+        REFERENCES users(user_id)
+        ON DELETE SET NULL,
+
+    action_type VARCHAR(100) NOT NULL,
+
+    old_value TEXT,
+
+    new_value TEXT,
+
+    description TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 -- ## Recommended Action Types
 
 -- ```text

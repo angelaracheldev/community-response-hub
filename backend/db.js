@@ -3,8 +3,8 @@ const { Pool } = require('pg');
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
-  user: process.env.DB_USER || 'crh_user',
-  password: process.env.DB_PASSWORD || 'crh_password_dev',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || '123456',
   database: process.env.DB_NAME || 'community_response_hub',
   max: 10,
   idleTimeoutMillis: 30000,

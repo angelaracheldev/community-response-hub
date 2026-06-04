@@ -26,21 +26,38 @@ router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
       filters.push(`COALESCE(rv.status, 'pending') = $${params.length}`);
     }
 
+    // search
+    if (req.query.search) {
+      params.push(`%${req.query.search.toLowerCase()}%`);
+      filters.push(`(LOWER(u.first_name || ' ' || u.last_name) LIKE $${params.length} OR LOWER(u.email) LIKE $${params.length} OR LOWER(u.user_code) LIKE $${params.length})`);
+    }
+
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-    const result = await db.query(
-      `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.role_id, r.role_name, u.is_verified, u.is_active, COALESCE(rv.status, 'not_submitted') AS verification_status, u.created_at
+
+    // pagination
+    const page = Math.max(1, parseInt(req.query.page || '1', 10));
+    const pageSize = Math.max(1, Math.min(100, parseInt(req.query.pageSize || '10', 10)));
+    const offset = (page - 1) * pageSize;
+
+    const countResult = await db.query(`SELECT COUNT(*)::int AS total FROM users u LEFT JOIN resident_verifications rv ON u.user_id = rv.user_id ${whereClause}`, params);
+    const total = countResult.rows[0].total;
+
+    const query = `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.role_id, r.role_name, u.is_verified, u.is_active, COALESCE(rv.status, 'not_submitted') AS verification_status, u.created_at
        FROM users u
        LEFT JOIN roles r ON u.role_id = r.role_id
        LEFT JOIN resident_verifications rv ON u.user_id = rv.user_id
        ${whereClause}
        ORDER BY u.created_at DESC
-       LIMIT 100`,
-      params
-    );
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
+    params.push(pageSize, offset);
+    const result = await db.query(query, params);
 
     res.json({
       status: 'ok',
-      count: result.rowCount,
+      total,
+      page,
+      pageSize,
       users: result.rows,
       timestamp: new Date().toISOString(),
     });
@@ -75,6 +92,28 @@ router.get('/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Failed to fetch user by id:', error.message);
     res.status(500).json({ status: 'error', message: 'Unable to retrieve user', error: error.message });
+  }
+});
+
+// GET verification details for a user (admin only)
+router.get('/:id/verification', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query(
+      `SELECT verification_id, user_id, verification_type, document_url, address, status, reviewed_by, submitted_at, reviewed_at
+       FROM resident_verifications
+       WHERE user_id = $1`,
+      [id]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({ status: 'error', message: 'Verification not found' });
+    }
+
+    res.json({ status: 'ok', verification: result.rows[0], timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('Failed to fetch verification:', error.message);
+    res.status(500).json({ status: 'error', message: 'Unable to retrieve verification', error: error.message });
   }
 });
 
@@ -170,6 +209,15 @@ router.patch('/:id/verification/review', authMiddleware, requireRole('admin'), [
     if (verificationStatus === 'approved') {
       await db.query('UPDATE users SET is_verified = TRUE WHERE user_id = $1', [id]);
     }
+
+    // insert a user activity log for audit
+    const actionType = verificationStatus === 'approved' ? 'verification_approved' : 'verification_rejected';
+    const description = verificationStatus === 'approved' ? 'Resident verification approved by admin' : 'Resident verification rejected by admin';
+    await db.query(
+      `INSERT INTO user_activity_logs (user_id, performed_by, action_type, old_value, new_value, description)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, req.user.user_id, actionType, null, verificationStatus, description]
+    );
 
     res.json({ status: 'ok', message: 'Verification reviewed successfully', timestamp: new Date().toISOString() });
   } catch (error) {

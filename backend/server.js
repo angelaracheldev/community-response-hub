@@ -13,6 +13,7 @@ const usersRoutes = require('./routes/users');
 const categoriesRoutes = require('./routes/categories');
 const complaintsRoutes = require('./routes/complaints');
 const activityLogsRoutes = require('./routes/activityLogs');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const port = process.env.API_PORT || 5000;
@@ -37,11 +38,16 @@ app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/complaints', complaintsRoutes);
 app.use('/api/v1/activity-logs', activityLogsRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(port, host, () => {
-  console.log(`Backend service running at http://${host}:${port}`);
-});
+if (require.main === module) {
+  app.listen(port, host, () => {
+    console.log(`Backend service running at http://${host}:${port}`);
+  });
+}
+
+module.exports = app;
