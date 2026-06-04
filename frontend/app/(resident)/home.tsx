@@ -84,7 +84,7 @@ export default function ResidentHomeScreen() {
                 autoCapitalize="none"
               />
               <TouchableOpacity style={styles.accentButton} onPress={handleVerifyResident}>
-                <Text style={styles.accentButtonText}>Submit Verification Dossier</Text>
+                <Text style={styles.accentButtonText}>Submit Verification</Text>
               </TouchableOpacity>
             </View>
           )}
