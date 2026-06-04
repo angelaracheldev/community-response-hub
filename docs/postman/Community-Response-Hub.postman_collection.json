@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "community-response-hub-api",
     "name": "Community Response Hub API",
-    "description": "Local API tests for Community Response Hub (backend/src).\n\n**Setup:**\n1. `docker-compose up -d`\n2. `cd backend && npm run dev`\n3. Import `CRH-Local.postman_environment.json` and select **CRH Local**\n4. Run **Auth → Login (Admin)** first to set `accessToken`\n\nSeed admin: `admin@example.com` / `Admin123!`",
+    "description": "Local API tests for Community Response Hub (backend/src).\n\n**Setup:**\n1. `docker-compose up -d`\n2. Copy `backend/.env.example` to `backend/.env.local` and set Cloudinary credentials\n3. `cd backend && npm run dev`\n4. Import `CRH-Local.postman_environment.json` and select **CRH Local**\n5. Run **Auth → Login (Admin)** first to set `accessToken`\n\nSeed admin: `admin@example.com` / `Admin123!`\n\n**Media:** Run **Complaints → List** or **Create Complaint** to set `complaintId`, then **Complaint Media → Upload** (pick a file in the Body tab).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -492,6 +492,147 @@
             },
             "url": "{{baseUrl}}/complaints/{{complaintId}}/assign",
             "description": "Run **List Users** first to set `assignedToUserId` (responder UUID)."
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+      }
+    },
+    {
+      "name": "Complaint Media",
+      "item": [
+        {
+          "name": "Upload Complaint Media",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data?.length) {",
+                  "  pm.environment.set('mediaId', json.data[0].media_id);",
+                  "}",
+                  "pm.test('Media uploaded', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(json.status).to.eql('ok');",
+                  "  pm.expect(json.data[0].media_url).to.include('res.cloudinary.com');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "description": "Image or video (max 10MB). Click Select Files.",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/complaints/{{complaintId}}/media",
+            "description": "Uploads to Cloudinary and saves URL in `complaint_media`.\n\n1. Set `complaintId` via **List Complaints** or **Create Complaint**\n2. Body → form-data → **files** → Select Files (jpg/png/mp4, etc.)\n3. Do not set Content-Type manually (Postman adds multipart boundary)."
+          }
+        },
+        {
+          "name": "Upload Complaint Media (multiple files)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data?.length) {",
+                  "  pm.environment.set('mediaId', json.data[json.data.length - 1].media_id);",
+                  "}",
+                  "pm.test('Media uploaded', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "First file"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "Second file (optional)"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/complaints/{{complaintId}}/media",
+            "description": "Same field name `files` repeated (max 5 per request)."
+          }
+        },
+        {
+          "name": "List Complaint Media",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data?.length) {",
+                  "  pm.environment.set('mediaId', json.data[0].media_id);",
+                  "}",
+                  "pm.test('Media list retrieved', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(json.status).to.eql('ok');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/complaints/{{complaintId}}/media",
+            "description": "Returns all media for the complaint (`media_url`, `media_type`, etc.)."
+          }
+        },
+        {
+          "name": "Delete Complaint Media",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Media deleted', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().status).to.eql('ok');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/complaints/{{complaintId}}/media/{{mediaId}}",
+            "description": "Removes DB row only (Cloudinary asset not deleted in v1). Run **Upload** or **List** first to set `mediaId`."
           }
         }
       ],
