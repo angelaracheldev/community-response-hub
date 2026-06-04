@@ -91,8 +91,11 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
 
     password_hash TEXT NOT NULL,
+    salt TEXT,
 
     phone_number VARCHAR(20),
+
+    address TEXT,
 
     profile_image_url TEXT,
 
@@ -509,6 +512,7 @@ INSERT INTO users (
     last_name,
     email,
     password_hash,
+    salt,
     phone_number,
     is_verified
 )
@@ -519,6 +523,7 @@ VALUES
     'Dela Cruz',
     'juan@example.com',
     'hashed_password',
+    NULL,
     '09171234567',
     TRUE
 ),
@@ -528,6 +533,7 @@ VALUES
     'Santos',
     'maria@example.com',
     'hashed_password',
+    NULL,
     '09181234567',
     TRUE
 ),
@@ -537,6 +543,7 @@ VALUES
     'Tanod',
     'pedro@example.com',
     'hashed_password',
+    NULL,
     '09221234567',
     TRUE
 ),
@@ -546,6 +553,7 @@ VALUES
     'Tanod',
     'ramon@example.com',
     'hashed_password',
+    NULL,
     '09231234567',
     TRUE
 ),
@@ -554,7 +562,8 @@ VALUES
     'Ana',
     'Administrator',
     'admin@example.com',
-    'hashed_password',
+    '$2b$12$mjPZgh2IKQD1KbGp1v3.L.GKs580H0wAIaAshJTC4nkl8b9nR5hly',
+    '$2b$12$mjPZgh2IKQD1KbGp1v3.L.',
     '09991234567',
     TRUE
 );
