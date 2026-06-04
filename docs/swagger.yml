@@ -7,13 +7,15 @@ info:
 
     Aligned with database ERD (USER, ROLE, RESIDENT_VERIFICATIONS, COMPLAINTS,
     COMPLAINT_CATEGORIES, COMPLAINT_MEDIA, COMPLAINT_ASSIGNMENTS, ACTIVITY_LOGS,
-    EMERGENCY_HOTLINES, FAQs).
+    EMERGENCY_HOTLINES).
+
+    FAQs are out of scope for this API version (resident FAQs remain client-side or static content).
 
     Roles: Admin, Resident, Responder.
 
     Privacy: Complainant residentId is hidden from Responder responses. Admin sees full PII.
     Verification documents are temporary and removed after admin review.
-  version: 1.1.0
+  version: 1.2.0
 
 servers:
   - url: http://localhost:5000/api/v1
@@ -38,8 +40,6 @@ tags:
     description: Complaint category endpoints
   - name: Emergency Hotlines
     description: Emergency hotline endpoints
-  - name: FAQs
-    description: Frequently asked questions for residents
   - name: Dashboard
     description: Summary and analytics endpoints
 
@@ -680,64 +680,6 @@ components:
           type: string
           example: Updated description
 
-    Faq:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 1
-        question:
-          type: string
-          example: How do I track my complaint?
-        answer:
-          type: string
-          example: Open My Complaints in the app to see status updates.
-        sortOrder:
-          type: integer
-          example: 1
-        isPublished:
-          type: boolean
-          example: true
-        createdAt:
-          type: string
-          format: date-time
-          example: 2026-06-01T08:00:00Z
-        updatedAt:
-          type: string
-          format: date-time
-          example: 2026-06-01T09:00:00Z
-
-    FaqCreateRequest:
-      type: object
-      required:
-        - question
-        - answer
-      properties:
-        question:
-          type: string
-          example: How do I track my complaint?
-        answer:
-          type: string
-          example: Open My Complaints in the app to see status updates.
-        sortOrder:
-          type: integer
-          example: 1
-        isPublished:
-          type: boolean
-          example: true
-
-    FaqUpdateRequest:
-      type: object
-      properties:
-        question:
-          type: string
-        answer:
-          type: string
-        sortOrder:
-          type: integer
-        isPublished:
-          type: boolean
-
     DashboardSummary:
       type: object
       properties:
@@ -877,20 +819,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EmergencyHotline'
-
-    FaqListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
-          type: string
-          example: FAQs retrieved successfully
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Faq'
 
 paths:
   /auth/register:
@@ -2137,149 +2065,6 @@ paths:
                       totalPages:
                         type: integer
                         example: 5
-        '403':
-          description: Forbidden
-
-  /faqs:
-    get:
-      tags:
-        - FAQs
-      summary: Get FAQs
-      description: Public. Returns published FAQ entries only.
-      responses:
-        '200':
-          description: FAQs retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FaqListResponse'
-    post:
-      tags:
-        - FAQs
-      summary: Create FAQ
-      description: Admin only. Create a new FAQ entry.
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FaqCreateRequest'
-            examples:
-              example1:
-                value:
-                  question: How do I track my complaint?
-                  answer: Open My Complaints in the app to see status updates.
-                  sortOrder: 1
-                  isPublished: true
-      responses:
-        '201':
-          description: FAQ created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: FAQ created successfully
-                  data:
-                    $ref: '#/components/schemas/Faq'
-        '403':
-          description: Forbidden
-
-  /faqs/{faqId}:
-    get:
-      tags:
-        - FAQs
-      summary: Get FAQ details
-      description: Retrieve a single FAQ entry by ID.
-      parameters:
-        - in: path
-          name: faqId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      responses:
-        '200':
-          description: FAQ retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: FAQ retrieved successfully
-                  data:
-                    $ref: '#/components/schemas/Faq'
-    patch:
-      tags:
-        - FAQs
-      summary: Update FAQ
-      description: Admin only. Update an FAQ entry.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: faqId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FaqUpdateRequest'
-      responses:
-        '200':
-          description: FAQ updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: FAQ updated successfully
-                  data:
-                    $ref: '#/components/schemas/Faq'
-        '403':
-          description: Forbidden
-    delete:
-      tags:
-        - FAQs
-      summary: Delete FAQ
-      description: Admin only. Delete an FAQ entry.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: faqId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      responses:
-        '200':
-          description: FAQ deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
         '403':
           description: Forbidden
 

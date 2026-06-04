@@ -26,4 +26,16 @@ router.patch(
   complaintsController.assignComplaint
 );
 
+const upload = require('../middleware/upload');
+const mediaController = require('../controllers/media.controller');
+
+router.post(
+  '/:id/media',
+  authMiddleware,
+  upload.array('files', 5),
+  mediaController.uploadMedia
+);
+router.get('/:id/media', authMiddleware, mediaController.listMedia);
+router.delete('/:id/media/:mediaId', authMiddleware, mediaController.deleteMedia);
+
 module.exports = router;
