@@ -196,35 +196,48 @@ router.get('/:id', authMiddleware, async (req, res) => {
 router.get('/:id/activity-logs', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const filters = ['complaint_id = $1'];
+    const filters = ['al.complaint_id = $1'];
     const params = [id];
 
     if (req.query.actionType) {
       params.push(req.query.actionType);
-      filters.push(`action_type = $${params.length}`);
+      filters.push(`al.action_type = $${params.length}`);
     }
     if (req.query.startDate) {
       params.push(req.query.startDate);
-      filters.push(`created_at >= $${params.length}`);
+      filters.push(`al.created_at >= $${params.length}`);
     }
     if (req.query.endDate) {
       params.push(req.query.endDate);
-      filters.push(`created_at <= $${params.length}`);
+      filters.push(`al.created_at <= $${params.length}`);
+    }
+    if (req.query.performedBy) {
+      params.push(req.query.performedBy);
+      filters.push(`al.performed_by = $${params.length}`);
+    }
+    if (req.query.description) {
+      params.push(`%${req.query.description.toLowerCase()}%`);
+      filters.push(`LOWER(al.description) LIKE $${params.length}`);
     }
 
     const whereClause = `WHERE ${filters.join(' AND ')}`;
+
+    const allowedSort = { created_at: 'al.created_at', action_type: 'al.action_type', performed_by: 'al.performed_by' };
+    const sortBy = allowedSort[req.query.sortBy] || 'al.created_at';
+    const sortDir = (req.query.sortDir && req.query.sortDir.toLowerCase() === 'asc') ? 'ASC' : 'DESC';
 
     const page = Math.max(1, parseInt(req.query.page || '1', 10));
     const pageSize = Math.max(1, Math.min(100, parseInt(req.query.pageSize || '10', 10)));
     const offset = (page - 1) * pageSize;
 
-    const countResult = await db.query(`SELECT COUNT(*)::int AS total FROM activity_logs ${whereClause}`, params);
+    const countResult = await db.query(`SELECT COUNT(*)::int AS total FROM activity_logs al ${whereClause}`, params);
     const total = countResult.rows[0].total;
 
-    const query = `SELECT activity_log_id, complaint_id, performed_by, action_type, old_value, new_value, description, created_at
-                   FROM activity_logs
+    const query = `SELECT al.activity_log_id, al.complaint_id, al.performed_by, pb.first_name AS performed_by_first_name, pb.last_name AS performed_by_last_name, al.action_type, al.old_value, al.new_value, al.description, al.created_at
+                   FROM activity_logs al
+                   LEFT JOIN users pb ON al.performed_by = pb.user_id
                    ${whereClause}
-                   ORDER BY created_at ASC
+                   ORDER BY ${sortBy} ${sortDir}
                    LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
 
     params.push(pageSize, offset);

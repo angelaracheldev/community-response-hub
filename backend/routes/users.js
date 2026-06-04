@@ -121,35 +121,49 @@ router.get('/:id/verification', authMiddleware, requireRole('admin'), async (req
 router.get('/:id/activity-logs', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const filters = ['user_id = $1'];
+    const filters = ['ual.user_id = $1'];
     const params = [id];
 
     if (req.query.actionType) {
       params.push(req.query.actionType);
-      filters.push(`action_type = $${params.length}`);
+      filters.push(`ual.action_type = $${params.length}`);
     }
     if (req.query.startDate) {
       params.push(req.query.startDate);
-      filters.push(`created_at >= $${params.length}`);
+      filters.push(`ual.created_at >= $${params.length}`);
     }
     if (req.query.endDate) {
       params.push(req.query.endDate);
-      filters.push(`created_at <= $${params.length}`);
+      filters.push(`ual.created_at <= $${params.length}`);
+    }
+    if (req.query.performedBy) {
+      params.push(req.query.performedBy);
+      filters.push(`ual.performed_by = $${params.length}`);
+    }
+    if (req.query.description) {
+      params.push(`%${req.query.description.toLowerCase()}%`);
+      filters.push(`LOWER(ual.description) LIKE $${params.length}`);
     }
 
     const whereClause = `WHERE ${filters.join(' AND ')}`;
+
+    // sorting
+    const allowedSort = { created_at: 'ual.created_at', action_type: 'ual.action_type', performed_by: 'ual.performed_by' };
+    const sortBy = allowedSort[req.query.sortBy] || 'ual.created_at';
+    const sortDir = (req.query.sortDir && req.query.sortDir.toLowerCase() === 'asc') ? 'ASC' : 'DESC';
 
     const page = Math.max(1, parseInt(req.query.page || '1', 10));
     const pageSize = Math.max(1, Math.min(100, parseInt(req.query.pageSize || '10', 10)));
     const offset = (page - 1) * pageSize;
 
-    const countResult = await db.query(`SELECT COUNT(*)::int AS total FROM user_activity_logs ${whereClause}`, params);
+    const countResult = await db.query(`SELECT COUNT(*)::int AS total FROM user_activity_logs ual ${whereClause}`, params);
     const total = countResult.rows[0].total;
 
-    const query = `SELECT user_activity_log_id, user_id, performed_by, action_type, old_value, new_value, description, created_at
-                   FROM user_activity_logs
+    const query = `SELECT ual.user_activity_log_id, ual.user_id, ual.performed_by, pb.first_name AS performed_by_first_name, pb.last_name AS performed_by_last_name, ual.action_type, ual.old_value, ual.new_value, ual.description, ual.created_at
+                   FROM user_activity_logs ual
+                   LEFT JOIN users pb ON ual.performed_by = pb.user_id
                    ${whereClause}
-                   ORDER BY created_at DESC
+                   ORDER BY ${sortBy} ${sortDir}
                    LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
 
     params.push(pageSize, offset);
