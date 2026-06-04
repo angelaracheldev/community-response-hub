@@ -6,17 +6,25 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
+
+const BASE_URL = 'https://BACKEND_API_URL_HERE'; // Replace with your backend URL/IP
 
 export default function ResidentHomeScreen() {
   const router = useRouter();
 
   // --- STATE FOR COMMUNITY VERIFICATION ---
   const [isVerified, setIsVerified] = useState(false);
-  const [houseAddress, setHouseAddress] = useState('');
-  const [verificationToken, setVerificationToken] = useState('');
+  const [address, setAddress] = useState('');
+  const [verificationType, setVerificationType] = useState('Utility Bill'); // Defaulting type matching your API requirements
+  const [imageUri, setImageUri] = useState(null); // Local URI for selected verification file
+  const [isLoading, setIsLoading] = useState(false);
 
   // --- MOCK DATA FOR FAQS & HOTLINES ---
   const emergencyHotlines = [
@@ -26,17 +34,83 @@ export default function ResidentHomeScreen() {
   ];
 
   const faqs = [
-    { id: 'f1', q: 'How long does complaint resolution take?', a: 'Standard municipal/barangay issues are assessed within 24–48 hours.' },
-    { id: 'f2', q: 'What counts as valid photo/video evidence?', a: 'Clear, timestamped media captured within the boundaries of the community compound.' },
+    { id: 'f1', q: 'How long does complaint resolution take?', a: 'Standard issues are assessed within 24–48 hours.' },
+    { id: 'f2', q: 'What counts as valid evidence?', a: 'Clear, timestamped media captured within community boundaries.' },
   ];
 
-  const handleVerifyResident = () => {
-    if (!houseAddress || !verificationToken) {
-      alert('Please enter your house address and verification security token.');
+  // Pick Document/Image for Proof of Residence
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      alert("Permission to access camera roll is required!");
       return;
     }
-    setIsVerified(true);
-    alert('Profile successfully matched and Verified!');
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  // Connected API Verification Call
+  const handleVerifyResident = async () => {
+    if (!address || !imageUri) {
+      alert('Please fill out your address and upload a proof of residence image.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const token = await SecureStore.getItemAsync('userToken');
+
+      // 1. Construct Multipart Form Data Payload matching Swagger specifications
+      const formData = new FormData();
+      formData.append('verificationType', verificationType);
+      formData.append('address', address);
+
+      // Extract details out of imageUri to mimic binary upload stream
+      const filename = imageUri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image`;
+
+      formData.append('file', {
+        uri: imageUri,
+        name: filename,
+        type: type,
+      });
+
+      // 2. Make Network Call using multipart headers
+      const response = await fetch(`${BASE_URL}/resident/verify`, { // Verify your exact path prefix endpoint here
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`, // Pass Auth token if endpoint is protected
+          'Accept': 'application/json',
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsVerified(true);
+        alert('Verification payload submitted successfully!');
+      } else {
+        alert(data.message || 'Verification submission failed.');
+      }
+    } catch (error) {
+      console.error('API Verification Request Error:', error);
+      alert('Network connectivity error. Could not upload documents.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -61,7 +135,7 @@ export default function ResidentHomeScreen() {
           {isVerified ? (
             <View style={[styles.card, styles.verifiedCard]}>
               <Text style={styles.cardTitleSuccess}>🛡️ Account Verified Securely</Text>
-              <Text style={styles.cardDesc}>Your address at "{houseAddress}" is locked. You have authorization to file official subdivision reports.</Text>
+              <Text style={styles.cardDesc}>Your address at "{address}" is locked. You have authorization to file official subdivision reports.</Text>
             </View>
           ) : (
             <View style={[styles.card, styles.actionCard]}>
@@ -72,24 +146,33 @@ export default function ResidentHomeScreen() {
                 style={styles.input}
                 placeholder="Physical House Address (e.g., Blk 2 Lot 4, Redwood St)"
                 placeholderTextColor="#9ca3af"
-                value={houseAddress}
-                onChangeText={setHouseAddress}
+                value={address}
+                onChangeText={setAddress}
+                editable={!isLoading}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Verification Token (Admin issued)"
-                placeholderTextColor="#9ca3af"
-                value={verificationToken}
-                onChangeText={setVerificationToken}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity style={styles.accentButton} onPress={handleVerifyResident}>
-                <Text style={styles.accentButtonText}>Submit Verification</Text>
+
+              {/* Upload Proof of Residence Button */}
+              <TouchableOpacity style={styles.uploadButton} onPress={pickImage} disabled={isLoading}>
+                <Text style={styles.uploadButtonText}>
+                  {imageUri ? '✓ Media Attached' : '📁 Upload Proof of Residence'}
+                </Text>
+              </TouchableOpacity>
+
+              {imageUri && (
+                <Image source={{ uri: imageUri }} style={styles.previewImage} />
+              )}
+
+              <TouchableOpacity style={styles.accentButton} onPress={handleVerifyResident} disabled={isLoading}>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.accentButtonText}>Submit Verification</Text>
+                )}
               </TouchableOpacity>
             </View>
           )}
 
-          {/* QUICK LINKS (Navigates directly to your separated pages) */}
+          {/* QUICK LINKS */}
           <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Quick Action Hub</Text>
           <View style={styles.quickActionRow}>
             <TouchableOpacity style={styles.actionBox} onPress={() => router.push('/(resident)/submit-complaint')}>
@@ -107,7 +190,7 @@ export default function ResidentHomeScreen() {
           {emergencyHotlines.map((hotline) => (
             <View key={hotline.id} style={styles.hotlineCard}>
               <Text style={styles.hotlineName}>{hotline.name}</Text>
-              <TouchableOpacity onPress={() => alert(`Dialing phone routing to: ${hotline.phone}`)}>
+              <TouchableOpacity onPress={() => alert(`Dialing: ${hotline.phone}`)}>
                 <Text style={styles.hotlinePhone}>{hotline.phone} 📞</Text>
               </TouchableOpacity>
             </View>
@@ -136,7 +219,7 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     width: '100%',
-    maxWidth: 450, // Matches your web constraint setup across pages
+    maxWidth: 450,
     alignSelf: 'center',
     paddingHorizontal: 16,
   },
@@ -222,6 +305,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
     marginBottom: 10,
+  },
+  uploadButton: {
+    backgroundColor: '#e5e7eb',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  uploadButtonText: {
+    color: '#374151',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  previewImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 10,
+    resizeMode: 'cover',
   },
   accentButton: {
     backgroundColor: '#4f46e5',
