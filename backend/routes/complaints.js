@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
 const db = require('../db');
-const { authMiddleware, requireAnyRole } = require('../middleware/auth');
+const { authMiddleware, requireAnyRole, requireRole } = require('../middleware/auth');
 
 const STATUS_VALUES = ['pending', 'under_review', 'assigned', 'in_progress', 'resolved', 'cancelled', 'rejected'];
 const PRIORITY_VALUES = ['low', 'normal', 'high', 'urgent'];
@@ -189,6 +189,51 @@ router.get('/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Failed to fetch complaint:', error.message);
     res.status(500).json({ status: 'error', message: 'Unable to retrieve complaint', error: error.message });
+  }
+});
+
+// GET complaint activity logs (admin only)
+router.get('/:id/activity-logs', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const filters = ['complaint_id = $1'];
+    const params = [id];
+
+    if (req.query.actionType) {
+      params.push(req.query.actionType);
+      filters.push(`action_type = $${params.length}`);
+    }
+    if (req.query.startDate) {
+      params.push(req.query.startDate);
+      filters.push(`created_at >= $${params.length}`);
+    }
+    if (req.query.endDate) {
+      params.push(req.query.endDate);
+      filters.push(`created_at <= $${params.length}`);
+    }
+
+    const whereClause = `WHERE ${filters.join(' AND ')}`;
+
+    const page = Math.max(1, parseInt(req.query.page || '1', 10));
+    const pageSize = Math.max(1, Math.min(100, parseInt(req.query.pageSize || '10', 10)));
+    const offset = (page - 1) * pageSize;
+
+    const countResult = await db.query(`SELECT COUNT(*)::int AS total FROM activity_logs ${whereClause}`, params);
+    const total = countResult.rows[0].total;
+
+    const query = `SELECT activity_log_id, complaint_id, performed_by, action_type, old_value, new_value, description, created_at
+                   FROM activity_logs
+                   ${whereClause}
+                   ORDER BY created_at ASC
+                   LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
+    params.push(pageSize, offset);
+    const result = await db.query(query, params);
+
+    res.json({ status: 'ok', total, page, pageSize, logs: result.rows, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('Failed to fetch complaint activity logs:', error.message);
+    res.status(500).json({ status: 'error', message: 'Unable to retrieve complaint activity logs', error: error.message });
   }
 });
 
