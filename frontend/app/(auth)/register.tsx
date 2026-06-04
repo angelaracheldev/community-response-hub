@@ -26,25 +26,25 @@ export default function RegisterScreen() {
       alert('Please fill out all fields');
       return;
     }
-
+  
     // 1. Process the fullName state to match the API Schema (firstName, lastName)
     const nameParts = fullName.trim().split(' ');
     const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || 'N/A'; // Fallback if no last name entered
-
-    // 2. Build the exact Request Body payload required by your Swagger doc
+    const lastName = nameParts.slice(1).join(' ') || 'N/A';
+  
+    // 2. Build the EXACT Request Body payload required by your Swagger doc
     const requestBody = {
       firstName: firstName,
       lastName: lastName,
       email: email.trim().toLowerCase(),
       password: password,
       phoneNumber: '09171234567', // Static placeholder for testing
-      address: 'Block 10 Lot 5, Barangay Example', // Static placeholder for testing
+      // REMOVED 'address' because it is not in your API Docs Schema
     };
-
+  
     try {
       // 3. Make the network request to your endpoint
-      // NOTE: Replace this mock URL with your actual backend server IP/domain
+      // TODO: Replace with your actual machine IP (e.g., http://192.168.1.X:5000/api/register) if testing locally
       const response = await fetch('https://your-api-url.com/api/register', {
         method: 'POST',
         headers: {
@@ -52,15 +52,14 @@ export default function RegisterScreen() {
         },
         body: JSON.stringify(requestBody),
       });
-
+  
       const data = await response.json();
-
+  
       if (response.ok) {
         console.log('Server registration success:', data);
         alert('Account created successfully!');
         router.replace('/(auth)/login');
       } else {
-        // Displays error messages sent back by the backend validator
         alert(data.message || 'Registration failed. Please try again.');
       }
     } catch (error) {
