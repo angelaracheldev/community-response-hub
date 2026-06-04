@@ -13,8 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { setAdminToken, getAdminToken } from '../../utils/authStorage';
+import { API_BASE } from '../../utils/apiConfig';
 
-const API_URL = 'http://127.0.0.1:5000/api/v1/auth/login';
+const API_URL = `${API_BASE}/auth/login`;
 
 export default function AdminLogin() {
   const router = useRouter();

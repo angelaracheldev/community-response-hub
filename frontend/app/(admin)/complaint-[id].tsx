@@ -10,8 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getAdminToken } from '../../utils/authStorage';
+import { API_BASE } from '../../utils/apiConfig';
 
-const API_BASE = 'http://127.0.0.1:5000/api/v1';
 
 type ActivityLog = {
   activity_log_id: string;

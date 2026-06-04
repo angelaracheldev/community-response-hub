@@ -13,8 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
+import { API_BASE } from '../../utils/apiConfig';
 
-const BASE_URL = 'https://BACKEND_API_URL_HERE'; // Replace with your backend URL/IP
+const BASE_URL = API_BASE;
 
 export default function ResidentHomeScreen() {
   const router = useRouter();

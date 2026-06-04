@@ -13,9 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-
-// 1. Point this to your machine's Local IP if running a local backend node (e.g., 'http://192.168.1.50:5000')
-const BASE_URL = 'https://BACKEND_API_URL_HERE'; 
+import { API_BASE } from '../../utils/apiConfig';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -36,7 +34,7 @@ export default function LoginScreen() {
 
     try {
       // 2. Exact alignment with Swagger doc path: /auth/login
-      const response = await fetch(`${BASE_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

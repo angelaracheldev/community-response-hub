@@ -3,8 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, FlatList, Modal, ActivityIndi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { getAdminToken } from '../../utils/authStorage';
-
-const API_BASE = 'http://127.0.0.1:5000/api/v1';
+import { API_BASE, ADMIN_API_BASE } from '../../utils/apiConfig';
 
 const ACTIVE_STATUSES = ['pending', 'under_review', 'assigned', 'in_progress'];
 const CLOSED_STATUSES = ['cancelled', 'rejected'];
@@ -57,7 +56,7 @@ export default function AdminComplaints() {
     setModalOpen(true);
     setSelected(null);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/admin/complaints/${complaintId}/details`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${ADMIN_API_BASE}/admin/complaints/${complaintId}/details`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed');
       setSelected(data);
