@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
-const db = require('../db');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret_for_dev';
+const db = require('../config/database');
+const { jwtSecret } = require('../config');
 
 async function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -11,7 +10,7 @@ async function authMiddleware(req, res, next) {
 
   const token = header.replace('Bearer ', '').trim();
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, jwtSecret);
     if (!payload || !payload.userId) {
       return res.status(401).json({ status: 'error', message: 'Invalid token payload' });
     }
