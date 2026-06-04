@@ -1,0 +1,29 @@
+const router = require('express').Router();
+const { authMiddleware, requireAnyRole } = require('../middleware/auth');
+const complaintsController = require('../controllers/complaints.controller');
+const {
+  createComplaintValidation,
+  updateStatusValidation,
+  assignComplaintValidation,
+} = require('../validators/complaints.validator');
+
+router.post('/', authMiddleware, createComplaintValidation, complaintsController.createComplaint);
+router.get('/', authMiddleware, complaintsController.listComplaints);
+router.get('/my', authMiddleware, complaintsController.listMyComplaints);
+router.get('/:id', authMiddleware, complaintsController.getComplaintById);
+router.patch(
+  '/:id/status',
+  authMiddleware,
+  requireAnyRole(['admin', 'responder']),
+  updateStatusValidation,
+  complaintsController.updateComplaintStatus
+);
+router.patch(
+  '/:id/assign',
+  authMiddleware,
+  requireAnyRole(['admin', 'responder']),
+  assignComplaintValidation,
+  complaintsController.assignComplaint
+);
+
+module.exports = router;
