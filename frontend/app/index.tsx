@@ -29,10 +29,10 @@ export default function Gatekeeper() {
           <Text style={styles.buttonText}>Enter as Resident</Text>
         </TouchableOpacity>
 
-        {/* Simulation Button 3: Go to Admin Dashboard */}
+        {/* Simulation Button 3: Go to Admin Landing */}
         <TouchableOpacity 
           style={[styles.button, { backgroundColor: '#FF9500' }]} 
-          onPress={() => router.push('/(admin)/dashboard')}
+          onPress={() => router.push('/(admin)')}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>Enter as Officer Dashboard</Text>
