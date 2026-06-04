@@ -25,7 +25,7 @@ This will:
 - Download the PostgreSQL 15 Alpine image
 - Create and start the database container
 - Initialize all tables with the schema
-- Insert sample data (categories, hotlines, FAQs)
+- Insert sample data (categories; hotlines when seeded)
 
 ### 3. Verify the Database is Running
 ```bash
@@ -85,7 +85,6 @@ DB_NAME=community_response_hub
 4. **complaint_media** - Photos, videos, documents attached to complaints
 5. **activity_logs** - Audit trail of changes
 6. **emergency_hotlines** - Emergency contact numbers
-7. **faqs** - Frequently asked questions
 
 ### Key Features
 - ✅ UUID primary keys (auto-generated)
