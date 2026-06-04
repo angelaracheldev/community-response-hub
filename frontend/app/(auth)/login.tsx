@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'https://BACKEND_API_URL_HERE/api/login';
+// 1. Point this to your machine's Local IP if running a local backend node (e.g., 'http://192.168.1.50:5000')
+const BASE_URL = 'https://BACKEND_API_URL_HERE'; 
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -22,53 +24,49 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
-  const [isLoading, setIsLoading] = useState(false); // Controls loading indicators
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
-    // 1. Basic Validation
     if (!email || !password) {
       alert('Please fill out all fields');
       return;
     }
 
-    // 2. Turn on loading indicator and disable button
     setIsLoading(true);
 
     try {
-      // 3. Make HTTP POST Request matching your JSON layout schema
-      const response = await fetch(API_URL, {
+      // 2. Exact alignment with Swagger doc path: /auth/login
+      const response = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          email: email.trim(),
+          email: email.trim().toLowerCase(), // Normalize email strings
           password: password,
         }),
       });
 
       const data = await response.json();
 
-      // 4. Handle Server Response Pipeline
       if (response.ok) {
         console.log('Login Success Data Matrix:', data);
         
-        // Optional: If your API returns a token, store it here (e.g., SecureStore or AsyncStorage)
-        // await SecureStore.setItemAsync('userToken', data.token);
+        // 3. Persist JWT Token securely for global authorization headers
+        // Adjust 'data.token' based on your exact backend payload response keys (e.g., data.accessToken)
+        if (data.token) {
+          await SecureStore.setItemAsync('userToken', data.token);
+        }
 
-        // Routing transition to the authenticated dashboard area
         router.replace('/(resident)/home');
       } else {
-        // Handle server-side errors (e.g., 401 Unauthorized, 404 User Not Found)
         alert(data.message || 'Invalid email or password. Please try again.');
       }
     } catch (error) {
-      // Handle network errors, timeouts, or dropped connections
       console.error('API Network Connectivity Error:', error);
-      alert('Network connectivity error. Please check your internet connection.');
+      alert('Network connectivity error. Please check your connection or backend server.');
     } finally {
-      // 5. Always turn off loading states when processing resolves
       setIsLoading(false);
     }
   };
@@ -115,7 +113,7 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                editable={!isLoading} // Disables input when sending data
+                editable={!isLoading}
               />
             </View>
 
@@ -296,7 +294,7 @@ const styles = StyleSheet.create({
     boxShadow: '0px 4px 6px -1px rgba(79, 70, 229, 0.2)',
   },
   disabledButton: {
-    backgroundColor: '#a5b4fc', // Lighter faded purple color when disabled
+    backgroundColor: '#a5b4fc',
   },
   loadingRow: {
     flexDirection: 'row',
