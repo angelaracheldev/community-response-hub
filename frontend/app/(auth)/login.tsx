@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { API_BASE } from '../../utils/apiConfig';
+import { extractAccessToken, setResidentToken } from '../../utils/residentAuth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -51,10 +51,9 @@ export default function LoginScreen() {
       if (response.ok) {
         console.log('Login Success Data Matrix:', data);
         
-        // 3. Persist JWT Token securely for global authorization headers
-        // Adjust 'data.token' based on your exact backend payload response keys (e.g., data.accessToken)
-        if (data.token) {
-          await SecureStore.setItemAsync('userToken', data.token);
+        const accessToken = extractAccessToken(data);
+        if (accessToken) {
+          await setResidentToken(accessToken);
         }
 
         router.replace('/(resident)/home');
