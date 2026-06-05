@@ -2,6 +2,7 @@ const { STATUS_VALUES } = require('../constants/complaintStatus');
 const { PRIORITY_VALUES } = require('../constants/complaintPriority');
 const complaintsRepository = require('../repositories/complaints.repository');
 const assignmentsRepository = require('../repositories/assignments.repository');
+const activityLogsRepository = require('../repositories/activityLogs.repository');
 
 async function createComplaint(requestUser, body) {
   const { categoryId, title, description, locationText, latitude, longitude, priorityLevel } = body;
@@ -25,12 +26,50 @@ async function createComplaint(requestUser, body) {
     priorityLevel: resolvedPriority,
   });
 
+  const complaint = result.rows[0];
+
+  try {
+    await activityLogsRepository.insertLog({
+      complaintId: complaint.complaint_id,
+      performedBy: requestUser.user_id,
+      actionType: 'complaint_created',
+      description: 'Complaint created by resident',
+    });
+  } catch (err) {
+    console.error('Failed to insert activity log for complaint creation:', err.message);
+  }
+
   return {
     status: 201,
     body: {
       status: 'ok',
       message: 'Complaint created successfully',
-      data: result.rows[0],
+      data: complaint,
+      timestamp: new Date().toISOString(),
+    },
+  };
+}
+
+async function deleteFailedComplaint(id, requestUser) {
+  const result = await complaintsRepository.findComplaintById(id);
+  if (!result.rowCount) {
+    return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
+  }
+
+  const complaint = result.rows[0];
+  if (requestUser.role_name === 'resident' && complaint.reported_by !== requestUser.user_id) {
+    return { error: { status: 403, body: { status: 'error', message: 'Forbidden' } } };
+  }
+  if (complaint.status !== 'pending') {
+    return { error: { status: 400, body: { status: 'error', message: 'Only pending complaints can be deleted' } } };
+  }
+
+  await complaintsRepository.deleteComplaintById(id);
+
+  return {
+    body: {
+      status: 'ok',
+      message: 'Complaint deleted successfully',
       timestamp: new Date().toISOString(),
     },
   };
@@ -150,4 +189,5 @@ module.exports = {
   getComplaintById,
   updateComplaintStatus,
   assignComplaint,
+  deleteFailedComplaint,
 };

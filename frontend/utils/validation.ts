@@ -123,3 +123,43 @@ export function validateRegisterStep3(fields: {
 export function hasFieldErrors(errors: FieldErrors): boolean {
   return Object.keys(errors).length > 0;
 }
+
+export function validateComplaintForm(fields: {
+  headline: string;
+  categoryId: number | null;
+  description: string;
+  location: string;
+  evidenceCount: number;
+}): FieldErrors {
+  const errors: FieldErrors = {};
+
+  const headline = fields.headline.trim();
+  if (!headline) {
+    errors.headline = 'Headline is required';
+  } else if (headline.length < 5) {
+    errors.headline = 'Headline must be at least 5 characters';
+  } else if (headline.length > 100) {
+    errors.headline = 'Headline must be at most 100 characters';
+  }
+
+  if (fields.categoryId == null) {
+    errors.categoryId = 'Please select a category';
+  }
+
+  const description = fields.description.trim();
+  if (!description) {
+    errors.description = 'Description is required';
+  } else if (description.length < 10) {
+    errors.description = 'Description must be at least 10 characters';
+  }
+
+  if (!fields.location.trim()) {
+    errors.location = 'Location is required';
+  }
+
+  if (fields.evidenceCount < 1) {
+    errors.evidence = 'Upload at least one photo or video';
+  }
+
+  return errors;
+}
