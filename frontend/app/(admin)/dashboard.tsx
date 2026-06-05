@@ -146,107 +146,80 @@ export default function AdminDashboard() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+  <View style={styles.layout}>
+    
+    {/* Sidebar */}
+    <View style={styles.sidebar}>
+      <Text style={styles.sidebarTitle}>Admin Panel</Text>
+
+      <TouchableOpacity
+        style={[
+          styles.sidebarItem,
+          selectedTab === 'users' && styles.sidebarItemActive,
+        ]}
+        onPress={() => setSelectedTab('users')}
+      >
+        <Text
+          style={[
+            styles.sidebarItemText,
+            selectedTab === 'users' && styles.sidebarItemTextActive,
+          ]}
+        >
+          Manage Users
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.sidebarItem,
+          selectedTab === 'complaints' && styles.sidebarItemActive,
+        ]}
+        onPress={() => setSelectedTab('complaints')}
+      >
+        <Text
+          style={[
+            styles.sidebarItemText,
+            selectedTab === 'complaints' && styles.sidebarItemTextActive,
+          ]}
+        >
+          Manage Complaints
+        </Text>
+      </TouchableOpacity>
+
+      <View style={styles.sidebarFooter}>
+        <TouchableOpacity
+          style={styles.logoutSidebarButton}
+          onPress={logout}
+        >
+          <Text style={styles.logoutSidebarText}>
+            Logout
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+
+    {/* Main Area */}
+    <View style={styles.mainContent}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Admin Dashboard</Text>
-          <Text style={styles.subtitle}>Minimal management screen for users and complaints.</Text>
+          <Text style={styles.subtitle}>
+            Manage users and complaints
+          </Text>
         </View>
-        <View style={styles.menuWrapper}>
-          <TouchableOpacity style={styles.menuButton} onPress={() => setMenuOpen(!menuOpen)}>
-            <Text style={styles.menuButtonText}>Account ▼</Text>
-          </TouchableOpacity>
-          {menuOpen && (
-            <View style={styles.menuDropdown}>
-              <TouchableOpacity style={styles.menuItem} onPress={logout}>
-                <Text style={styles.menuItemText}>Logout</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabButton, selectedTab === 'users' && styles.activeTab]}
-          onPress={() => router.push('/(admin)/users')}
-        >
-          <Text style={[styles.tabText, selectedTab === 'users' && styles.activeTabText]}>Manage Users</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, selectedTab === 'complaints' && styles.activeTab]}
-          onPress={() => router.push('/(admin)/complaints')}
-        >
-          <Text style={[styles.tabText, selectedTab === 'complaints' && styles.activeTabText]}>Manage Complaints</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {loading && (
-          <View style={styles.loadingBanner}>
-            <ActivityIndicator size="small" color="#111827" />
-            <Text style={styles.loadingText}>{statusMessage}</Text>
-          </View>
-        )}
-        {!loading && statusMessage ? <Text style={styles.statusText}>{statusMessage}</Text> : null}
-
-        {selectedTab === 'users' ? (
-          <View>
-            {users.length === 0 ? (
-              <Text style={styles.emptyText}>No users found.</Text>
-            ) : (
-              users.map((user) => (
-                <View key={user.user_id} style={styles.card}>
-                  <View style={styles.cardRow}>
-                    <Text style={styles.cardTitle}>{user.first_name} {user.last_name}</Text>
-                    <Text style={[styles.badge, user.is_active ? styles.badgeActive : styles.badgeInactive]}>
-                      {user.is_active ? 'Active' : 'Inactive'}
-                    </Text>
-                  </View>
-                  <Text style={styles.cardText}>Role: {user.role_name}</Text>
-                  <Text style={styles.cardText}>Email: {user.email}</Text>
-                  <Text style={styles.cardText}>Verified: {user.is_verified ? 'Yes' : 'No'}</Text>
-                  <TouchableOpacity
-                    style={[styles.actionButton, user.is_active ? styles.deactivateButton : styles.activateButton]}
-                    onPress={() => toggleActive(user.user_id, user.is_active)}
-                  >
-                    <Text style={styles.actionButtonText}>{user.is_active ? 'Deactivate' : 'Activate'}</Text>
-                  </TouchableOpacity>
-                </View>
-              ))
-            )}
-          </View>
-        ) : (
-          <View>
-            {complaints.length === 0 ? (
-              <Text style={styles.emptyText}>No complaints found.</Text>
-            ) : (
-              complaints.map((complaint) => (
-                <TouchableOpacity
-                  key={complaint.complaint_id}
-                  onPress={() => router.push(`/(admin)/complaint-${complaint.complaint_id}`)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.card}>
-                    <View style={styles.cardRow}>
-                      <Text style={styles.cardTitle}>{complaint.title}</Text>
-                      <Text style={styles.badge}>{complaint.priority_level}</Text>
-                    </View>
-                    <Text style={styles.cardText}>Status: {complaint.status}</Text>
-                    <Text style={styles.cardText}>Category: {complaint.category_name}</Text>
-                    <Text style={styles.cardText}>Reported by: {complaint.reported_by || 'Unknown'}</Text>
-                    <Text style={styles.cardText}>Assigned to: {complaint.assigned_to_first_name ? `${complaint.assigned_to_first_name} ${complaint.assigned_to_last_name}` : 'Unassigned'}</Text>
-                    <Text style={styles.cardText}>Remarks: {complaint.remarks || '-'}</Text>
-                    <Text style={styles.linkText}>View Timeline →</Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-          </View>
-        )}
+        {/* Keep your existing users / complaints rendering here */}
       </ScrollView>
-    </SafeAreaView>
+    </View>
+
+  </View>
+</SafeAreaView>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -420,4 +393,64 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
   },
+  layout: {
+  flex: 1,
+  flexDirection: 'row',
+},
+
+sidebar: {
+  width: 250,
+  backgroundColor: '#111827',
+  paddingVertical: 24,
+  paddingHorizontal: 16,
+},
+
+sidebarTitle: {
+  color: '#fff',
+  fontSize: 22,
+  fontWeight: '800',
+  marginBottom: 24,
+},
+
+sidebarItem: {
+  paddingVertical: 14,
+  paddingHorizontal: 14,
+  borderRadius: 12,
+  marginBottom: 8,
+},
+
+sidebarItemActive: {
+  backgroundColor: '#2563EB',
+},
+
+sidebarItemText: {
+  color: '#D1D5DB',
+  fontSize: 15,
+  fontWeight: '600',
+},
+
+sidebarItemTextActive: {
+  color: '#fff',
+},
+
+sidebarFooter: {
+  marginTop: 'auto',
+},
+
+logoutSidebarButton: {
+  backgroundColor: '#DC2626',
+  paddingVertical: 12,
+  borderRadius: 10,
+  alignItems: 'center',
+},
+
+logoutSidebarText: {
+  color: '#fff',
+  fontWeight: '700',
+},
+
+mainContent: {
+  flex: 1,
+  backgroundColor: '#F8FAFC',
+},
 });
