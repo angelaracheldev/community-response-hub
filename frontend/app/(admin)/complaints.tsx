@@ -173,4 +173,23 @@ const styles = StyleSheet.create({
   sectionTitle: { marginTop: 12, fontWeight: '800', color: '#111827' },
   closeBtn: { marginTop: 16, padding: 12, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', alignItems: 'center' },
   closeText: { fontWeight: '700' },
+  paginationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  pageBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+  },
+  pageText: {
+    fontWeight: '700',
+    color: '#374151',
+  },
 });

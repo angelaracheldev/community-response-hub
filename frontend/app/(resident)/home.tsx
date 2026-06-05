@@ -1,16 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
   View,
+  TextInput,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useResidentVerification } from '../../hooks/useResidentVerification';
-import { clearResidentToken } from '../../utils/residentAuth';
+import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
+import { API_BASE } from '../../utils/apiConfig';
+
+const BASE_URL = API_BASE;
 
 export default function ResidentHomeScreen() {
   const router = useRouter();
@@ -114,108 +119,95 @@ export default function ResidentHomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.mainContainer}>
+        
+        {/* Profile Navigation Header */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.welcomeText}>
-              Hello{firstName ? `, ${firstName}` : ', Resident'} 👋
-            </Text>
-            <Text style={styles.subWelcome}>Community Response Hub</Text>
+            <Text style={styles.welcomeText}>Hello, Resident 👋</Text>
+            <Text style={styles.subWelcome}>Marikina Sandbox Ecosystem</Text>
           </View>
-          <TouchableOpacity
-            style={styles.logoutBtn}
-            onPress={async () => {
-              await clearResidentToken();
-              router.replace('/(auth)/login');
-            }}
-          >
+          <TouchableOpacity style={styles.logoutBtn} onPress={() => router.replace('/(auth)/login')}>
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {showWelcome ? (
-            <View style={styles.welcomeBanner}>
-              <View style={styles.welcomeBannerContent}>
-                <Text style={styles.welcomeBannerTitle}>Welcome to Community Response Hub</Text>
-                <Text style={styles.welcomeBannerText}>
-                  Your account is set up. We received your ID and address — an admin will review
-                  them shortly. You can explore the dashboard while you wait.
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={dismissWelcome}
-                style={styles.welcomeDismiss}
-                accessibilityLabel="Dismiss welcome message"
-              >
-                <Text style={styles.welcomeDismissText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-
-          <Text style={styles.sectionTitle}>Account Status</Text>
-
-          {loading ? (
-            <View style={styles.card}>
-              <ActivityIndicator size="small" color="#4f46e5" />
-            </View>
-          ) : isVerified ? (
+          
+          {/* FEATURE 1: COMMUNITY VERIFICATION */}
+          <Text style={styles.sectionTitle}>Profile Account Status</Text>
+          {isVerified ? (
             <View style={[styles.card, styles.verifiedCard]}>
-              <Text style={styles.cardTitleSuccess}>Verified resident</Text>
-              <Text style={styles.cardDesc}>
-                Your ID has been approved. You can file incident reports.
-              </Text>
+              <Text style={styles.cardTitleSuccess}>🛡️ Account Verified Securely</Text>
+              <Text style={styles.cardDesc}>Your address at "{address}" is locked. You have authorization to file official subdivision reports.</Text>
             </View>
           ) : (
-            <View style={[styles.card, styles.pendingCard]}>
-              <Text style={styles.cardTitlePending}>Verification pending</Text>
-              <Text style={styles.cardDesc}>
-                Your ID and address are under admin review. You cannot submit complaints until
-                verification is approved.
-              </Text>
+            <View style={[styles.card, styles.actionCard]}>
+              <Text style={styles.cardTitleWarning}>⚠️ Verification Required</Text>
+              <Text style={styles.cardDesc}>Verify community residency to scale permissions up to high-priority workflows.</Text>
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Physical House Address (e.g., Blk 2 Lot 4, Redwood St)"
+                placeholderTextColor="#9ca3af"
+                value={address}
+                onChangeText={setAddress}
+                editable={!isLoading}
+              />
+
+              {/* Upload Proof of Residence Button */}
+              <TouchableOpacity style={styles.uploadButton} onPress={pickImage} disabled={isLoading}>
+                <Text style={styles.uploadButtonText}>
+                  {imageUri ? '✓ Media Attached' : '📁 Upload Proof of Residence'}
+                </Text>
+              </TouchableOpacity>
+
+              {imageUri && (
+                <Image source={{ uri: imageUri }} style={styles.previewImage} />
+              )}
+
+              <TouchableOpacity style={styles.accentButton} onPress={handleVerifyResident} disabled={isLoading}>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.accentButtonText}>Submit Verification</Text>
+                )}
+              </TouchableOpacity>
             </View>
           )}
 
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Quick Actions</Text>
+          {/* QUICK LINKS */}
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Quick Action Hub</Text>
           <View style={styles.quickActionRow}>
-            <TouchableOpacity
-              style={[styles.actionBox, !isVerified && styles.actionBoxDisabled]}
-              onPress={() => router.push('/(resident)/submit-complaint')}
-              disabled={!isVerified || loading}
-            >
+            <TouchableOpacity style={styles.actionBox} onPress={() => router.push('/(resident)/submit-complaint')}>
               <Text style={styles.actionBoxIcon}>✍️</Text>
-              <Text style={[styles.actionBoxText, !isVerified && styles.actionBoxTextDisabled]}>
-                File Report
-              </Text>
-              {!isVerified ? (
-                <Text style={styles.actionBoxHint}>Pending verification</Text>
-              ) : null}
+              <Text style={styles.actionBoxText}>File Report</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionBox}
-              onPress={() => router.push('/(resident)/tracking')}
-            >
+            <TouchableOpacity style={styles.actionBox} onPress={() => router.push('/(resident)/tracking')}>
               <Text style={styles.actionBoxIcon}>🕒</Text>
               <Text style={styles.actionBoxText}>Track Status</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Emergency Direct Hotlines</Text>
+          {/* FEATURE 2: EMERGENCY HOTLINES */}
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>🚨 Emergency Direct Hotlines</Text>
           {emergencyHotlines.map((hotline) => (
             <View key={hotline.id} style={styles.hotlineCard}>
               <Text style={styles.hotlineName}>{hotline.name}</Text>
               <TouchableOpacity onPress={() => alert(`Dialing: ${hotline.phone}`)}>
-                <Text style={styles.hotlinePhone}>{hotline.phone}</Text>
+                <Text style={styles.hotlinePhone}>{hotline.phone} 📞</Text>
               </TouchableOpacity>
             </View>
           ))}
 
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Frequently Asked Questions</Text>
+          {/* FEATURE 3: FAQS */}
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>💡 Frequently Asked Questions</Text>
           {faqs.map((faq) => (
             <View key={faq.id} style={styles.faqBlock}>
               <Text style={styles.faqQuestion}>Q: {faq.q}</Text>
               <Text style={styles.faqAnswer}>{faq.a}</Text>
             </View>
           ))}
+
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -266,38 +258,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 40,
   },
-  welcomeBanner: {
-    flexDirection: 'row',
-    backgroundColor: '#eef2ff',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4f46e5',
-  },
-  welcomeBannerContent: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  welcomeBannerTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#312e81',
-    marginBottom: 4,
-  },
-  welcomeBannerText: {
-    fontSize: 13,
-    color: '#4338ca',
-    lineHeight: 18,
-  },
-  welcomeDismiss: {
-    padding: 4,
-  },
-  welcomeDismissText: {
-    fontSize: 16,
-    color: '#6366f1',
-    fontWeight: '600',
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -316,10 +276,9 @@ const styles = StyleSheet.create({
     borderLeftColor: '#10b981',
     backgroundColor: '#ecfdf5',
   },
-  pendingCard: {
+  actionCard: {
     borderLeftWidth: 4,
     borderLeftColor: '#f59e0b',
-    backgroundColor: '#fffbeb',
   },
   cardTitleSuccess: {
     fontWeight: '700',
@@ -327,7 +286,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 4,
   },
-  cardTitlePending: {
+  cardTitleWarning: {
     fontWeight: '700',
     color: '#92400e',
     fontSize: 15,
@@ -337,6 +296,48 @@ const styles = StyleSheet.create({
     color: '#4b5563',
     fontSize: 14,
     lineHeight: 20,
+    marginBottom: 12,
+  },
+  input: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#111827',
+    marginBottom: 10,
+  },
+  uploadButton: {
+    backgroundColor: '#e5e7eb',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  uploadButtonText: {
+    color: '#374151',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  previewImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 10,
+    resizeMode: 'cover',
+  },
+  accentButton: {
+    backgroundColor: '#4f46e5',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  accentButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14,
   },
   quickActionRow: {
     flexDirection: 'row',
@@ -350,9 +351,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.05)',
   },
-  actionBoxDisabled: {
-    opacity: 0.65,
-  },
   actionBoxIcon: {
     fontSize: 24,
     marginBottom: 6,
@@ -361,15 +359,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#374151',
-  },
-  actionBoxTextDisabled: {
-    color: '#6b7280',
-  },
-  actionBoxHint: {
-    marginTop: 4,
-    fontSize: 11,
-    color: '#b45309',
-    fontWeight: '600',
   },
   hotlineCard: {
     backgroundColor: '#ffffff',

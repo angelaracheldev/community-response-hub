@@ -15,7 +15,7 @@ async function listUsers(query) {
   }
   if (query.verificationStatus) {
     params.push(query.verificationStatus.toLowerCase());
-    filters.push(`COALESCE(rv.status, 'pending') = $${params.length}`);
+    filters.push(`COALESCE(rv.status, 'not_submitted') = $${params.length}`);
   }
 
   const result = await usersRepository.listUsers({ filters, params });

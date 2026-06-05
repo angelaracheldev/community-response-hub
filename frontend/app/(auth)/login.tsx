@@ -9,20 +9,32 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { API_BASE } from '../../utils/apiConfig';
 import { extractAccessToken, setResidentToken } from '../../utils/residentAuth';
 
 export default function LoginScreen() {
   const router = useRouter();
 
-  // Form State
+  // Login Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Resend Verification State
+  const [showResendModal, setShowResendModal] = useState(false);
+  const [resendEmail, setResendEmail] = useState('');
+  const [resendPhone, setResendPhone] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [verificationImageUri, setVerificationImageUri] = useState<string | null>(null);
+  const [validationPassed, setValidationPassed] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -65,6 +77,110 @@ export default function LoginScreen() {
       alert('Network connectivity error. Please check your connection or backend server.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const validateResendVerification = async () => {
+    if (!resendEmail || !resendPhone) {
+      alert('Please enter both email and phone number');
+      return;
+    }
+
+    setResendLoading(true);
+    setResendMessage('Validating your information...');
+
+    try {
+      const response = await fetch(`${API_BASE}/resident/check-verification-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: resendEmail.trim().toLowerCase(),
+          phone_number: resendPhone.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.canResend) {
+        setValidationPassed(true);
+        setResendMessage('Validation successful. Please upload your verification document.');
+      } else {
+        setResendMessage('');
+        alert(data.message || 'Your information does not match any verification requests with failed status.');
+      }
+    } catch (error) {
+      console.error('Validation error:', error);
+      setResendMessage('');
+      alert('Error validating information. Please try again.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const pickVerificationImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setVerificationImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      alert('Error picking image. Please try again.');
+    }
+  };
+
+  const submitResendVerification = async () => {
+    if (!verificationImageUri) {
+      alert('Please select a verification document image');
+      return;
+    }
+
+    setResendLoading(true);
+    setResendMessage('Uploading verification document...');
+
+    try {
+      const formData = new FormData();
+      formData.append('email', resendEmail.trim().toLowerCase());
+      formData.append('phone_number', resendPhone.trim());
+      formData.append('file', {
+        uri: verificationImageUri,
+        name: `verification_${Date.now()}.jpg`,
+        type: 'image/jpeg',
+      } as any);
+
+      const response = await fetch(`${API_BASE}/resident/resend-verification`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Verification document submitted successfully! Please wait for admin review.');
+        // Reset resend modal state
+        setShowResendModal(false);
+        setResendEmail('');
+        setResendPhone('');
+        setVerificationImageUri(null);
+        setValidationPassed(false);
+        setResendMessage('');
+      } else {
+        alert(data.message || 'Failed to submit verification document.');
+      }
+    } catch (error) {
+      console.error('Submit verification error:', error);
+      alert('Error submitting verification document. Please try again.');
+    } finally {
+      setResendLoading(false);
+      setResendMessage('');
     }
   };
 
@@ -165,6 +281,17 @@ export default function LoginScreen() {
                 <Text style={styles.buttonText}>Sign In</Text>
               )}
             </TouchableOpacity>
+
+            {/* Resend Verification Link */}
+            <TouchableOpacity
+              onPress={() => setShowResendModal(true)}
+              disabled={isLoading}
+              style={{ marginTop: 16, alignItems: 'center' }}
+            >
+              <Text style={[styles.resendVerificationText, isLoading && { opacity: 0.5 }]}>
+                Resend Verification Document?
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Footer Section */}
@@ -178,6 +305,146 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Resend Verification Modal */}
+      <Modal
+        visible={showResendModal}
+        animationType="slide"
+        onRequestClose={() => !resendLoading && setShowResendModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              onPress={() => !resendLoading && setShowResendModal(false)}
+              disabled={resendLoading}
+            >
+              <Text style={styles.modalCloseText}>← Back</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Resend Verification</Text>
+            <View style={{ width: 50 }} />
+          </View>
+
+          <ScrollView
+            contentContainerStyle={styles.modalContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Verify Your Identity</Text>
+              <Text style={styles.modalInstructionText}>
+                Enter your email and phone number associated with your verification request.
+              </Text>
+            </View>
+
+            {!validationPassed ? (
+              <View style={styles.validationSection}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Email Address</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="you@example.com"
+                    placeholderTextColor="#9ca3af"
+                    value={resendEmail}
+                    onChangeText={setResendEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!resendLoading}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Phone Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+1 (555) 000-0000"
+                    placeholderTextColor="#9ca3af"
+                    value={resendPhone}
+                    onChangeText={setResendPhone}
+                    keyboardType="phone-pad"
+                    editable={!resendLoading}
+                  />
+                </View>
+
+                {resendMessage ? (
+                  <View style={styles.messageBanner}>
+                    <Text style={styles.messageText}>{resendMessage}</Text>
+                  </View>
+                ) : null}
+
+                <TouchableOpacity
+                  style={[styles.validateBtn, resendLoading && styles.disabledButton]}
+                  onPress={validateResendVerification}
+                  disabled={resendLoading}
+                >
+                  {resendLoading ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <Text style={styles.validateBtnText}>Verify Identity</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.uploadSection}>
+                <Text style={styles.sectionSubtitle}>Upload Your Verification Document</Text>
+
+                {verificationImageUri ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image
+                      source={{ uri: verificationImageUri }}
+                      style={styles.previewImage}
+                      resizeMode="contain"
+                    />
+                    <TouchableOpacity
+                      style={styles.changeImageBtn}
+                      onPress={pickVerificationImage}
+                      disabled={resendLoading}
+                    >
+                      <Text style={styles.changeImageText}>Change Image</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.uploadImageBtn}
+                    onPress={pickVerificationImage}
+                    disabled={resendLoading}
+                  >
+                    <Text style={styles.uploadImageText}>📁 Select Document Image</Text>
+                  </TouchableOpacity>
+                )}
+
+                {resendMessage ? (
+                  <View style={styles.messageBanner}>
+                    <Text style={styles.messageText}>{resendMessage}</Text>
+                  </View>
+                ) : null}
+
+                <TouchableOpacity
+                  style={[styles.submitBtn, (resendLoading || !verificationImageUri) && styles.disabledButton]}
+                  onPress={submitResendVerification}
+                  disabled={resendLoading || !verificationImageUri}
+                >
+                  {resendLoading ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <Text style={styles.submitBtnText}>Submit Verification</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.backBtn}
+                  onPress={() => {
+                    setValidationPassed(false);
+                    setVerificationImageUri(null);
+                    setResendMessage('');
+                  }}
+                  disabled={resendLoading}
+                >
+                  <Text style={styles.backBtnText}>Back to Identity Verification</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -314,6 +581,154 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   linkText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4f46e5',
+  },
+  resendVerificationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10b981',
+    textDecorationLine: 'underline',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+  },
+  modalCloseText: {
+    color: '#6b7280',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  modalContent: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+  },
+  modalSection: {
+    marginBottom: 32,
+  },
+  modalSectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  modalInstructionText: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 20,
+  },
+  validationSection: {
+    marginBottom: 24,
+  },
+  uploadSection: {
+    marginBottom: 24,
+  },
+  sectionSubtitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  messageBanner: {
+    backgroundColor: '#ecfdf5',
+    borderLeftWidth: 4,
+    borderLeftColor: '#10b981',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginVertical: 16,
+  },
+  messageText: {
+    color: '#065f46',
+    fontSize: 14,
+  },
+  validateBtn: {
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  validateBtnText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  uploadImageBtn: {
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f9fafb',
+    marginBottom: 16,
+  },
+  uploadImageText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4f46e5',
+  },
+  imagePreviewContainer: {
+    marginBottom: 16,
+  },
+  previewImage: {
+    width: '100%',
+    height: 280,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    marginBottom: 12,
+  },
+  changeImageBtn: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  changeImageText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4f46e5',
+  },
+  submitBtn: {
+    backgroundColor: '#10b981',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  submitBtnText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  backBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  backBtnText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#4f46e5',
