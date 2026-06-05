@@ -53,6 +53,7 @@ export default function SubmitComplaintScreen() {
   const [errors, setErrors] = useState<FieldErrors>({});
 
   const [submittedComplaintId, setSubmittedComplaintId] = useState<string | null>(null);
+  const [submittedReferenceId, setSubmittedReferenceId] = useState<string | null>(null);
   const [submittedStatus, setSubmittedStatus] = useState<string>('pending');
 
   const stepRef = useRef(step);
@@ -69,6 +70,7 @@ export default function SubmitComplaintScreen() {
     setEvidence([]);
     setErrors({});
     setSubmittedComplaintId(null);
+    setSubmittedReferenceId(null);
     setSubmittedStatus('pending');
     setIsSubmitting(false);
   }, []);
@@ -166,6 +168,7 @@ export default function SubmitComplaintScreen() {
       await uploadComplaintMedia(complaintId, evidence);
 
       setSubmittedComplaintId(complaintId);
+      setSubmittedReferenceId(complaint.reference_id);
       setSubmittedStatus(complaint.status);
       setStep(3);
     } catch (error) {
@@ -404,9 +407,9 @@ export default function SubmitComplaintScreen() {
               </View>
 
               <View style={styles.successDetail}>
-                <Text style={styles.reviewLabel}>Complaint ID</Text>
+                <Text style={styles.reviewLabel}>Reference Number</Text>
                 <Text style={styles.complaintId} selectable>
-                  {submittedComplaintId}
+                  {submittedReferenceId}
                 </Text>
               </View>
             </View>

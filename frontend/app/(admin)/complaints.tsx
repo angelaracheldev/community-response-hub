@@ -92,7 +92,7 @@ export default function AdminComplaints() {
           )}
           renderItem={({ item }) => (
             <View style={styles.row}>
-              <Text style={[styles.col, styles.colId]} numberOfLines={1}>{item.complaint_id.split('-')[0]}</Text>
+              <Text style={[styles.col, styles.colId]} numberOfLines={1}>{item.reference_id}</Text>
               <Text style={[styles.col, styles.colTitle]} numberOfLines={1}>{item.title}</Text>
               <Text style={[styles.col, styles.colCat]}>{item.category_name || '-'}</Text>
               <Text style={[styles.col, styles.colSmall]}>{item.status}</Text>

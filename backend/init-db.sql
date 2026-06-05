@@ -22,6 +22,7 @@ VALUES
 CREATE SEQUENCE resident_seq START 1;
 CREATE SEQUENCE responder_seq START 1;
 CREATE SEQUENCE staff_seq START 1;
+CREATE SEQUENCE complaint_seq START 1;
 
 CREATE OR REPLACE FUNCTION generate_user_code()
 RETURNS TRIGGER
@@ -70,7 +71,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
+CREATE OR REPLACE FUNCTION generate_complaint_reference_id()
+RETURNS TRIGGER
+AS $$
+BEGIN
+    NEW.reference_id := CONCAT(
+        'CMP-',
+        EXTRACT(YEAR FROM CURRENT_DATE),
+        '-',
+        LPAD(nextval('complaint_seq')::TEXT, 5, '0')
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- =====================================================
@@ -211,6 +224,8 @@ VALUES
 CREATE TABLE complaints (
     complaint_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
+    reference_id VARCHAR(16) UNIQUE NOT NULL,
+
     reported_by UUID
         REFERENCES users(user_id)
         ON DELETE SET NULL,
@@ -261,6 +276,12 @@ CREATE TABLE complaints (
 
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TRIGGER trg_generate_complaint_reference_id
+BEFORE INSERT
+ON complaints
+FOR EACH ROW
+EXECUTE FUNCTION generate_complaint_reference_id();
 --
 
 -- --# Complaint Workflow

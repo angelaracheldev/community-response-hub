@@ -81,7 +81,7 @@ DB_NAME=community_response_hub
 ### Tables
 1. **users** - User accounts (residents, officers, admins)
 2. **complaint_categories** - Types of complaints
-3. **complaints** - Main complaint/incident records
+3. **complaints** - Main complaint/incident records (`reference_id` auto-generated as CMP-YEAR-#####)
 4. **complaint_media** - Photos, videos, documents attached to complaints
 5. **activity_logs** - Audit trail of changes
 6. **emergency_hotlines** - Emergency contact numbers
@@ -94,6 +94,20 @@ DB_NAME=community_response_hub
 - ✅ Sample data pre-loaded
 
 ## Common Commands
+
+### Apply migrations (existing database)
+
+If the database was created before `reference_id` was added:
+
+```bash
+psql -h localhost -U postgres -d community_response_hub -f backend/migrations/001_add_complaint_reference_id.sql
+```
+
+Or pipe via Docker:
+
+```bash
+docker-compose exec -T postgres psql -U postgres -d community_response_hub < backend/migrations/001_add_complaint_reference_id.sql
+```
 
 ### Stop the Database
 ```bash

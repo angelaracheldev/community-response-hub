@@ -14,6 +14,7 @@ export type CreateComplaintPayload = {
 
 export type ComplaintRecord = {
   complaint_id: string;
+  reference_id: string;
   status: string;
   title: string;
   description: string;

@@ -27,6 +27,7 @@ type ActivityLog = {
 
 type Complaint = {
   complaint_id: string;
+  reference_id: string;
   title: string;
   status: string;
   priority_level: string;
@@ -128,6 +129,7 @@ export default function ComplaintDetailPage() {
             </View>
 
             <View style={styles.detailsCard}>
+              <DetailRow label="Reference Number" value={complaint.reference_id || '-'} />
               <DetailRow label="Category" value={complaint.category_name || '-'} />
               <DetailRow label="Location" value={complaint.location_text || '-'} />
               <DetailRow
