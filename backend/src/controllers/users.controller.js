@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const usersService = require('../services/users.service');
+const verificationMediaService = require('../services/verificationMedia.service');
 
 async function listUsers(req, res) {
   try {
@@ -48,8 +49,16 @@ async function submitVerification(req, res) {
   }
 
   try {
-    const { verificationType, documentUrl, address } = req.body;
-    const result = await usersService.submitVerification(req.user, { verificationType, documentUrl, address });
+    const { verificationType, address } = req.body;
+    let documentUrl = req.body.documentUrl;
+    if (req.file) {
+      documentUrl = await verificationMediaService.uploadVerificationDocument(req.file);
+    }
+    const result = await usersService.submitVerification(req.user, {
+      verificationType,
+      documentUrl,
+      address,
+    });
     return res.json(result.body);
   } catch (error) {
     console.error('Failed to submit verification:', error.message);

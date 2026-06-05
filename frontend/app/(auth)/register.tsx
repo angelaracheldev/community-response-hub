@@ -16,6 +16,7 @@ import { Link, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { API_BASE } from '../../utils/apiConfig';
 import { extractAccessToken, setResidentToken } from '../../utils/residentAuth';
+import { buildVerificationFormData } from '../../utils/verificationUpload';
 import {
   FieldErrors,
   StructuredAddress,
@@ -175,18 +176,14 @@ export default function RegisterScreen() {
         await setResidentToken(accessToken);
 
         try {
+          const formData = await buildVerificationFormData(formattedAddress, idFile);
           await fetch(`${API_BASE}/users/me/verification`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
               Accept: 'application/json',
               Authorization: `Bearer ${accessToken}`,
             },
-            body: JSON.stringify({
-              verificationType: 'ID',
-              address: formattedAddress,
-              documentUrl: idFile.uri,
-            }),
+            body: formData,
           });
         } catch (verificationError) {
           console.warn('Verification request failed:', verificationError);
