@@ -5,8 +5,8 @@ services:
     image: postgres:15-alpine
     container_name: community-response-hub-db
     environment:
-      POSTGRES_USER: ${DB_USER:postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:123456}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-123456}
       POSTGRES_DB: ${DB_NAME:-community_response_hub}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     ports:

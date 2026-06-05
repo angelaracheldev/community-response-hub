@@ -92,6 +92,19 @@ async function assignComplaint(req, res) {
   }
 }
 
+async function deleteFailedComplaint(req, res) {
+  try {
+    const result = await complaintsService.deleteFailedComplaint(req.params.id, req.user);
+    if (result.error) {
+      return res.status(result.error.status).json(result.error.body);
+    }
+    return res.json(result.body);
+  } catch (error) {
+    console.error('Failed to delete complaint:', error.message);
+    return res.status(500).json({ status: 'error', message: 'Unable to delete complaint', error: error.message });
+  }
+}
+
 module.exports = {
   createComplaint,
   listComplaints,
@@ -99,4 +112,5 @@ module.exports = {
   getComplaintById,
   updateComplaintStatus,
   assignComplaint,
+  deleteFailedComplaint,
 };

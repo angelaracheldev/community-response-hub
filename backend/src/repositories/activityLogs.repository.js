@@ -12,6 +12,15 @@ async function findByComplaintId(complaintId) {
   );
 }
 
+async function insertLog({ complaintId, performedBy, actionType, description }) {
+  return db.query(
+    `INSERT INTO activity_logs (complaint_id, performed_by, action_type, description)
+     VALUES ($1, $2, $3, $4)`,
+    [complaintId, performedBy, actionType, description]
+  );
+}
+
 module.exports = {
   findByComplaintId,
+  insertLog,
 };

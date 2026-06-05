@@ -78,6 +78,10 @@ async function setComplaintStatusAssigned(id) {
   return db.query('UPDATE complaints SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE complaint_id = $2', ['assigned', id]);
 }
 
+async function deleteComplaintById(id) {
+  return db.query('DELETE FROM complaints WHERE complaint_id = $1 RETURNING complaint_id', [id]);
+}
+
 module.exports = {
   findCategoryById,
   insertComplaint,
@@ -87,4 +91,5 @@ module.exports = {
   updateComplaintStatus,
   findComplaintIdOnly,
   setComplaintStatusAssigned,
+  deleteComplaintById,
 };

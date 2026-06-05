@@ -64,8 +64,19 @@ function requireAnyRole(roleNames) {
   };
 }
 
+function requireVerified(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ status: 'error', message: 'Authentication required' });
+  }
+  if (!req.user.is_verified) {
+    return res.status(403).json({ status: 'error', message: 'Verified residency required to submit complaints' });
+  }
+  next();
+}
+
 module.exports = {
   authMiddleware,
   requireRole,
   requireAnyRole,
+  requireVerified,
 };
