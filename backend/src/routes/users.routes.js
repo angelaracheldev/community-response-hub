@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const { authMiddleware, requireRole } = require('../middleware/auth');
+const uploadVerification = require('../middleware/uploadVerification');
 const usersController = require('../controllers/users.controller');
 const {
   submitVerificationValidation,
@@ -9,7 +10,13 @@ const {
 router.get('/', authMiddleware, requireRole('admin'), usersController.listUsers);
 router.get('/:id', authMiddleware, usersController.getUserById);
 router.patch('/:id', authMiddleware, usersController.updateUser);
-router.post('/me/verification', authMiddleware, submitVerificationValidation, usersController.submitVerification);
+router.post(
+  '/me/verification',
+  authMiddleware,
+  uploadVerification.single('file'),
+  submitVerificationValidation,
+  usersController.submitVerification
+);
 router.patch(
   '/:id/verification/review',
   authMiddleware,
