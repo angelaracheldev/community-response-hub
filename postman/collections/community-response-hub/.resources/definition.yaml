@@ -1,0 +1,11 @@
+$kind: collection
+name: Community Response Hub
+description: API collection for the Community Response Hub platform — a system for residents to submit community complaints and for admins/responders to manage and resolve them.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+variables:
+  - key: baseUrl
+    value: 'http://localhost:3000'

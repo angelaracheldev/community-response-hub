@@ -14,32 +14,15 @@ import { clearResidentToken } from '../../utils/residentAuth';
 
 export default function ResidentHomeScreen() {
   const router = useRouter();
-  const { registered } = useLocalSearchParams<{ registered?: string }>();
-  const { isVerified, firstName, loading } = useResidentVerification();
-  const [showWelcome, setShowWelcome] = useState(false);
 
-  useEffect(() => {
-    if (registered === '1') {
-      setShowWelcome(true);
-    }
-  }, [registered]);
+  // --- STATE FOR COMMUNITY VERIFICATION ---
+  const [isVerified, setIsVerified] = useState(false);
+  const [address, setAddress] = useState('');
+  const [verificationType, setVerificationType] = useState('Utility Bill'); // Defaulting type matching your API requirements
+  const [imageUri, setImageUri] = useState<string | null>(null); // Local URI for selected verification file
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!showWelcome) return undefined;
-
-    const timer = setTimeout(() => {
-      setShowWelcome(false);
-      router.setParams({ registered: '' });
-    }, 8000);
-
-    return () => clearTimeout(timer);
-  }, [showWelcome, router]);
-
-  const dismissWelcome = () => {
-    setShowWelcome(false);
-    router.setParams({ registered: '' });
-  };
-
+  // --- MOCK DATA FOR FAQS & HOTLINES ---
   const emergencyHotlines = [
     { id: 'h1', name: 'Barangay Disaster Command Center', phone: '02-8888-1234' },
     { id: 'h2', name: 'Local Police Station Desk', phone: '0917-555-SAFE' },
@@ -50,6 +33,83 @@ export default function ResidentHomeScreen() {
     { id: 'f1', q: 'How long does complaint resolution take?', a: 'Standard issues are assessed within 24–48 hours.' },
     { id: 'f2', q: 'What counts as valid evidence?', a: 'Clear, timestamped media captured within community boundaries.' },
   ];
+
+  // Pick Document/Image for Proof of Residence
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      alert("Permission to access camera roll is required!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri as string);
+    }
+    // NOT OWRKING CAUSE .uri IS NOT RECOGNIZED AS STRING IN THE FORM DATA APPEND, NEED TO CAST TO ANY OR FIND ALTERNATIVE
+    // if (!result.canceled) {
+    //   setImageUri(result.assets[0].uri);
+    // }
+
+  };
+
+  // Connected API Verification Call
+  const handleVerifyResident = async () => {
+    if (!address || !imageUri) {
+      alert('Please fill out your address and upload a proof of residence image.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const token = await SecureStore.getItemAsync('userToken');
+
+      // 1. Construct Multipart Form Data Payload matching Swagger specifications
+      const formData = new FormData();
+      formData.append('verificationType', verificationType);
+      formData.append('address', address);
+
+      // Extract details out of imageUri to mimic binary upload stream
+      const filename = (imageUri as string).split('/').pop() || 'upload.jpg';
+      const match = /\.(\w+)$/.exec(filename as string);
+      const type = match ? `image/${match[1]}` : `image`;
+
+      // React Native FormData file shape isn't recognized by the DOM typings; cast to any
+      formData.append('file', { uri: imageUri, name: filename, type } as any);
+
+      // 2. Make Network Call using multipart headers
+      const response = await fetch(`${BASE_URL}/resident/verify`, { // Verify your exact path prefix endpoint here
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`, // Pass Auth token if endpoint is protected
+          Accept: 'application/json',
+          // Do NOT set Content-Type here; let fetch/set-native modules add the correct boundary
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsVerified(true);
+        alert('Verification payload submitted successfully!');
+      } else {
+        alert(data.message || 'Verification submission failed.');
+      }
+    } catch (error) {
+      console.error('API Verification Request Error:', error);
+      alert('Network connectivity error. Could not upload documents.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>

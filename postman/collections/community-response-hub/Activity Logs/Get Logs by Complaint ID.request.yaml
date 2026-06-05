@@ -1,0 +1,8 @@
+$kind: http-request
+name: Get Logs by Complaint ID
+method: GET
+url: '{{baseUrl}}/api/v1/activity-logs/complaint/:complaintId'
+order: 1000
+pathVariables:
+  - key: complaintId
+    value: '{{complaintId}}'

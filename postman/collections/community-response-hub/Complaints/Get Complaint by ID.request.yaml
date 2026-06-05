@@ -1,0 +1,8 @@
+$kind: http-request
+name: Get Complaint by ID
+method: GET
+url: '{{baseUrl}}/api/v1/complaints/:id'
+order: 4000
+pathVariables:
+  - key: id
+    value: '{{complaintId}}'

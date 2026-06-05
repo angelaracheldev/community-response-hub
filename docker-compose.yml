@@ -5,8 +5,8 @@ services:
     image: postgres:15-alpine
     container_name: community-response-hub-db
     environment:
-      POSTGRES_USER: ${DB_USER:-crh_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-crh_password_dev}
+      POSTGRES_USER: ${DB_USER:postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:123456}
       POSTGRES_DB: ${DB_NAME:-community_response_hub}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     ports:
@@ -15,7 +15,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-crh_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-community_response_hub} -h localhost -p 5432"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,8 +29,8 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: ${DB_USER:-crh_user}
-      DB_PASSWORD: ${DB_PASSWORD:-crh_password_dev}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-123456}
       DB_NAME: ${DB_NAME:-community_response_hub}
       API_PORT: 5000
       API_HOST: 0.0.0.0

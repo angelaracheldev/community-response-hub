@@ -1,0 +1,10 @@
+$kind: http-request
+name: Get Category by ID
+method: GET
+url: '{{baseUrl}}/api/v1/categories/:id'
+order: 3000
+auth:
+  type: noauth
+pathVariables:
+  - key: id
+    value: '{{categoryId}}'

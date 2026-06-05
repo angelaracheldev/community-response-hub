@@ -1,0 +1,15 @@
+$kind: http-request
+name: Create Category
+method: POST
+url: '{{baseUrl}}/api/v1/categories'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "categoryName": "Infrastructure",
+      "description": "Roads, bridges, and public infrastructure issues"
+    }

@@ -1,0 +1,17 @@
+name: CRH - Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:5000'
+  - key: accessToken
+    value: ''
+  - key: refreshToken
+    value: ''
+  - key: userId
+    value: ''
+  - key: complaintId
+    value: ''
+  - key: categoryId
+    value: ''
+  - key: mediaId
+    value: ''
+color: 0

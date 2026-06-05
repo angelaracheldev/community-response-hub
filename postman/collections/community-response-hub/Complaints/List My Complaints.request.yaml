@@ -1,0 +1,5 @@
+$kind: http-request
+name: List My Complaints
+method: GET
+url: '{{baseUrl}}/api/v1/complaints/my'
+order: 3000

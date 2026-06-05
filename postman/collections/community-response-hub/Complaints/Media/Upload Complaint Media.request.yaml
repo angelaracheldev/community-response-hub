@@ -1,0 +1,14 @@
+$kind: http-request
+name: Upload Complaint Media
+method: POST
+url: '{{baseUrl}}/api/v1/complaints/:id/media'
+order: 1000
+pathVariables:
+  - key: id
+    value: '{{complaintId}}'
+body:
+  type: formdata
+  content:
+    - key: files
+      type: file
+      src: ''

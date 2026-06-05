@@ -1,0 +1,8 @@
+$kind: http-request
+name: List Complaint Media
+method: GET
+url: '{{baseUrl}}/api/v1/complaints/:id/media'
+order: 2000
+pathVariables:
+  - key: id
+    value: '{{complaintId}}'

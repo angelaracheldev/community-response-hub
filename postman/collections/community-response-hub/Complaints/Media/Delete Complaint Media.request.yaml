@@ -1,0 +1,10 @@
+$kind: http-request
+name: Delete Complaint Media
+method: DELETE
+url: '{{baseUrl}}/api/v1/complaints/:id/media/:mediaId'
+order: 3000
+pathVariables:
+  - key: id
+    value: '{{complaintId}}'
+  - key: mediaId
+    value: '{{mediaId}}'

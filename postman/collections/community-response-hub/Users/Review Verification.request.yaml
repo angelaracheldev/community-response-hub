@@ -1,0 +1,17 @@
+$kind: http-request
+name: Review Verification
+method: PATCH
+url: '{{baseUrl}}/api/v1/users/:id/verification/review'
+order: 5000
+pathVariables:
+  - key: id
+    value: '{{userId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "verificationStatus": "approved"
+    }

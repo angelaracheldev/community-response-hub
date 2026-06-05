@@ -1,0 +1,17 @@
+$kind: http-request
+name: Create Complaint
+method: POST
+url: '{{baseUrl}}/api/v1/complaints'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "categoryId": 1,
+      "title": "Pothole on Main Street",
+      "description": "Large pothole causing damage to vehicles near the intersection of Main St and 1st Ave",
+      "location": "Main St & 1st Ave"
+    }

@@ -1,0 +1,11 @@
+# Use this workspace to collaborate
+workspace:
+  id: be3a9b50-0c54-4122-8342-42b5ba83e9e1
+
+localResources:
+  collections:
+    - ..\docs\postman\Community-Response-Hub.postman_collection.json
+  environments:
+    - ..\docs\postman\CRH-Local.postman_environment.json
+  specs:
+    - ..\docs\swagger.yml

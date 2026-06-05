@@ -1,0 +1,17 @@
+$kind: http-request
+name: Assign Complaint
+method: PATCH
+url: '{{baseUrl}}/api/v1/complaints/:id/assign'
+order: 6000
+pathVariables:
+  - key: id
+    value: '{{complaintId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "assignedToUserId": "{{userId}}"
+    }

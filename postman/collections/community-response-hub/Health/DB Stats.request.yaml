@@ -1,0 +1,7 @@
+$kind: http-request
+name: DB Stats
+method: GET
+url: '{{baseUrl}}/api/v1/db/stats'
+order: 4000
+auth:
+  type: noauth
