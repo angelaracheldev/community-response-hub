@@ -14,12 +14,13 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE } from '../../utils/apiConfig';
+import { getResidentToken } from '../../utils/residentAuth';
+import { NotificationDropdown } from '../../components/NotificationDropdown';
 
 const BASE_URL = API_BASE;
 
 export default function ResidentHomeScreen() {
   const router = useRouter();
-
   // --- STATE FOR COMMUNITY VERIFICATION ---
   const [isVerified, setIsVerified] = useState(false);
   const [address, setAddress] = useState('');
@@ -126,9 +127,12 @@ export default function ResidentHomeScreen() {
             <Text style={styles.welcomeText}>Hello, Resident 👋</Text>
             <Text style={styles.subWelcome}>Marikina Sandbox Ecosystem</Text>
           </View>
-          <TouchableOpacity style={styles.logoutBtn} onPress={() => router.replace('/(auth)/login')}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.logoutBtn} onPress={() => router.replace('/(auth)/login')}>
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+            <NotificationDropdown getToken={getResidentToken} />
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -210,6 +214,7 @@ export default function ResidentHomeScreen() {
 
         </ScrollView>
       </View>
+
     </SafeAreaView>
   );
 }
@@ -233,6 +238,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   welcomeText: {
     fontSize: 22,
