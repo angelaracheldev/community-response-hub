@@ -3,6 +3,7 @@ name: Get Complaint by ID
 method: GET
 url: '{{baseUrl}}/api/v1/complaints/:id'
 order: 4000
+description: Path accepts complaint UUID (`complaintId`) or public reference (`referenceId`, e.g. CMP-2026-00001).
 pathVariables:
   - key: id
-    value: '{{complaintId}}'
+    value: '{{referenceId}}'

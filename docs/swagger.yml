@@ -512,6 +512,17 @@ components:
           type: string
           example: Complaint validated by barangay staff.
 
+    ComplaintCancelRequest:
+      type: object
+      required:
+        - cancellationReason
+      properties:
+        cancellationReason:
+          type: string
+          minLength: 10
+          description: Required reason for cancellation (minimum 10 characters)
+          example: Issue has already been resolved.
+
     ComplaintAssignRequest:
       type: object
       required:
@@ -1881,6 +1892,61 @@ paths:
                 $ref: '#/components/schemas/SingleComplaintResponse'
         '403':
           description: Forbidden
+
+  /complaints/{complaintId}/cancel:
+    patch:
+      tags:
+        - Complaints
+      summary: Cancel complaint (resident)
+      description: |
+        Verified resident only. Cancels a complaint owned by the authenticated resident when status is `pending` or `assigned`.
+        Sets status to `cancelled` and stores the reason in `remarks`.
+        Path accepts public `reference_id` (e.g. CMP-2026-00001) or internal `complaint_id` (UUID).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: string
+          description: Complaint reference_id or UUID
+          example: CMP-2026-00001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintCancelRequest'
+            examples:
+              example1:
+                value:
+                  cancellationReason: Issue has already been resolved.
+      responses:
+        '200':
+          description: Complaint cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleComplaintResponse'
+        '400':
+          description: Invalid status or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — not the complaint owner or not a resident
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Complaint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /complaints/{complaintId}/assignments:
     get:

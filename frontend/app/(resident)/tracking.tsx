@@ -7,17 +7,25 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
-import { fetchMyComplaints, formatComplaintStatus, ComplaintRecord } from '../../utils/complaintApi';
-
-function formatDate(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-}
+import { useFocusEffect, useRouter } from 'expo-router';
+import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
+import {
+  fetchMyComplaints,
+  formatAssigneeName,
+  formatDate,
+  formatDateTime,
+  ComplaintRecord,
+} from '../../utils/complaintApi';
+import { getContentMaxWidth, getScrollBottomPadding } from '../../utils/responsiveLayout';
 
 export default function TrackingScreen() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const contentMaxWidth = getContentMaxWidth(width);
+  const scrollPaddingBottom = getScrollBottomPadding(width);
   const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,7 +69,10 @@ export default function TrackingScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          { maxWidth: contentMaxWidth, paddingBottom: scrollPaddingBottom },
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => loadComplaints(true)} />
         }
@@ -81,23 +92,37 @@ export default function TrackingScreen() {
           </View>
         ) : (
           complaints.map((item) => (
-            <View key={item.complaint_id} style={styles.card}>
+            <TouchableOpacity
+              key={item.reference_id}
+              style={styles.card}
+              activeOpacity={0.85}
+              onPress={() =>
+                router.push({
+                  pathname: '/(resident)/complaint/[referenceId]',
+                  params: { referenceId: item.reference_id },
+                })
+              }
+            >
               <View style={styles.row}>
                 <Text style={styles.cardTitle} numberOfLines={2}>
                   {item.title}
                 </Text>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{formatComplaintStatus(item.status)}</Text>
-                </View>
+                <ComplaintStatusBadge status={item.status} compact />
               </View>
-              {item.category_name ? (
-                <Text style={styles.category}>{item.category_name}</Text>
-              ) : null}
-              <Text style={styles.meta}>Logged: {formatDate(item.created_at)}</Text>
-              <Text style={styles.complaintId} numberOfLines={1}>
-                Ref: {item.reference_id}
+              <Text style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Assigned To: </Text>
+                {formatAssigneeName(item)}
               </Text>
-            </View>
+              <Text style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Date Submitted: </Text>
+                {formatDate(item.created_at)}
+              </Text>
+              <Text style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Last Updated: </Text>
+                {formatDateTime(item.updated_at ?? item.created_at)}
+              </Text>
+              <Text style={styles.refRow}>Ref: {item.reference_id}</Text>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -108,7 +133,11 @@ export default function TrackingScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { width: '100%', maxWidth: 450, alignSelf: 'center', padding: 24, paddingBottom: 40 },
+  container: {
+    width: '100%',
+    alignSelf: 'center',
+    padding: 24,
+  },
   title: { fontSize: 22, fontWeight: '800', marginBottom: 20, color: '#111827' },
   card: {
     backgroundColor: '#fff',
@@ -120,11 +149,9 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
   cardTitle: { fontSize: 16, fontWeight: '600', flex: 1, color: '#111827' },
-  category: { fontSize: 13, color: '#6b7280', marginTop: 6 },
-  badge: { backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  badgeText: { fontSize: 11, color: '#1e40af', fontWeight: '700' },
-  meta: { color: '#6b7280', fontSize: 12, marginTop: 8 },
-  complaintId: { color: '#9ca3af', fontSize: 11, marginTop: 4 },
+  metaRow: { color: '#4b5563', fontSize: 13, marginTop: 8 },
+  metaLabel: { color: '#6b7280', fontWeight: '600' },
+  refRow: { color: '#9ca3af', fontSize: 11, marginTop: 6 },
   emptyBox: {
     backgroundColor: '#fff',
     padding: 24,

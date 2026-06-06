@@ -26,8 +26,18 @@ const assignComplaintValidation = [
   body('assignedToUserId').isUUID().withMessage('assignedToUserId must be a valid UUID'),
 ];
 
+const cancelComplaintValidation = [
+  body('cancellationReason')
+    .trim()
+    .notEmpty()
+    .withMessage('Cancellation reason is required')
+    .isLength({ min: 10 })
+    .withMessage('Cancellation reason must be at least 10 characters'),
+];
+
 module.exports = {
   createComplaintValidation,
   updateStatusValidation,
   assignComplaintValidation,
+  cancelComplaintValidation,
 };

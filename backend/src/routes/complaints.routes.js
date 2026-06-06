@@ -5,6 +5,7 @@ const {
   createComplaintValidation,
   updateStatusValidation,
   assignComplaintValidation,
+  cancelComplaintValidation,
 } = require('../validators/complaints.validator');
 
 router.post('/', authMiddleware, requireVerified, createComplaintValidation, complaintsController.createComplaint);
@@ -24,6 +25,13 @@ router.patch(
   requireAnyRole(['admin', 'responder']),
   assignComplaintValidation,
   complaintsController.assignComplaint
+);
+router.patch(
+  '/:id/cancel',
+  authMiddleware,
+  requireVerified,
+  cancelComplaintValidation,
+  complaintsController.cancelComplaint
 );
 
 const upload = require('../middleware/upload');

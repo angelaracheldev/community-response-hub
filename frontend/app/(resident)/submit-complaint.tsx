@@ -153,7 +153,7 @@ export default function SubmitComplaintScreen() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    let complaintId: string | null = null;
+    let referenceId: string | null = null;
 
     try {
       const complaint = await createComplaint({
@@ -163,18 +163,18 @@ export default function SubmitComplaintScreen() {
         locationText: location.trim(),
       });
 
-      complaintId = complaint.complaint_id;
+      referenceId = complaint.reference_id;
 
-      await uploadComplaintMedia(complaintId, evidence);
+      await uploadComplaintMedia(referenceId, evidence);
 
-      setSubmittedComplaintId(complaintId);
+      setSubmittedComplaintId(complaint.complaint_id);
       setSubmittedReferenceId(complaint.reference_id);
       setSubmittedStatus(complaint.status);
       setStep(3);
     } catch (error) {
-      if (complaintId) {
+      if (referenceId) {
         try {
-          await deleteFailedComplaint(complaintId);
+          await deleteFailedComplaint(referenceId);
         } catch {
           // Best-effort rollback
         }
