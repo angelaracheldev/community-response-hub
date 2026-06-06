@@ -16,4 +16,6 @@ values:
     value: ''
   - key: mediaId
     value: ''
+  - key: notificationId
+    value: ''
 color: 0

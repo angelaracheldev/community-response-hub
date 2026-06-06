@@ -84,7 +84,8 @@ DB_NAME=community_response_hub
 3. **complaints** - Main complaint/incident records (`reference_id` auto-generated as CMP-YEAR-#####)
 4. **complaint_media** - Photos, videos, documents attached to complaints
 5. **activity_logs** - Audit trail of changes
-6. **emergency_hotlines** - Emergency contact numbers
+6. **notifications** - User-scoped in-app notifications (read/expiry lifecycle)
+7. **emergency_hotlines** - Emergency contact numbers
 
 ### Key Features
 - ✅ UUID primary keys (auto-generated)
@@ -103,10 +104,16 @@ If the database was created before `reference_id` was added:
 psql -h localhost -U postgres -d community_response_hub -f backend/migrations/001_add_complaint_reference_id.sql
 ```
 
+If the database was created before the `notifications` table was added:
+
+```bash
+psql -h localhost -U postgres -d community_response_hub -f backend/migrations/002_create_notifications_table.sql
+```
+
 Or pipe via Docker:
 
 ```bash
-docker-compose exec -T postgres psql -U postgres -d community_response_hub < backend/migrations/001_add_complaint_reference_id.sql
+docker-compose exec -T postgres psql -U postgres -d community_response_hub < backend/migrations/002_create_notifications_table.sql
 ```
 
 ### Stop the Database
