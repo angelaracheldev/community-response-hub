@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { clearAdminToken, getAdminToken } from '../../utils/authStorage';
 import { API_BASE } from '../../utils/apiConfig';
+import { NotificationDropdown } from '../../components/NotificationDropdown';
 //import NoDocumentImage from '../../assets/';
 
 type User = {
@@ -61,7 +62,6 @@ export default function AdminDashboard() {
   const [token, setToken] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
-
   useEffect(() => {
     const authToken = getAdminToken();
     if (!authToken) {
@@ -299,6 +299,7 @@ export default function AdminDashboard() {
             Manage users and complaints
           </Text>
         </View>
+        <NotificationDropdown getToken={getAdminToken} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -477,6 +478,7 @@ export default function AdminDashboard() {
           </View>
         </View>
       </Modal>
+
     </View>
 
   </View>
