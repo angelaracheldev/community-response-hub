@@ -3,6 +3,7 @@ const { PRIORITY_VALUES } = require('../constants/complaintPriority');
 const complaintsRepository = require('../repositories/complaints.repository');
 const assignmentsRepository = require('../repositories/assignments.repository');
 const activityLogsRepository = require('../repositories/activityLogs.repository');
+const notificationEvents = require('./notificationEvents.service');
 
 async function createComplaint(requestUser, body) {
   const { categoryId, title, description, locationText, latitude, longitude, priorityLevel } = body;
@@ -37,6 +38,12 @@ async function createComplaint(requestUser, body) {
     });
   } catch (err) {
     console.error('Failed to insert activity log for complaint creation:', err.message);
+  }
+
+  try {
+    await notificationEvents.onComplaintSubmitted(complaint);
+  } catch (err) {
+    console.error('Failed to create complaint notifications:', err.message);
   }
 
   return {
@@ -143,9 +150,23 @@ async function updateComplaintStatus(id, { complaintStatus, remarks }) {
     return { error: { status: 400, body: { status: 'error', message: 'Invalid complaint status' } } };
   }
 
+  const existing = await complaintsRepository.findComplaintById(id);
+  if (!existing.rowCount) {
+    return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
+  }
+
   const result = await complaintsRepository.updateComplaintStatus({ status, remarks: remarks || null, id });
   if (!result.rowCount) {
     return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
+  }
+
+  const notifiableStatuses = ['in_progress', 'resolved', 'rejected', 'cancelled'];
+  if (notifiableStatuses.includes(status)) {
+    try {
+      await notificationEvents.onComplaintStatusUpdated(existing.rows[0], status);
+    } catch (err) {
+      console.error('Failed to create status notifications:', err.message);
+    }
   }
 
   return {

@@ -30,6 +30,8 @@ API base: `http://localhost:5000/api/v1`
 7. **Complaints → Update Complaint Status** / **Assign Complaint**
 8. **Activity Logs → Get Logs by Complaint**
 
+For notifications: run **Auth → Login (Admin)**, then **Notifications → Get Notifications** (uses seed data). Test **Get Unread Count**, **Open Notification**, and **Mark All As Read**. Create a complaint as resident to generate a new admin notification.
+
 For resident flows: run **Auth → Register (Resident)** (or login), then **Complaints → Create Complaint**, **Complaint Media → Upload**, and **My Complaints**.
 
 ## Complaint media (Cloudinary)
@@ -57,6 +59,7 @@ View uploads in [Cloudinary Media Library](https://console.cloudinary.com) under
 | `complaintId` | List or Create Complaint (UUID for API paths) |
 | `referenceId` | List or Create Complaint (human-readable CMP-YEAR-#####) |
 | `mediaId` | Upload or List Complaint Media |
+| `notificationId` | Get Notifications |
 | `categoryId` | Default `1` (seed categories) |
 
 Seed admin: `admin@example.com` / `Admin123!`
