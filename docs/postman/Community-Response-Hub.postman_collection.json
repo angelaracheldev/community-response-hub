@@ -430,6 +430,23 @@
         },
         {
           "name": "My Complaints (resident)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.complaints?.length) {",
+                  "  pm.environment.set('complaintId', json.complaints[0].complaint_id);",
+                  "  if (json.complaints[0].reference_id) {",
+                  "    pm.environment.set('referenceId', json.complaints[0].reference_id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -441,7 +458,8 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/complaints/{{complaintId}}"
+            "url": "{{baseUrl}}/complaints/{{complaintId}}",
+            "description": "Path accepts `complaintId` (UUID) or `referenceId` (e.g. CMP-2026-00001)."
           }
         },
         {
@@ -506,6 +524,21 @@
             },
             "url": "{{baseUrl}}/complaints/{{complaintId}}/assign",
             "description": "Run **List Users** first to set `assignedToUserId` (responder UUID)."
+          }
+        },
+        {
+          "name": "Cancel Complaint (resident)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Issue has already been resolved.\"\n}"
+            },
+            "url": "{{baseUrl}}/complaints/{{referenceId}}/cancel",
+            "description": "Verified resident only. Complaint must be `pending` or `assigned`. Run **My Complaints** or **Create Complaint** first to set `referenceId`. Authenticate as the owning resident."
           }
         }
       ],

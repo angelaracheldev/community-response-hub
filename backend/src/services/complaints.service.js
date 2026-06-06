@@ -129,7 +129,7 @@ async function listMyComplaints(requestUser) {
 }
 
 async function getComplaintById(id, requestUser) {
-  const result = await complaintsRepository.findComplaintById(id);
+  const result = await complaintsRepository.findComplaintByIdentifier(id);
   if (!result.rowCount) {
     return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
   }
@@ -179,6 +179,49 @@ async function updateComplaintStatus(id, { complaintStatus, remarks }) {
   };
 }
 
+const CANCELLABLE_STATUSES = ['pending', 'assigned'];
+
+async function cancelComplaint(id, requestUser, { cancellationReason }) {
+  const result = await complaintsRepository.findComplaintByIdentifier(id);
+  if (!result.rowCount) {
+    return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
+  }
+
+  const complaint = result.rows[0];
+  if (requestUser.role_name !== 'resident' || complaint.reported_by !== requestUser.user_id) {
+    return { error: { status: 403, body: { status: 'error', message: 'Forbidden' } } };
+  }
+
+  if (!CANCELLABLE_STATUSES.includes(complaint.status)) {
+    return {
+      error: {
+        status: 400,
+        body: {
+          status: 'error',
+          message: 'Only pending or assigned complaints can be cancelled',
+        },
+      },
+    };
+  }
+
+  await complaintsRepository.updateComplaintStatus({
+    status: 'cancelled',
+    remarks: cancellationReason,
+    id,
+  });
+
+  const refreshed = await complaintsRepository.findComplaintByIdentifier(id);
+
+  return {
+    body: {
+      status: 'ok',
+      message: 'Complaint cancelled successfully',
+      data: refreshed.rows[0],
+      timestamp: new Date().toISOString(),
+    },
+  };
+}
+
 async function assignComplaint(id, { assignedToUserId, assignedByUserId }) {
   const complaint = await complaintsRepository.findComplaintIdOnly(id);
   if (!complaint.rowCount) {
@@ -210,5 +253,6 @@ module.exports = {
   getComplaintById,
   updateComplaintStatus,
   assignComplaint,
+  cancelComplaint,
   deleteFailedComplaint,
 };

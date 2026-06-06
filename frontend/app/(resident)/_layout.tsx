@@ -1,10 +1,12 @@
 import { Tabs } from 'expo-router';
 import { useWindowDimensions, Platform } from 'react-native';
 import { useResidentVerification } from '../../hooks/useResidentVerification';
+import { getContentMaxWidth } from '../../utils/responsiveLayout';
 
 export default function ResidentLayout() {
   const { width } = useWindowDimensions();
   const { isVerified, loading } = useResidentVerification();
+  const contentMaxWidth = getContentMaxWidth(width);
 
   const canReport = loading || isVerified;
 
@@ -15,7 +17,7 @@ export default function ResidentLayout() {
         headerShown: false,
         tabBarStyle: {
           width: '100%',
-          maxWidth: 450,
+          maxWidth: contentMaxWidth,
           alignSelf: 'center',
           ...Platform.select({
             web: {
@@ -39,6 +41,12 @@ export default function ResidentLayout() {
         }}
       />
       <Tabs.Screen name="tracking" options={{ title: 'Track Status' }} />
+      <Tabs.Screen
+        name="complaint"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
