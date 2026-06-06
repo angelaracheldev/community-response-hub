@@ -17,14 +17,14 @@ async function insertComplaint({
   return db.query(
     `INSERT INTO complaints (reported_by, category_id, title, description, location_text, latitude, longitude, status, priority_level)
      VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8)
-     RETURNING complaint_id, reported_by, category_id, title, description, location_text, latitude, longitude, status, priority_level, remarks, created_at, updated_at`,
+     RETURNING complaint_id, reference_id, reported_by, category_id, title, description, location_text, latitude, longitude, status, priority_level, remarks, created_at, updated_at`,
     [reportedBy, categoryId, title, description, locationText || null, latitude || null, longitude || null, priorityLevel]
   );
 }
 
 async function listComplaints({ whereClause, params }) {
   const query = `
-      SELECT c.complaint_id, c.reported_by, c.category_id, cc.category_name, c.title, c.description, c.location_text, c.latitude, c.longitude, c.status, c.priority_level, c.remarks, c.created_at, c.updated_at,
+      SELECT c.complaint_id, c.reference_id, c.reported_by, c.category_id, cc.category_name, c.title, c.description, c.location_text, c.latitude, c.longitude, c.status, c.priority_level, c.remarks, c.created_at, c.updated_at,
              ca.assigned_to, u.first_name AS assigned_to_first_name, u.last_name AS assigned_to_last_name
       FROM complaints c
       LEFT JOIN complaint_categories cc ON cc.category_id = c.category_id
@@ -38,7 +38,7 @@ async function listComplaints({ whereClause, params }) {
 
 async function listComplaintsByReporter(userId) {
   return db.query(
-    `SELECT c.complaint_id, c.reported_by, c.category_id, cc.category_name, c.title, c.description, c.location_text, c.latitude, c.longitude, c.status, c.priority_level, c.remarks, c.created_at, c.updated_at,
+    `SELECT c.complaint_id, c.reference_id, c.reported_by, c.category_id, cc.category_name, c.title, c.description, c.location_text, c.latitude, c.longitude, c.status, c.priority_level, c.remarks, c.created_at, c.updated_at,
             ca.assigned_to, u.first_name AS assigned_to_first_name, u.last_name AS assigned_to_last_name
      FROM complaints c
      LEFT JOIN complaint_categories cc ON cc.category_id = c.category_id
@@ -52,7 +52,7 @@ async function listComplaintsByReporter(userId) {
 
 async function findComplaintById(id) {
   return db.query(
-    `SELECT c.complaint_id, c.reported_by, c.category_id, cc.category_name, c.title, c.description, c.location_text, c.latitude, c.longitude, c.status, c.priority_level, c.remarks, c.created_at, c.updated_at,
+    `SELECT c.complaint_id, c.reference_id, c.reported_by, c.category_id, cc.category_name, c.title, c.description, c.location_text, c.latitude, c.longitude, c.status, c.priority_level, c.remarks, c.created_at, c.updated_at,
             ca.assigned_to, u.first_name AS assigned_to_first_name, u.last_name AS assigned_to_last_name
      FROM complaints c
      LEFT JOIN complaint_categories cc ON cc.category_id = c.category_id

@@ -42,6 +42,8 @@ For resident flows: run **Auth → Register (Resident)** (or login), then **Comp
 
 **`complaintId` must be a UUID only** (e.g. from List/Create tests). Do not paste extra fields into the variable.
 
+**`referenceId`** is the human-readable complaint code (e.g. `CMP-2026-00001`) returned in API responses for display. It is saved automatically by List/Create tests but is **not** used in URL paths.
+
 View uploads in [Cloudinary Media Library](https://console.cloudinary.com) under folder `community-response-hub/complaints`.
 
 ## Variables
@@ -52,7 +54,8 @@ View uploads in [Cloudinary Media Library](https://console.cloudinary.com) under
 | `refreshToken` | Login / Register tests |
 | `userId` | List Users |
 | `assignedToUserId` | List Users (first responder) |
-| `complaintId` | List or Create Complaint |
+| `complaintId` | List or Create Complaint (UUID for API paths) |
+| `referenceId` | List or Create Complaint (human-readable CMP-YEAR-#####) |
 | `mediaId` | Upload or List Complaint Media |
 | `categoryId` | Default `1` (seed categories) |
 

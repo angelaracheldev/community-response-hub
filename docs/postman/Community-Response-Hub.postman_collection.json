@@ -399,6 +399,9 @@
                   "const json = pm.response.json();",
                   "if (json.complaints?.length) {",
                   "  pm.environment.set('complaintId', json.complaints[0].complaint_id);",
+                  "  if (json.complaints[0].reference_id) {",
+                  "    pm.environment.set('referenceId', json.complaints[0].reference_id);",
+                  "  }",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -447,7 +450,14 @@
                   "const json = pm.response.json();",
                   "if (json.data?.complaint_id) {",
                   "  pm.environment.set('complaintId', json.data.complaint_id);",
-                  "}"
+                  "}",
+                  "if (json.data?.reference_id) {",
+                  "  pm.environment.set('referenceId', json.data.reference_id);",
+                  "}",
+                  "pm.test('reference_id format', function () {",
+                  "  const ref = json.data?.reference_id;",
+                  "  if (ref) pm.expect(ref).to.match(/^CMP-\\d{4}-\\d{5}$/);",
+                  "});"
                 ],
                 "type": "text/javascript"
               }

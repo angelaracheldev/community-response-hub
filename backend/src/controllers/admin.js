@@ -9,7 +9,7 @@ router.get('/complaints/:complaintId/details', authMiddleware, requireRole('admi
 
     // Complaint + Category
     const complaintResult = await db.query(
-      `SELECT c.complaint_id, c.reported_by, c.category_id, cc.category_name, cc.description AS category_description,
+      `SELECT c.complaint_id, c.reference_id, c.reported_by, c.category_id, cc.category_name, cc.description AS category_description,
               c.title, c.description, c.location_text, c.latitude, c.longitude, c.status, c.priority_level, c.remarks, c.created_at, c.updated_at
        FROM complaints c
        LEFT JOIN complaint_categories cc ON cc.category_id = c.category_id

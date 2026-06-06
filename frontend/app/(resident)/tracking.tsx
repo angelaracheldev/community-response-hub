@@ -95,7 +95,7 @@ export default function TrackingScreen() {
               ) : null}
               <Text style={styles.meta}>Logged: {formatDate(item.created_at)}</Text>
               <Text style={styles.complaintId} numberOfLines={1}>
-                ID: {item.complaint_id}
+                Ref: {item.reference_id}
               </Text>
             </View>
           ))
