@@ -4,6 +4,7 @@ const usersRoutes = require('./users.routes');
 const categoriesRoutes = require('./categories.routes');
 const complaintsRoutes = require('./complaints.routes');
 const activityLogsRoutes = require('./activityLogs.routes');
+const notificationsRoutes = require('./notifications.routes');
 const healthRoutes = require('./health.routes');
 const dbRoutes = require('./db.routes');
 
@@ -14,5 +15,6 @@ router.use('/users', usersRoutes);
 router.use('/categories', categoriesRoutes);
 router.use('/complaints', complaintsRoutes);
 router.use('/activity-logs', activityLogsRoutes);
+router.use('/notifications', notificationsRoutes);
 
 module.exports = router;

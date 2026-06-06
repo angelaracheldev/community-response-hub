@@ -7,7 +7,7 @@ info:
 
     Aligned with database ERD (USER, ROLE, RESIDENT_VERIFICATIONS, COMPLAINTS,
     COMPLAINT_CATEGORIES, COMPLAINT_MEDIA, COMPLAINT_ASSIGNMENTS, ACTIVITY_LOGS,
-    EMERGENCY_HOTLINES).
+    NOTIFICATIONS, EMERGENCY_HOTLINES).
 
     FAQs are out of scope for this API version (resident FAQs remain client-side or static content).
 
@@ -15,7 +15,7 @@ info:
 
     Privacy: Complainant residentId is hidden from Responder responses. Admin sees full PII.
     Verification documents are temporary and removed after admin review.
-  version: 1.2.0
+  version: 1.3.0
 
 servers:
   - url: http://localhost:5000/api/v1
@@ -36,6 +36,8 @@ tags:
     description: Complaint media upload and management endpoints
   - name: Activity Logs
     description: Audit trail and complaint history endpoints
+  - name: Notifications
+    description: User notification endpoints
   - name: Categories
     description: Complaint category endpoints
   - name: Emergency Hotlines
@@ -808,6 +810,104 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ActivityLog'
+
+    Notification:
+      type: object
+      properties:
+        notification_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          example: new_complaint_submitted
+        entity_type:
+          type: string
+          enum: [complaint, verification]
+        entity_id:
+          type: string
+          format: uuid
+        message:
+          type: string
+          example: New complaint submitted "Broken Street Light"
+        is_read:
+          type: boolean
+          example: false
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    NotificationListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        count:
+          type: integer
+          example: 2
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        timestamp:
+          type: string
+          format: date-time
+
+    UnreadNotificationCountResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 5
+
+    OpenNotificationResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        entity_type:
+          type: string
+          enum: [complaint, verification]
+        entity_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+
+    MarkAllNotificationsReadResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        message:
+          type: string
+          example: All notifications marked as read
+        updatedCount:
+          type: integer
+          example: 3
+        timestamp:
+          type: string
+          format: date-time
 
     HotlineListResponse:
       type: object
@@ -2352,6 +2452,145 @@ paths:
                       REJECTED: 5
         '403':
           description: Forbidden
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get notifications for current user
+      description: Returns notifications belonging to the authenticated user, newest first.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: is_read
+          schema:
+            type: boolean
+          description: Filter by read status
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notifications/unread-count:
+    get:
+      tags:
+        - Notifications
+      summary: Get unread notification count
+      description: Returns the number of unread notifications for the authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread count retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadNotificationCountResponse'
+              example:
+                count: 5
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notifications/{notificationId}/open:
+    put:
+      tags:
+        - Notifications
+      summary: Open notification
+      description: Marks a notification as read and returns redirect information for the related record.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: notificationId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification opened successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenNotificationResponse'
+              example:
+                status: ok
+                entity_type: complaint
+                entity_id: 550e8400-e29b-41d4-a716-446655440000
+                timestamp: '2026-06-06T12:00:00.000Z'
+        '400':
+          description: Invalid notification ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notifications/read-all:
+    put:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      description: Marks all unread notifications belonging to the authenticated user as read.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notifications marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkAllNotificationsReadResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /dashboard/category-breakdown:
     get:

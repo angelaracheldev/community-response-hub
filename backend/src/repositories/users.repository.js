@@ -38,10 +38,21 @@ async function findUserIdOnly(id) {
   return db.query('SELECT user_id FROM users WHERE user_id = $1', [id]);
 }
 
+async function findActiveUsersByRoleName(roleName) {
+  return db.query(
+    `SELECT u.user_id
+     FROM users u
+     JOIN roles r ON r.role_id = u.role_id
+     WHERE r.role_name = $1 AND u.is_active = TRUE`,
+    [roleName]
+  );
+}
+
 module.exports = {
   listUsers,
   findUserById,
   updateUser,
   setUserActive,
   findUserIdOnly,
+  findActiveUsersByRoleName,
 };
