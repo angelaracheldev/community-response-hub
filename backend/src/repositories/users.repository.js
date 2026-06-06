@@ -3,7 +3,7 @@ const db = require('../config/database');
 async function listUsers({ filters, params }) {
   const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
   return db.query(
-    `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.role_id, r.role_name, u.is_verified, u.is_active, COALESCE(rv.status, 'not_submitted') AS verification_status, rv.verification_type, rv.document_url, u.created_at
+    `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.role_id, r.role_name, u.is_verified, u.is_active, COALESCE(rv.status, 'not_submitted') AS verification_status, rv.remarks AS verification_remarks, rv.verification_type, rv.document_url, u.created_at
      FROM users u
      LEFT JOIN roles r ON u.role_id = r.role_id
      LEFT JOIN resident_verifications rv ON u.user_id = rv.user_id
@@ -16,7 +16,7 @@ async function listUsers({ filters, params }) {
 
 async function findUserById(id) {
   return db.query(
-    `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.profile_image_url, u.role_id, r.role_name, u.is_verified, u.is_active, COALESCE(rv.status, 'not_submitted') AS verification_status, rv.verification_type, rv.document_url, rv.address AS verification_address, rv.submitted_at, u.created_at
+    `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.profile_image_url, u.role_id, r.role_name, u.is_verified, u.is_active, COALESCE(rv.status, 'not_submitted') AS verification_status, rv.remarks AS verification_remarks, rv.verification_type, rv.document_url, rv.address AS verification_address, rv.submitted_at, u.created_at
       FROM users u
       LEFT JOIN roles r ON u.role_id = r.role_id
       LEFT JOIN resident_verifications rv ON u.user_id = rv.user_id

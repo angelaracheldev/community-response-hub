@@ -281,17 +281,6 @@ export default function LoginScreen() {
                 <Text style={styles.buttonText}>Sign In</Text>
               )}
             </TouchableOpacity>
-
-            {/* Resend Verification Link */}
-            <TouchableOpacity
-              onPress={() => setShowResendModal(true)}
-              disabled={isLoading}
-              style={{ marginTop: 16, alignItems: 'center' }}
-            >
-              <Text style={[styles.resendVerificationText, isLoading && { opacity: 0.5 }]}>
-                Resend Verification Document?
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* Footer Section */}

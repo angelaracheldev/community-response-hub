@@ -50,7 +50,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState<'users' | 'complaints'>('users');
   const [pendingResidents, setPendingResidents] = useState<User[]>([]);
-  const [verifiedResidents, setVerifiedResidents] = useState<User[]>([]);
+  const [approvedResidents, setApprovedResidents] = useState<User[]>([]);
   const [respondents, setRespondents] = useState<User[]>([]);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -91,33 +91,33 @@ export default function AdminDashboard() {
     setLoading(true);
     setStatusMessage('Loading user management tables...');
     try {
-      const [pendingRes, verifiedRes, respondentsRes] = await Promise.all([
+      const [pendingRes, approvedRes, respondentsRes] = await Promise.all([
         fetch(`${API_BASE}/users?roleId=1&verificationStatus=pending`, requestOptions(authToken)),
         fetch(`${API_BASE}/users?roleId=1&verificationStatus=approved`, requestOptions(authToken)),
         fetch(`${API_BASE}/users?roleId=2`, requestOptions(authToken)),
       ]);
 
-      const [pendingData, verifiedData, respondentsData] = await Promise.all([
+      const [pendingData, approvedData, respondentsData] = await Promise.all([
         pendingRes.json(),
-        verifiedRes.json(),
+        approvedRes.json(),
         respondentsRes.json(),
       ]);
 
-      if (!pendingRes.ok || !verifiedRes.ok || !respondentsRes.ok) {
+      if (!pendingRes.ok || !approvedRes.ok) {
         throw new Error(
-          pendingData.message || verifiedData.message || respondentsData.message || 'Unable to load user tables'
+          pendingData.message || approvedData.message || 'Unable to load user tables'
         );
       }
 
       setPendingResidents(pendingData.users || []);
-      setVerifiedResidents(verifiedData.users || []);
+      setApprovedResidents(approvedData.users || []);
       setRespondents(respondentsData.users || []);
       setStatusMessage('');
     } catch (error) {
       console.error('Load user tables error:', error);
       setStatusMessage('Unable to load users. Check backend and token.');
       setPendingResidents([]);
-      setVerifiedResidents([]);
+      setApprovedResidents([]);
       setRespondents([]);
     } finally {
       setLoading(false);
@@ -152,10 +152,11 @@ export default function AdminDashboard() {
 
   const confirmApproveVerification = async (): Promise<void> => {
     if (!token || !confirmUserId) return;
+    const userId = confirmUserId;
     setLoading(true);
     setStatusMessage('Approving verification...');
     try {
-      const response = await fetch(`${API_BASE}/users/${confirmUserId}/verification/review`, {
+      const response = await fetch(`${API_BASE}/users/${userId}/verification/review`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -171,7 +172,7 @@ export default function AdminDashboard() {
       setConfirmOpen(false);
       setConfirmUserId(null);
       await loadUserTables(token);
-      await loadUserDetails(confirmUserId);
+      await loadUserDetails(userId);
     } catch (error) {
       console.error('Approve verification error:', error);
       setStatusMessage('Failed to approve verification.');
@@ -322,6 +323,7 @@ export default function AdminDashboard() {
                     <Text style={[styles.tableCell, styles.cellDate]}>Registered</Text>
                     <Text style={[styles.tableCell, styles.cellSmall]}>Verified</Text>
                     <Text style={[styles.tableCell, styles.cellSmall]}>Active</Text>
+                    <Text style={[styles.tableCell, styles.cellSmall]}>Status</Text>
                     <Text style={[styles.tableCell, styles.cellAction]}>Actions</Text>
                   </View>
                   {pendingResidents.map((user) => (
@@ -331,6 +333,7 @@ export default function AdminDashboard() {
                       <Text style={[styles.tableCell, styles.cellDate]}>{formatDate(user.created_at)}</Text>
                       <Text style={[styles.tableCell, styles.cellSmall]}>{user.is_verified ? 'Yes' : 'No'}</Text>
                       <Text style={[styles.tableCell, styles.cellSmall]}>{user.is_active ? 'Yes' : 'No'}</Text>
+                      <Text style={[styles.tableCell, styles.cellSmall]}>{user.verification_status || '-'}</Text>
                       <TouchableOpacity style={styles.viewBtn} onPress={() => loadUserDetails(user.user_id)}>
                         <Text style={styles.viewBtnText}>View</Text>
                       </TouchableOpacity>
@@ -341,9 +344,9 @@ export default function AdminDashboard() {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Residents Verified</Text>
-              {verifiedResidents.length === 0 ? (
-                <Text style={styles.emptyText}>No verified residents available.</Text>
+              <Text style={styles.sectionTitle}>Residents Accepted</Text>
+              {approvedResidents.length === 0 ? (
+                <Text style={styles.emptyText}>No accepted residents available.</Text>
               ) : (
                 <View style={styles.tableContainer}>
                   <View style={styles.tableHeader}>
@@ -354,7 +357,7 @@ export default function AdminDashboard() {
                     <Text style={[styles.tableCell, styles.cellSmall]}>Active</Text>
                     <Text style={[styles.tableCell, styles.cellAction]}>Actions</Text>
                   </View>
-                  {verifiedResidents.map((user) => (
+                  {approvedResidents.map((user) => (
                     <View key={user.user_id} style={styles.tableRow}>
                       <Text style={[styles.tableCell, styles.cellId]} numberOfLines={1}>{user.user_id.split('-')[0]}</Text>
                       <Text style={[styles.tableCell, styles.cellName]} numberOfLines={1}>{user.first_name} {user.last_name}</Text>
@@ -463,7 +466,10 @@ export default function AdminDashboard() {
             <View style={styles.confirmButtonRow}>
               <TouchableOpacity
                 style={[styles.confirmButton, styles.noButton]}
-                onPress={() => setConfirmOpen(false)}
+                onPress={() => {
+                  setConfirmOpen(false);
+                  setConfirmUserId(null);
+                }}
               >
                 <Text style={styles.confirmButtonText}>No</Text>
               </TouchableOpacity>

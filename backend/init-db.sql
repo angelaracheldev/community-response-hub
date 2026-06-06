@@ -139,6 +139,8 @@ CREATE TABLE resident_verifications (
             )
         ),
 
+    remarks TEXT,
+
     reviewed_by UUID
         REFERENCES users(user_id),
 
