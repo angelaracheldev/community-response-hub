@@ -1,12 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { getAdminToken } from '../../utils/authStorage';
+import React, { useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { AdminListCard } from '../../components/admin/AdminListCard';
+import { AdminPagination } from '../../components/admin/AdminPagination';
+import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
+import { adminListStyles as s } from '../../components/admin/adminListStyles';
+import { AdminPageShell } from '../../components/dashboard/AdminPageShell';
+import { useDashboardLayout } from '../../hooks/useDashboardLayout';
 import { API_BASE } from '../../utils/apiConfig';
+import { getAdminToken } from '../../utils/authStorage';
+
+const LOG_TABS = [
+  { id: 'complaint', label: 'Complaint' },
+  { id: 'user', label: 'User' },
+];
 
 export default function ActivityLogs() {
-  const router = useRouter();
+  const layout = useDashboardLayout();
   const token = getAdminToken();
   const [mode, setMode] = useState<'complaint' | 'user'>('complaint');
   const [targetId, setTargetId] = useState('');
@@ -19,22 +36,24 @@ export default function ActivityLogs() {
   const [total, setTotal] = useState(0);
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
 
-  useEffect(() => {
-    if (!token) router.replace('/(admin)/login');
-  }, []);
-
-  const loadLogs = async (p = 1) => {
+  const loadLogs = async (p = 1, dir = sortDir) => {
     if (!token) return;
-    if (!targetId) return;
+    if (!targetId.trim()) return;
     setLoading(true);
     try {
-      const q = new URLSearchParams({ page: String(p), pageSize: String(pageSize), sortBy: 'created_at', sortDir });
+      const q = new URLSearchParams({
+        page: String(p),
+        pageSize: String(pageSize),
+        sortBy: 'created_at',
+        sortDir: dir,
+      });
       if (description) q.set('description', description);
       if (performedBy) q.set('performedBy', performedBy);
 
-      const url = mode === 'complaint'
-        ? `${API_BASE}/complaints/${encodeURIComponent(targetId)}/activity-logs?${q.toString()}`
-        : `${API_BASE}/users/${encodeURIComponent(targetId)}/activity-logs?${q.toString()}`;
+      const url =
+        mode === 'complaint'
+          ? `${API_BASE}/complaints/${encodeURIComponent(targetId)}/activity-logs?${q.toString()}`
+          : `${API_BASE}/users/${encodeURIComponent(targetId)}/activity-logs?${q.toString()}`;
 
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
@@ -49,86 +68,168 @@ export default function ActivityLogs() {
     }
   };
 
+  const toggleSort = () => {
+    const nextDir = sortDir === 'desc' ? 'asc' : 'desc';
+    setSortDir(nextDir);
+    setPage(1);
+    loadLogs(1, nextDir);
+  };
+
+  const renderLogItem = ({ item }: { item: any }) => {
+    const when = new Date(item.created_at).toLocaleString();
+    const performer = item.performed_by_first_name
+      ? `${item.performed_by_first_name} ${item.performed_by_last_name}`
+      : item.performed_by;
+
+    if (layout.useCompactList) {
+      return (
+        <AdminListCard
+          title={item.action_type}
+          subtitle={when}
+          fields={[
+            { label: 'By', value: performer || '-' },
+            { label: 'Details', value: item.description || '-' },
+          ]}
+        />
+      );
+    }
+
+    return (
+      <View style={s.tableRow}>
+        <Text style={[s.col, styles.colWhen]}>{when}</Text>
+        <Text style={[s.col, styles.colAction]}>{item.action_type}</Text>
+        <Text style={[s.col, styles.colBy]} numberOfLines={2}>
+          {performer}
+        </Text>
+        <Text style={[s.col, styles.colDesc]}>{item.description}</Text>
+      </View>
+    );
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Activity Logs</Text>
-        <View style={styles.modeRow}>
-          <TouchableOpacity style={[styles.modeBtn, mode === 'complaint' && styles.modeActive]} onPress={() => setMode('complaint')}><Text style={mode === 'complaint' ? styles.modeTextActive : styles.modeText}>Complaint</Text></TouchableOpacity>
-          <TouchableOpacity style={[styles.modeBtn, mode === 'user' && styles.modeActive]} onPress={() => setMode('user')}><Text style={mode === 'user' ? styles.modeTextActive : styles.modeText}>User</Text></TouchableOpacity>
+    <AdminPageShell activeNavId="activity" pageTitle="Activity Logs" scrollEnabled={layout.useCompactList}>
+      <View style={s.toolbar}>
+        <AdminSegmentTabs
+          tabs={LOG_TABS}
+          activeId={mode}
+          onChange={(id) => setMode(id as typeof mode)}
+          compact={layout.useCompactList}
+        />
+
+        <View style={layout.useCompactList ? s.filtersStack : styles.filtersDesktop}>
+          <TextInput
+            placeholder={mode === 'complaint' ? 'Complaint ID' : 'User ID'}
+            value={targetId}
+            onChangeText={setTargetId}
+            style={layout.useCompactList ? s.filterInput : styles.filterInputDesktop}
+            autoCapitalize="none"
+          />
+          <TextInput
+            placeholder="Description contains"
+            value={description}
+            onChangeText={setDescription}
+            style={layout.useCompactList ? s.filterInput : styles.filterInputDesktop}
+          />
+          <TextInput
+            placeholder="Performed by (user id)"
+            value={performedBy}
+            onChangeText={setPerformedBy}
+            style={layout.useCompactList ? s.filterInput : styles.filterInputDesktop}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity
+            style={[s.loadBtn, layout.useCompactList && s.loadBtnCompact]}
+            onPress={() => {
+              setPage(1);
+              loadLogs(1);
+            }}
+          >
+            <Text style={s.loadBtnText}>Load Logs</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={s.sortRow}>
+          <TouchableOpacity onPress={toggleSort}>
+            <Text style={s.sortText}>Sort: {sortDir.toUpperCase()}</Text>
+          </TouchableOpacity>
+          <Text style={s.countText}>Total: {total}</Text>
         </View>
       </View>
 
-      <View style={styles.filtersRow}>
-        <TextInput placeholder={mode === 'complaint' ? 'Complaint ID' : 'User ID'} value={targetId} onChangeText={setTargetId} style={styles.input} />
-        <TextInput placeholder="Description contains" value={description} onChangeText={setDescription} style={styles.input} />
-        <TextInput placeholder="Performed By (user id)" value={performedBy} onChangeText={setPerformedBy} style={styles.input} />
-        <TouchableOpacity style={styles.actionBtn} onPress={() => { setPage(1); loadLogs(1); }}><Text style={styles.actionText}>Load</Text></TouchableOpacity>
-      </View>
-
-      <View style={styles.sortRow}>
-        <TouchableOpacity style={styles.sortBtn} onPress={() => { setSortDir(sortDir === 'desc' ? 'asc' : 'desc'); loadLogs(1); }}>
-          <Text style={styles.sortText}>Sort: {sortDir.toUpperCase()}</Text>
-        </TouchableOpacity>
-        <Text style={styles.countText}>Total: {total}</Text>
-      </View>
-
-      {loading ? <ActivityIndicator style={{ marginTop: 20 }} /> : (
+      {loading ? (
+        <ActivityIndicator style={s.loader} color="#6366F1" />
+      ) : layout.useCompactList ? (
+        logs.length === 0 ? (
+          <View style={s.emptyBox}>
+            <Text style={s.emptyText}>
+              {targetId.trim() ? 'No activity logs found.' : 'Enter an ID and tap Load Logs.'}
+            </Text>
+          </View>
+        ) : (
+          logs.map((item) => (
+            <React.Fragment key={item.activity_log_id}>{renderLogItem({ item })}</React.Fragment>
+          ))
+        )
+      ) : (
         <FlatList
+          style={s.list}
           data={logs}
           keyExtractor={(item) => item.activity_log_id}
-          ListHeaderComponent={() => (
-            <View style={styles.tableHeader}>
-              <Text style={[styles.col, styles.colSmall]}>When</Text>
-              <Text style={[styles.col, styles.colLarge]}>Action</Text>
-              <Text style={[styles.col, styles.colLarge]}>Performed By</Text>
-              <Text style={[styles.col, styles.colFlex]}>Description</Text>
+          nestedScrollEnabled
+          ListEmptyComponent={
+            <View style={s.emptyBox}>
+              <Text style={s.emptyText}>
+                {targetId.trim() ? 'No activity logs found.' : 'Enter an ID and tap Load Logs.'}
+              </Text>
             </View>
-          )}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <Text style={[styles.col, styles.colSmall]}>{new Date(item.created_at).toLocaleString()}</Text>
-              <Text style={[styles.col, styles.colLarge]}>{item.action_type}</Text>
-              <Text style={[styles.col, styles.colLarge]}>{item.performed_by_first_name ? `${item.performed_by_first_name} ${item.performed_by_last_name}` : item.performed_by}</Text>
-              <Text style={[styles.col, styles.colFlex]}>{item.description}</Text>
-            </View>
-          )}
+          }
+          ListHeaderComponent={
+            logs.length === 0
+              ? undefined
+              : () => (
+                  <View style={s.tableHeader}>
+                    <Text style={[s.col, styles.colWhen]}>When</Text>
+                    <Text style={[s.col, styles.colAction]}>Action</Text>
+                    <Text style={[s.col, styles.colBy]}>Performed By</Text>
+                    <Text style={[s.col, styles.colDesc]}>Description</Text>
+                  </View>
+                )
+          }
+          renderItem={renderLogItem}
         />
       )}
 
-      <View style={styles.paginationRow}>
-        <TouchableOpacity disabled={page === 1} onPress={() => loadLogs(Math.max(1, page - 1))} style={styles.pageBtn}><Text>Prev</Text></TouchableOpacity>
-        <Text style={styles.pageText}>{page} / {Math.max(1, Math.ceil((total || 0) / pageSize))}</Text>
-        <TouchableOpacity disabled={page * pageSize >= (total || 0)} onPress={() => loadLogs(page + 1)} style={styles.pageBtn}><Text>Next</Text></TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      {!loading ? (
+        <AdminPagination
+          page={page}
+          total={total}
+          pageSize={pageSize}
+          onPrev={() => loadLogs(Math.max(1, page - 1))}
+          onNext={() => loadLogs(page + 1)}
+        />
+      ) : null}
+    </AdminPageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f8fafc' },
-  headerRow: { padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 20, fontWeight: '800' },
-  modeRow: { flexDirection: 'row' },
-  modeBtn: { padding: 8, marginLeft: 8, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb' },
-  modeActive: { backgroundColor: '#2563EB', borderColor: '#2563EB' },
-  modeText: { color: '#374151', fontWeight: '700' },
-  modeTextActive: { color: '#fff', fontWeight: '700' },
-  filtersRow: { paddingHorizontal: 16, flexDirection: 'row', gap: 8, alignItems: 'center' },
-  input: { flex: 1, backgroundColor: '#fff', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#e5e7eb', marginRight: 8 },
-  actionBtn: { padding: 10, backgroundColor: '#2563EB', borderRadius: 10 },
-  actionText: { color: '#fff', fontWeight: '700' },
-  sortRow: { padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sortBtn: { padding: 8 },
-  sortText: { fontWeight: '700' },
-  countText: { color: '#6b7280' },
-  tableHeader: { flexDirection: 'row', padding: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e5e7eb' },
-  row: { flexDirection: 'row', padding: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#f3f4f6' },
-  col: { paddingHorizontal: 6 },
-  colSmall: { width: 140 },
-  colLarge: { width: 140 },
-  colFlex: { flex: 1 },
-  paginationRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 12 },
-  pageBtn: { padding: 8, marginHorizontal: 8 },
-  pageText: { fontWeight: '700' },
+  filtersDesktop: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+  },
+  filterInputDesktop: {
+    flex: 1,
+    minWidth: 140,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  colWhen: { width: 140 },
+  colAction: { width: 120 },
+  colBy: { width: 120 },
+  colDesc: { flex: 1, minWidth: 100 },
 });
