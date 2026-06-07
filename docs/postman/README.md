@@ -30,7 +30,9 @@ API base: `http://localhost:5000/api/v1`
 7. **Complaints → Update Complaint Status** / **Assign Complaint**
 8. **Activity Logs → Get Logs by Complaint**
 
-For resident flows: run **Auth → Register (Resident)** (or login), then **Complaints → Create Complaint**, **Complaint Media → Upload**, and **My Complaints**.
+For notifications: run **Auth → Login (Admin)**, then **Notifications → Get Notifications** (uses seed data). Test **Get Unread Count**, **Open Notification**, and **Mark All As Read**. Create a complaint as resident to generate a new admin notification.
+
+For resident flows: run **Auth → Register (Resident)** (or login), then **Complaints → Create Complaint**, **Complaint Media → Upload**, **My Complaints**, and **Cancel Complaint (resident)** when status is pending or assigned.
 
 ## Complaint media (Cloudinary)
 
@@ -40,7 +42,11 @@ For resident flows: run **Auth → Register (Resident)** (or login), then **Comp
 | List Complaint Media | `GET /complaints/:id/media` | |
 | Delete Complaint Media | `DELETE /complaints/:id/media/:mediaId` | DB row only in v1 |
 
-**`complaintId` must be a UUID only** (e.g. from List/Create tests). Do not paste extra fields into the variable.
+| Cancel Complaint | `PATCH /complaints/:id/cancel` | Resident only. Body: `cancellationReason` (min 10 chars). Status must be `pending` or `assigned`. |
+
+**Path `:id`** accepts either **`complaintId`** (UUID) or **`referenceId`** (e.g. `CMP-2026-00001`). Both are saved by List/Create/**My Complaints** tests.
+
+**`referenceId`** is the human-readable complaint code (e.g. `CMP-2026-00001`). Prefer it for **Cancel Complaint** and resident-facing flows.
 
 View uploads in [Cloudinary Media Library](https://console.cloudinary.com) under folder `community-response-hub/complaints`.
 
@@ -52,8 +58,10 @@ View uploads in [Cloudinary Media Library](https://console.cloudinary.com) under
 | `refreshToken` | Login / Register tests |
 | `userId` | List Users |
 | `assignedToUserId` | List Users (first responder) |
-| `complaintId` | List or Create Complaint |
+| `complaintId` | List, Create, or My Complaints (UUID) |
+| `referenceId` | List, Create, or My Complaints (CMP-YEAR-#####) |
 | `mediaId` | Upload or List Complaint Media |
+| `notificationId` | Get Notifications |
 | `categoryId` | Default `1` (seed categories) |
 
 Seed admin: `admin@example.com` / `Admin123!`

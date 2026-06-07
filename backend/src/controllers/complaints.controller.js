@@ -92,6 +92,37 @@ async function assignComplaint(req, res) {
   }
 }
 
+async function cancelComplaint(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', errors: errors.array() });
+  }
+
+  try {
+    const result = await complaintsService.cancelComplaint(req.params.id, req.user, req.body);
+    if (result.error) {
+      return res.status(result.error.status).json(result.error.body);
+    }
+    return res.json(result.body);
+  } catch (error) {
+    console.error('Failed to cancel complaint:', error.message);
+    return res.status(500).json({ status: 'error', message: 'Unable to cancel complaint', error: error.message });
+  }
+}
+
+async function deleteFailedComplaint(req, res) {
+  try {
+    const result = await complaintsService.deleteFailedComplaint(req.params.id, req.user);
+    if (result.error) {
+      return res.status(result.error.status).json(result.error.body);
+    }
+    return res.json(result.body);
+  } catch (error) {
+    console.error('Failed to delete complaint:', error.message);
+    return res.status(500).json({ status: 'error', message: 'Unable to delete complaint', error: error.message });
+  }
+}
+
 module.exports = {
   createComplaint,
   listComplaints,
@@ -99,4 +130,6 @@ module.exports = {
   getComplaintById,
   updateComplaintStatus,
   assignComplaint,
+  cancelComplaint,
+  deleteFailedComplaint,
 };

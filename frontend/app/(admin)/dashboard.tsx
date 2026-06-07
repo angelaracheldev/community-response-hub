@@ -27,6 +27,7 @@ import { useRouter } from 'expo-router';
 import { clearAdminToken, getAdminToken } from '../../utils/authStorage';
 import { API_BASE } from '../../utils/apiConfig';
 import { Picker } from '@react-native-picker/picker';
+import { NotificationDropdown } from '../../components/NotificationDropdown';
 //import NoDocumentImage from '../../assets/';
 
 type User = {
@@ -433,6 +434,8 @@ export default function AdminDashboard() {
             </TouchableOpacity>
           </View>
         </View>
+        <NotificationDropdown getToken={getAdminToken} />
+      </View>
 
         {/* Main Area */}
         <View style={styles.mainContent}>
@@ -851,6 +854,9 @@ export default function AdminDashboard() {
           OK
         </Text>
       </TouchableOpacity>
+      </Modal>
+
+    </View>
 
     </View>
   </View>

@@ -27,6 +27,11 @@ export default function LoginScreen() {
   const [secureText, setSecureText] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Custom User-Friendly Error States
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+
   // Resend Verification State
   const [showResendModal, setShowResendModal] = useState(false);
   const [resendEmail, setResendEmail] = useState('');
@@ -36,16 +41,34 @@ export default function LoginScreen() {
   const [validationPassed, setValidationPassed] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
 
+  // Helpers to trigger feedback messages
+  const triggerLoginError = (msg: string) => {
+    setLoginError(msg);
+    // Clear after 5 seconds
+    setTimeout(() => setLoginError(null), 5000);
+  };
+
+  const triggerModalError = (msg: string) => {
+    setModalError(msg);
+    setTimeout(() => setModalError(null), 5000);
+  };
+
+  const triggerSuccessToast = (msg: string) => {
+    setSuccessToast(msg);
+    setTimeout(() => setSuccessToast(null), 6000);
+  };
+
   const handleLogin = async () => {
+    setLoginError(null);
+
     if (!email || !password) {
-      alert('Please fill out all fields');
+      triggerLoginError('Please fill out all fields.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // 2. Exact alignment with Swagger doc path: /auth/login
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: {
@@ -53,7 +76,7 @@ export default function LoginScreen() {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          email: email.trim().toLowerCase(), // Normalize email strings
+          email: email.trim().toLowerCase(),
           password: password,
         }),
       });
@@ -70,19 +93,21 @@ export default function LoginScreen() {
 
         router.replace('/(resident)/home');
       } else {
-        alert(data.message || 'Invalid email or password. Please try again.');
+        triggerLoginError(data.message || 'Invalid email or password. Please try again.');
       }
     } catch (error) {
       console.error('API Network Connectivity Error:', error);
-      alert('Network connectivity error. Please check your connection or backend server.');
+      triggerLoginError('Network connectivity error. Please check your connection or backend server.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const validateResendVerification = async () => {
+    setModalError(null);
+
     if (!resendEmail || !resendPhone) {
-      alert('Please enter both email and phone number');
+      triggerModalError('Please enter both email and phone number.');
       return;
     }
 
@@ -108,18 +133,19 @@ export default function LoginScreen() {
         setResendMessage('Validation successful. Please upload your verification document.');
       } else {
         setResendMessage('');
-        alert(data.message || 'Your information does not match any verification requests with failed status.');
+        triggerModalError(data.message || 'Your information does not match any failed verification requests.');
       }
     } catch (error) {
       console.error('Validation error:', error);
       setResendMessage('');
-      alert('Error validating information. Please try again.');
+      triggerModalError('Error validating information. Please try again.');
     } finally {
       setResendLoading(false);
     }
   };
 
   const pickVerificationImage = async () => {
+    setModalError(null);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -133,13 +159,15 @@ export default function LoginScreen() {
       }
     } catch (error) {
       console.error('Image picker error:', error);
-      alert('Error picking image. Please try again.');
+      triggerModalError('Error picking image. Please try again.');
     }
   };
 
   const submitResendVerification = async () => {
+    setModalError(null);
+
     if (!verificationImageUri) {
-      alert('Please select a verification document image');
+      triggerModalError('Please select a verification document image.');
       return;
     }
 
@@ -164,20 +192,22 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Verification document submitted successfully! Please wait for admin review.');
-        // Reset resend modal state
+        // Success Handling without Alert: Close Modal & trigger floating Toast banner
         setShowResendModal(false);
+        triggerSuccessToast('Verification document submitted successfully! Please wait for admin review.');
+        
+        // Reset states
         setResendEmail('');
         setResendPhone('');
         setVerificationImageUri(null);
         setValidationPassed(false);
         setResendMessage('');
       } else {
-        alert(data.message || 'Failed to submit verification document.');
+        triggerModalError(data.message || 'Failed to submit verification document.');
       }
     } catch (error) {
       console.error('Submit verification error:', error);
-      alert('Error submitting verification document. Please try again.');
+      triggerModalError('Error submitting verification document. Please try again.');
     } finally {
       setResendLoading(false);
       setResendMessage('');
@@ -190,6 +220,13 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
+        {/* Floating Global Success Toast */}
+        {successToast ? (
+          <View style={styles.floatingToastContainer}>
+            <Text style={styles.floatingToastText}>✅ {successToast}</Text>
+          </View>
+        ) : null}
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -214,15 +251,23 @@ export default function LoginScreen() {
 
           {/* Form Fields */}
           <View style={styles.formContainer}>
+            
+            {/* Inline Login Error Banner */}
+            {loginError ? (
+              <View style={styles.errorBanner}>
+                <Text style={styles.errorBannerText}>⚠️ {loginError}</Text>
+              </View>
+            ) : null}
+
             {/* Email Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, loginError && styles.inputErrorBorder]}
                 placeholder="you@example.com"
                 placeholderTextColor="#9ca3af"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(val) => { setEmail(val); setLoginError(null); }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -235,13 +280,13 @@ export default function LoginScreen() {
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Password</Text>
               </View>
-              <View style={styles.passwordContainer}>
+              <View style={[styles.passwordContainer, loginError && styles.inputErrorBorder]}>
                 <TextInput
                   style={styles.passwordInput}
                   placeholder="••••••••"
                   placeholderTextColor="#9ca3af"
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(val) => { setPassword(val); setLoginError(null); }}
                   secureTextEntry={secureText}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -258,7 +303,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
               <TouchableOpacity
-                onPress={() => alert('Forgot password functionality coming soon!')}
+                onPress={() => triggerLoginError('Forgot password functionality coming soon!')}
                 style={{ marginTop: 8, alignSelf: 'flex-end' }}
                 disabled={isLoading}
               >
@@ -280,6 +325,17 @@ export default function LoginScreen() {
               ) : (
                 <Text style={styles.buttonText}>Sign In</Text>
               )}
+            </TouchableOpacity>
+
+            {/* Resend Verification Link */}
+            <TouchableOpacity
+              onPress={() => { setLoginError(null); setShowResendModal(true); }}
+              disabled={isLoading}
+              style={{ marginTop: 16, alignItems: 'center' }}
+            >
+              <Text style={[styles.resendVerificationText, isLoading && { opacity: 0.5 }]}>
+                Resend Verification Document?
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -324,16 +380,23 @@ export default function LoginScreen() {
               </Text>
             </View>
 
+            {/* Inline Modal Error Banner */}
+            {modalError ? (
+              <View style={styles.modalErrorBanner}>
+                <Text style={styles.modalErrorBannerText}>⚠️ {modalError}</Text>
+              </View>
+            ) : null}
+
             {!validationPassed ? (
               <View style={styles.validationSection}>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Email Address</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, modalError && styles.inputErrorBorder]}
                     placeholder="you@example.com"
                     placeholderTextColor="#9ca3af"
                     value={resendEmail}
-                    onChangeText={setResendEmail}
+                    onChangeText={(val) => { setResendEmail(val); setModalError(null); }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     editable={!resendLoading}
@@ -343,11 +406,11 @@ export default function LoginScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Phone Number</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, modalError && styles.inputErrorBorder]}
                     placeholder="+1 (555) 000-0000"
                     placeholderTextColor="#9ca3af"
                     value={resendPhone}
-                    onChangeText={setResendPhone}
+                    onChangeText={(val) => { setResendPhone(val); setModalError(null); }}
                     keyboardType="phone-pad"
                     editable={!resendLoading}
                   />
@@ -392,7 +455,7 @@ export default function LoginScreen() {
                   </View>
                 ) : (
                   <TouchableOpacity
-                    style={styles.uploadImageBtn}
+                    style={[styles.uploadImageBtn, modalError && styles.inputErrorBorder]}
                     onPress={pickVerificationImage}
                     disabled={resendLoading}
                   >
@@ -424,6 +487,7 @@ export default function LoginScreen() {
                     setValidationPassed(false);
                     setVerificationImageUri(null);
                     setResendMessage('');
+                    setModalError(null);
                   }}
                   disabled={resendLoading}
                 >
@@ -445,6 +509,58 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  // Custom Message components styling
+  errorBanner: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fca5a5',
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  errorBannerText: {
+    color: '#991b1b',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalErrorBanner: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fca5a5',
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  modalErrorBannerText: {
+    color: '#991b1b',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  inputErrorBorder: {
+    borderColor: '#f87171',
+    backgroundColor: '#fffafb',
+  },
+  floatingToastContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 20,
+    left: 20,
+    right: 20,
+    backgroundColor: '#065f46',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    zIndex: 9999,
+    boxShadow: '0px 10px 15px -3px rgba(0,0,0,0.1)',
+    elevation: 5,
+  },
+  floatingToastText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   scrollContent: {
     flexGrow: 1,

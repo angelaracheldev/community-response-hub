@@ -37,15 +37,15 @@ You should see the `community-response-hub-db` container with status `Up`.
 ### 4. Connect to the Database
 **Using psql (if installed):**
 ```bash
-psql -h localhost -U crh_user -d community_response_hub
-# Password: crh_password_dev
+psql -h localhost -U postgres -d community_response_hub
+# Password: 123456
 ```
 
 **Using DBeaver or another GUI tool:**
 - Host: `localhost`
 - Port: `5432`
-- Username: `crh_user`
-- Password: `crh_password_dev`
+- Username: `postgres`
+- Password: `123456`
 - Database: `community_response_hub`
 
 **Using VS Code PostgreSQL Extension:**
@@ -53,8 +53,8 @@ psql -h localhost -U crh_user -d community_response_hub
 - Click "Create Connection"
 - Host: `localhost`
 - Port: `5432`
-- User: `crh_user`
-- Password: `crh_password_dev`
+- User: `postgres`
+- Password: `123456`
 - Database: `community_response_hub`
 
 ## Configuration
@@ -69,8 +69,8 @@ cp backend/.env.example backend/.env.local
 ```
 DB_HOST=localhost
 DB_PORT=5432
-DB_USER=crh_user
-DB_PASSWORD=crh_password_dev
+DB_USER=postgres
+DB_PASSWORD=123456
 DB_NAME=community_response_hub
 ```
 
@@ -81,10 +81,11 @@ DB_NAME=community_response_hub
 ### Tables
 1. **users** - User accounts (residents, officers, admins)
 2. **complaint_categories** - Types of complaints
-3. **complaints** - Main complaint/incident records
+3. **complaints** - Main complaint/incident records (`reference_id` auto-generated as CMP-YEAR-#####)
 4. **complaint_media** - Photos, videos, documents attached to complaints
 5. **activity_logs** - Audit trail of changes
-6. **emergency_hotlines** - Emergency contact numbers
+6. **notifications** - User-scoped in-app notifications (read/expiry lifecycle)
+7. **emergency_hotlines** - Emergency contact numbers
 
 ### Key Features
 - ✅ UUID primary keys (auto-generated)
@@ -94,6 +95,26 @@ DB_NAME=community_response_hub
 - ✅ Sample data pre-loaded
 
 ## Common Commands
+
+### Apply migrations (existing database)
+
+If the database was created before `reference_id` was added:
+
+```bash
+psql -h localhost -U postgres -d community_response_hub -f backend/migrations/001_add_complaint_reference_id.sql
+```
+
+If the database was created before the `notifications` table was added:
+
+```bash
+psql -h localhost -U postgres -d community_response_hub -f backend/migrations/002_create_notifications_table.sql
+```
+
+Or pipe via Docker:
+
+```bash
+docker-compose exec -T postgres psql -U postgres -d community_response_hub < backend/migrations/002_create_notifications_table.sql
+```
 
 ### Stop the Database
 ```bash
@@ -112,17 +133,17 @@ docker-compose logs postgres
 
 ### Backup the Database
 ```bash
-docker-compose exec postgres pg_dump -U crh_user community_response_hub > backup.sql
+docker-compose exec postgres pg_dump -U postgres community_response_hub > backup.sql
 ```
 
 ### Restore from Backup
 ```bash
-docker-compose exec -T postgres psql -U crh_user community_response_hub < backup.sql
+docker-compose exec -T postgres psql -U postgres community_response_hub < backup.sql
 ```
 
 ### Access Database Shell
 ```bash
-docker-compose exec postgres psql -U crh_user -d community_response_hub
+docker-compose exec postgres psql -U postgres -d community_response_hub
 ```
 
 ## Team Development Workflow

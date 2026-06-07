@@ -19,8 +19,8 @@ function uploadBuffer(file) {
   });
 }
 
-async function assertCanAccessComplaint(complaintId, user) {
-  const result = await complaintsRepository.findComplaintById(complaintId);
+async function assertCanAccessComplaint(complaintIdentifier, user) {
+  const result = await complaintsRepository.findComplaintByIdentifier(complaintIdentifier);
   if (!result.rowCount) {
     return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
   }
@@ -31,9 +31,11 @@ async function assertCanAccessComplaint(complaintId, user) {
   return { complaint };
 }
 
-async function uploadComplaintMedia(complaintId, user, files) {
-  const access = await assertCanAccessComplaint(complaintId, user);
+async function uploadComplaintMedia(complaintIdentifier, user, files) {
+  const access = await assertCanAccessComplaint(complaintIdentifier, user);
   if (access.error) return access;
+
+  const complaintId = access.complaint.complaint_id;
 
   if (!files?.length) {
     return { error: { status: 400, body: { status: 'error', message: 'No files provided' } } };
@@ -63,11 +65,11 @@ async function uploadComplaintMedia(complaintId, user, files) {
   };
 }
 
-async function listComplaintMedia(complaintId, user) {
-  const access = await assertCanAccessComplaint(complaintId, user);
+async function listComplaintMedia(complaintIdentifier, user) {
+  const access = await assertCanAccessComplaint(complaintIdentifier, user);
   if (access.error) return access;
 
-  const result = await mediaRepository.listByComplaintId(complaintId);
+  const result = await mediaRepository.listByComplaintId(access.complaint.complaint_id);
   return {
     body: {
       status: 'ok',
@@ -77,16 +79,17 @@ async function listComplaintMedia(complaintId, user) {
   };
 }
 
-async function deleteComplaintMedia(complaintId, mediaId, user) {
-  const access = await assertCanAccessComplaint(complaintId, user);
+async function deleteComplaintMedia(complaintIdentifier, mediaId, user) {
+  const access = await assertCanAccessComplaint(complaintIdentifier, user);
   if (access.error) return access;
+
+  const complaintId = access.complaint.complaint_id;
 
   const existing = await mediaRepository.findById(mediaId, complaintId);
   if (!existing.rowCount) {
     return { error: { status: 404, body: { status: 'error', message: 'Media not found' } } };
   }
 
-  // Optional: destroy on Cloudinary using public_id from URL — skip for v1
   await mediaRepository.deleteById(mediaId, complaintId);
 
   return {

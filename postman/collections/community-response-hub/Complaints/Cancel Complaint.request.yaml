@@ -1,0 +1,18 @@
+$kind: http-request
+name: Cancel Complaint
+method: PATCH
+url: '{{baseUrl}}/api/v1/complaints/{{referenceId}}/cancel'
+order: 7000
+headers:
+  - key: Authorization
+    value: Bearer {{residentToken}}
+    enabled: true
+  - key: Content-Type
+    value: application/json
+    enabled: true
+body:
+  type: json
+  content: |-
+    {
+      "cancellationReason": "Issue has already been resolved."
+    }

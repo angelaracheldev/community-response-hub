@@ -9,6 +9,10 @@
     {
       "key": "baseUrl",
       "value": "http://localhost:5000/api/v1"
+    },
+    {
+      "key": "notificationId",
+      "value": ""
     }
   ],
   "item": [
@@ -399,6 +403,9 @@
                   "const json = pm.response.json();",
                   "if (json.complaints?.length) {",
                   "  pm.environment.set('complaintId', json.complaints[0].complaint_id);",
+                  "  if (json.complaints[0].reference_id) {",
+                  "    pm.environment.set('referenceId', json.complaints[0].reference_id);",
+                  "  }",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -423,6 +430,23 @@
         },
         {
           "name": "My Complaints (resident)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.complaints?.length) {",
+                  "  pm.environment.set('complaintId', json.complaints[0].complaint_id);",
+                  "  if (json.complaints[0].reference_id) {",
+                  "    pm.environment.set('referenceId', json.complaints[0].reference_id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -434,7 +458,8 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/complaints/{{complaintId}}"
+            "url": "{{baseUrl}}/complaints/{{complaintId}}",
+            "description": "Path accepts `complaintId` (UUID) or `referenceId` (e.g. CMP-2026-00001)."
           }
         },
         {
@@ -447,7 +472,14 @@
                   "const json = pm.response.json();",
                   "if (json.data?.complaint_id) {",
                   "  pm.environment.set('complaintId', json.data.complaint_id);",
-                  "}"
+                  "}",
+                  "if (json.data?.reference_id) {",
+                  "  pm.environment.set('referenceId', json.data.reference_id);",
+                  "}",
+                  "pm.test('reference_id format', function () {",
+                  "  const ref = json.data?.reference_id;",
+                  "  if (ref) pm.expect(ref).to.match(/^CMP-\\d{4}-\\d{5}$/);",
+                  "});"
                 ],
                 "type": "text/javascript"
               }
@@ -492,6 +524,21 @@
             },
             "url": "{{baseUrl}}/complaints/{{complaintId}}/assign",
             "description": "Run **List Users** first to set `assignedToUserId` (responder UUID)."
+          }
+        },
+        {
+          "name": "Cancel Complaint (resident)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancellationReason\": \"Issue has already been resolved.\"\n}"
+            },
+            "url": "{{baseUrl}}/complaints/{{referenceId}}/cancel",
+            "description": "Verified resident only. Complaint must be `pending` or `assigned`. Run **My Complaints** or **Create Complaint** first to set `referenceId`. Authenticate as the owning resident."
           }
         }
       ],
@@ -650,6 +697,89 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/activity-logs/complaint/{{complaintId}}"
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+      }
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.notifications && body.notifications.length > 0) {",
+                  "    pm.collectionVariables.set('notificationId', body.notifications[0].notification_id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?is_read=false&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"],
+              "query": [
+                { "key": "is_read", "value": "false" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/unread-count"
+          }
+        },
+        {
+          "name": "Open Notification",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/{{notificationId}}/open",
+            "description": "Run **Get Notifications** first to set `notificationId`."
+          }
+        },
+        {
+          "name": "Mark All As Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/read-all"
           }
         }
       ],

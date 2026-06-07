@@ -22,6 +22,7 @@ VALUES
 CREATE SEQUENCE resident_seq START 1;
 CREATE SEQUENCE responder_seq START 1;
 CREATE SEQUENCE staff_seq START 1;
+CREATE SEQUENCE complaint_seq START 1;
 
 CREATE OR REPLACE FUNCTION generate_user_code()
 RETURNS TRIGGER
@@ -70,7 +71,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
+CREATE OR REPLACE FUNCTION generate_complaint_reference_id()
+RETURNS TRIGGER
+AS $$
+BEGIN
+    NEW.reference_id := CONCAT(
+        'CMP-',
+        EXTRACT(YEAR FROM CURRENT_DATE),
+        '-',
+        LPAD(nextval('complaint_seq')::TEXT, 5, '0')
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- =====================================================
@@ -213,6 +226,8 @@ VALUES
 CREATE TABLE complaints (
     complaint_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
+    reference_id VARCHAR(16) UNIQUE NOT NULL,
+
     reported_by UUID
         REFERENCES users(user_id)
         ON DELETE SET NULL,
@@ -263,6 +278,12 @@ CREATE TABLE complaints (
 
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TRIGGER trg_generate_complaint_reference_id
+BEFORE INSERT
+ON complaints
+FOR EACH ROW
+EXECUTE FUNCTION generate_complaint_reference_id();
 --
 
 -- --# Complaint Workflow
@@ -461,6 +482,68 @@ CREATE TABLE IF NOT EXISTS user_activity_logs (
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+
+-- # NOTIFICATIONS TABLE
+-- Purpose: user-scoped in-app notifications with read/expiry lifecycle
+
+CREATE TABLE notifications (
+    notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    user_id UUID NOT NULL
+        REFERENCES users(user_id)
+        ON DELETE CASCADE,
+
+    type VARCHAR(50) NOT NULL
+        CHECK (
+            type IN (
+                'complaint_submitted',
+                'complaint_assigned',
+                'complaint_in_progress',
+                'complaint_resolved',
+                'complaint_rejected',
+                'complaint_cancelled',
+                'verification_approved',
+                'verification_rejected',
+                'new_complaint_submitted',
+                'new_resident_registration',
+                'reverification_submitted'
+            )
+        ),
+
+    entity_type VARCHAR(50) NOT NULL
+        CHECK (
+            entity_type IN (
+                'complaint',
+                'verification'
+            )
+        ),
+
+    entity_id UUID NOT NULL,
+
+    message TEXT NOT NULL,
+
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+
+    read_at TIMESTAMP,
+
+    expires_at TIMESTAMP,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_notifications_read_timestamps
+        CHECK (
+            (is_read = FALSE AND read_at IS NULL)
+            OR (is_read = TRUE AND read_at IS NOT NULL)
+        )
+);
+
+CREATE INDEX idx_notifications_user_created
+    ON notifications (user_id, created_at DESC);
+
+CREATE INDEX idx_notifications_user_unread
+    ON notifications (user_id)
+    WHERE is_read = FALSE;
 
 
 -- ## Recommended Action Types
@@ -745,6 +828,34 @@ VALUES
 
     'assigned',
     'Complaint assigned to responder'
+);
+
+-- Notifications (sample seed data)
+
+INSERT INTO notifications (
+    user_id,
+    type,
+    entity_type,
+    entity_id,
+    message,
+    is_read
+)
+VALUES
+(
+    (SELECT user_id FROM users WHERE email = 'juan@example.com'),
+    'complaint_submitted',
+    'complaint',
+    (SELECT complaint_id FROM complaints WHERE title = 'Loud Karaoke Until Midnight'),
+    'Your complaint "Loud Karaoke Until Midnight" has been submitted.',
+    FALSE
+),
+(
+    (SELECT user_id FROM users WHERE email = 'admin@example.com'),
+    'new_complaint_submitted',
+    'complaint',
+    (SELECT complaint_id FROM complaints WHERE title = 'Garbage Dumping Near Creek'),
+    'A new complaint "Garbage Dumping Near Creek" has been submitted.',
+    FALSE
 );
 
 

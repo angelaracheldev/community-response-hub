@@ -2,6 +2,8 @@ const { STATUS_VALUES } = require('../constants/complaintStatus');
 const { PRIORITY_VALUES } = require('../constants/complaintPriority');
 const complaintsRepository = require('../repositories/complaints.repository');
 const assignmentsRepository = require('../repositories/assignments.repository');
+const activityLogsRepository = require('../repositories/activityLogs.repository');
+const notificationEvents = require('./notificationEvents.service');
 
 async function createComplaint(requestUser, body) {
   const { categoryId, title, description, locationText, latitude, longitude, priorityLevel } = body;
@@ -25,12 +27,56 @@ async function createComplaint(requestUser, body) {
     priorityLevel: resolvedPriority,
   });
 
+  const complaint = result.rows[0];
+
+  try {
+    await activityLogsRepository.insertLog({
+      complaintId: complaint.complaint_id,
+      performedBy: requestUser.user_id,
+      actionType: 'complaint_created',
+      description: 'Complaint created by resident',
+    });
+  } catch (err) {
+    console.error('Failed to insert activity log for complaint creation:', err.message);
+  }
+
+  try {
+    await notificationEvents.onComplaintSubmitted(complaint);
+  } catch (err) {
+    console.error('Failed to create complaint notifications:', err.message);
+  }
+
   return {
     status: 201,
     body: {
       status: 'ok',
       message: 'Complaint created successfully',
-      data: result.rows[0],
+      data: complaint,
+      timestamp: new Date().toISOString(),
+    },
+  };
+}
+
+async function deleteFailedComplaint(id, requestUser) {
+  const result = await complaintsRepository.findComplaintById(id);
+  if (!result.rowCount) {
+    return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
+  }
+
+  const complaint = result.rows[0];
+  if (requestUser.role_name === 'resident' && complaint.reported_by !== requestUser.user_id) {
+    return { error: { status: 403, body: { status: 'error', message: 'Forbidden' } } };
+  }
+  if (complaint.status !== 'pending') {
+    return { error: { status: 400, body: { status: 'error', message: 'Only pending complaints can be deleted' } } };
+  }
+
+  await complaintsRepository.deleteComplaintById(id);
+
+  return {
+    body: {
+      status: 'ok',
+      message: 'Complaint deleted successfully',
       timestamp: new Date().toISOString(),
     },
   };
@@ -83,7 +129,7 @@ async function listMyComplaints(requestUser) {
 }
 
 async function getComplaintById(id, requestUser) {
-  const result = await complaintsRepository.findComplaintById(id);
+  const result = await complaintsRepository.findComplaintByIdentifier(id);
   if (!result.rowCount) {
     return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
   }
@@ -104,9 +150,23 @@ async function updateComplaintStatus(id, { complaintStatus, remarks }) {
     return { error: { status: 400, body: { status: 'error', message: 'Invalid complaint status' } } };
   }
 
+  const existing = await complaintsRepository.findComplaintById(id);
+  if (!existing.rowCount) {
+    return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
+  }
+
   const result = await complaintsRepository.updateComplaintStatus({ status, remarks: remarks || null, id });
   if (!result.rowCount) {
     return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
+  }
+
+  const notifiableStatuses = ['in_progress', 'resolved', 'rejected', 'cancelled'];
+  if (notifiableStatuses.includes(status)) {
+    try {
+      await notificationEvents.onComplaintStatusUpdated(existing.rows[0], status);
+    } catch (err) {
+      console.error('Failed to create status notifications:', err.message);
+    }
   }
 
   return {
@@ -114,6 +174,49 @@ async function updateComplaintStatus(id, { complaintStatus, remarks }) {
       status: 'ok',
       message: 'Complaint status updated successfully',
       data: result.rows[0],
+      timestamp: new Date().toISOString(),
+    },
+  };
+}
+
+const CANCELLABLE_STATUSES = ['pending', 'assigned'];
+
+async function cancelComplaint(id, requestUser, { cancellationReason }) {
+  const result = await complaintsRepository.findComplaintByIdentifier(id);
+  if (!result.rowCount) {
+    return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
+  }
+
+  const complaint = result.rows[0];
+  if (requestUser.role_name !== 'resident' || complaint.reported_by !== requestUser.user_id) {
+    return { error: { status: 403, body: { status: 'error', message: 'Forbidden' } } };
+  }
+
+  if (!CANCELLABLE_STATUSES.includes(complaint.status)) {
+    return {
+      error: {
+        status: 400,
+        body: {
+          status: 'error',
+          message: 'Only pending or assigned complaints can be cancelled',
+        },
+      },
+    };
+  }
+
+  await complaintsRepository.updateComplaintStatus({
+    status: 'cancelled',
+    remarks: cancellationReason,
+    id,
+  });
+
+  const refreshed = await complaintsRepository.findComplaintByIdentifier(id);
+
+  return {
+    body: {
+      status: 'ok',
+      message: 'Complaint cancelled successfully',
+      data: refreshed.rows[0],
       timestamp: new Date().toISOString(),
     },
   };
@@ -150,4 +253,6 @@ module.exports = {
   getComplaintById,
   updateComplaintStatus,
   assignComplaint,
+  cancelComplaint,
+  deleteFailedComplaint,
 };
