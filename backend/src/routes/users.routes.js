@@ -8,6 +8,7 @@ const {
 } = require('../validators/users.validator');
 
 router.get('/', authMiddleware, requireRole('admin'), usersController.listUsers);
+router.get('/me', authMiddleware, usersController.getCurrentUser);
 router.get('/:id', authMiddleware, usersController.getUserById);
 router.patch('/:id', authMiddleware, usersController.updateUser);
 router.post(

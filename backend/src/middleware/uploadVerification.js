@@ -6,8 +6,8 @@ const uploadVerification = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: maxFileSize },
   fileFilter: (req, file, cb) => {
-    const ok = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/.test(file.mimetype);
-    cb(ok ? null : new Error('Only JPEG, PNG, WebP, or PDF files are allowed'), ok);
+    const ok = /^(image\/(jpeg|png)|application\/pdf)$/.test(file.mimetype);
+    cb(ok ? null : new Error('Only JPG, JPEG, PNG, or PDF files are allowed'), ok);
   },
 });
 

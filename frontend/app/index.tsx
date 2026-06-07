@@ -21,13 +21,13 @@ export default function Gatekeeper() {
         </TouchableOpacity>
 
         {/* Simulation Button 2: Go to Resident App */}
-        <TouchableOpacity 
+        {/* <TouchableOpacity 
           style={[styles.button, { backgroundColor: '#34C759' }]} 
           onPress={() => router.push('/(resident)/home')}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>Enter as Resident</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* Simulation Button 3: Go to Admin Landing */}
         <TouchableOpacity 

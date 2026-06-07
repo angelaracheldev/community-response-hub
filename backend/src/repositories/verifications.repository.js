@@ -6,7 +6,7 @@ async function findVerificationByUserId(userId) {
 
 async function updateVerification({ verificationType, documentUrl, address, userId }) {
   return db.query(
-    `UPDATE resident_verifications SET verification_type = $1, document_url = $2, address = $3, status = 'pending', reviewed_by = NULL, reviewed_at = NULL, submitted_at = CURRENT_TIMESTAMP WHERE user_id = $4`,
+    `UPDATE resident_verifications SET verification_type = $1, document_url = $2, address = $3, status = 'pending', remarks = NULL, reviewed_by = NULL, reviewed_at = NULL, submitted_at = CURRENT_TIMESTAMP WHERE user_id = $4`,
     [verificationType, documentUrl, address, userId]
   );
 }
@@ -18,15 +18,15 @@ async function insertVerification({ userId, verificationType, documentUrl, addre
   );
 }
 
-async function reviewVerification({ verificationStatus, reviewedBy, userId }) {
+async function reviewVerification({ verificationStatus, reviewedBy, userId, remarks }) {
   return db.query(
-    `UPDATE resident_verifications SET status = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP WHERE user_id = $3`,
-    [verificationStatus, reviewedBy, userId]
+    `UPDATE resident_verifications SET status = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP, remarks = $4 WHERE user_id = $3`,
+    [verificationStatus, reviewedBy, userId, remarks || null]
   );
 }
 
-async function setUserVerified(userId) {
-  return db.query('UPDATE users SET is_verified = TRUE WHERE user_id = $1', [userId]);
+async function setUserVerified(userId, isVerified) {
+  return db.query('UPDATE users SET is_verified = $1 WHERE user_id = $2', [isVerified, userId]);
 }
 
 module.exports = {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,22 +11,35 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import * as SecureStore from 'expo-secure-store';
+import * as DocumentPicker from 'expo-document-picker';
 import { API_BASE } from '../../utils/apiConfig';
 import { getResidentToken } from '../../utils/residentAuth';
+import { buildVerificationFormData } from '../../utils/verificationUpload';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
 
 const BASE_URL = API_BASE;
 
+type VerificationStatus = 'not_submitted' | 'pending' | 'rejected' | 'approved';
+
+type SelectedFile = {
+  uri: string;
+  name: string;
+  type: string;
+  size: number;
+  isImage: boolean;
+};
+
 export default function ResidentHomeScreen() {
   const router = useRouter();
   // --- STATE FOR COMMUNITY VERIFICATION ---
-  const [isVerified, setIsVerified] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('not_submitted');
+  const [rejectionRemarks, setRejectionRemarks] = useState<string>('');
   const [address, setAddress] = useState('');
-  const [verificationType, setVerificationType] = useState('Utility Bill'); // Defaulting type matching your API requirements
-  const [imageUri, setImageUri] = useState<string | null>(null); // Local URI for selected verification file
+  const [verificationType, setVerificationType] = useState<string>('ID');
+  const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
+  const [fileError, setFileError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
 
   // --- MOCK DATA FOR FAQS & HOTLINES ---
   const emergencyHotlines = [
@@ -40,63 +53,118 @@ export default function ResidentHomeScreen() {
     { id: 'f2', q: 'What counts as valid evidence?', a: 'Clear, timestamped media captured within community boundaries.' },
   ];
 
+  // Load verification status on mount
+  useEffect(() => {
+    loadVerificationStatus();
+  }, []);
+
+  const loadVerificationStatus = async () => {
+    try {
+      const token = await getResidentToken();
+      if (!token) {
+        setIsPageLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${BASE_URL}/users/me`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok && data.user) {
+        setVerificationStatus(data.user.verification_status || 'not_submitted');
+        setRejectionRemarks(data.user.verification_remarks || '');
+        setAddress(data.user.verification_address || '');
+        setVerificationType(data.user.verification_type || 'ID');
+      } else {
+        console.error('Unable to load verification status:', data);
+      }
+    } catch (error) {
+      console.error('Load verification status error:', error);
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
   // Pick Document/Image for Proof of Residence
-  const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (permissionResult.granted === false) {
-      alert("Permission to access camera roll is required!");
+  const pickVerificationDocument = async () => {
+    setFileError('');
+
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['image/jpeg', 'image/png', 'application/pdf'],
+      copyToCacheDirectory: false,
+    });
+
+   if (result.canceled) {
+  return;
+}
+
+const asset = result.assets[0];
+
+const uri = asset.uri;
+const name = asset.name;
+const type = (asset.mimeType || '').toLowerCase();
+const size = typeof asset.size === 'number' ? asset.size : 0;
+    const extension = name.split('.').pop()?.toLowerCase();
+    const inferredType = extension === 'pdf'
+      ? 'application/pdf'
+      : extension === 'png'
+      ? 'image/png'
+      : extension === 'jpg' || extension === 'jpeg'
+      ? 'image/jpeg'
+      : '';
+    const fileType = type || inferredType;
+    const isImage = fileType.startsWith('image/');
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+
+    if (!allowedTypes.includes(fileType)) {
+      setSelectedFile(null);
+      setFileError('Unsupported file type. Upload JPG, JPEG, PNG, or PDF only.');
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri as string);
+    const maxSize = isImage ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (size > maxSize) {
+      setSelectedFile(null);
+      setFileError(isImage ? 'Image must be 5 MB or smaller.' : 'PDF must be 10 MB or smaller.');
+      return;
     }
-    // NOT OWRKING CAUSE .uri IS NOT RECOGNIZED AS STRING IN THE FORM DATA APPEND, NEED TO CAST TO ANY OR FIND ALTERNATIVE
-    // if (!result.canceled) {
-    //   setImageUri(result.assets[0].uri);
-    // }
 
+    setSelectedFile({ uri, name, type: fileType, size, isImage });
   };
 
   // Connected API Verification Call
   const handleVerifyResident = async () => {
-    if (!address || !imageUri) {
-      alert('Please fill out your address and upload a proof of residence image.');
+    if (!address.trim()) {
+      alert('Please enter your address before submitting verification.');
+      return;
+    }
+
+    if (!selectedFile) {
+      setFileError('Verification document is required.');
       return;
     }
 
     setIsLoading(true);
+    setFileError('');
 
     try {
-      const token = await SecureStore.getItemAsync('userToken');
+      const token = await getResidentToken();
+      if (!token) {
+        alert('Unable to retrieve login token. Please sign in again.');
+        return;
+      }
 
-      // 1. Construct Multipart Form Data Payload matching Swagger specifications
-      const formData = new FormData();
-      formData.append('verificationType', verificationType);
-      formData.append('address', address);
+      const formData = await buildVerificationFormData(address, selectedFile, verificationType);
 
-      // Extract details out of imageUri to mimic binary upload stream
-      const filename = (imageUri as string).split('/').pop() || 'upload.jpg';
-      const match = /\.(\w+)$/.exec(filename as string);
-      const type = match ? `image/${match[1]}` : `image`;
-
-      // React Native FormData file shape isn't recognized by the DOM typings; cast to any
-      formData.append('file', { uri: imageUri, name: filename, type } as any);
-
-      // 2. Make Network Call using multipart headers
-      const response = await fetch(`${BASE_URL}/resident/verify`, { // Verify your exact path prefix endpoint here
+      const response = await fetch(`${BASE_URL}/users/me/verification`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`, // Pass Auth token if endpoint is protected
-          Accept: 'application/json',
-          // Do NOT set Content-Type here; let fetch/set-native modules add the correct boundary
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
@@ -104,14 +172,17 @@ export default function ResidentHomeScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        setIsVerified(true);
-        alert('Verification payload submitted successfully!');
+        setVerificationStatus('pending');
+        setRejectionRemarks('');
+        setSelectedFile(null);
+        alert('Verification document submitted successfully! Please wait for admin review.');
+        await loadVerificationStatus();
       } else {
-        alert(data.message || 'Verification submission failed.');
+        setFileError(data.message || 'Verification submission failed.');
       }
     } catch (error) {
       console.error('API Verification Request Error:', error);
-      alert('Network connectivity error. Could not upload documents.');
+      setFileError('Network connectivity error. Could not upload documents.');
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +191,6 @@ export default function ResidentHomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.mainContainer}>
-        
         {/* Profile Navigation Header */}
         <View style={styles.headerRow}>
           <View>
@@ -135,84 +205,194 @@ export default function ResidentHomeScreen() {
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          
-          {/* FEATURE 1: COMMUNITY VERIFICATION */}
-          <Text style={styles.sectionTitle}>Profile Account Status</Text>
-          {isVerified ? (
-            <View style={[styles.card, styles.verifiedCard]}>
-              <Text style={styles.cardTitleSuccess}>🛡️ Account Verified Securely</Text>
-              <Text style={styles.cardDesc}>Your address at "{address}" is locked. You have authorization to file official subdivision reports.</Text>
-            </View>
-          ) : (
-            <View style={[styles.card, styles.actionCard]}>
-              <Text style={styles.cardTitleWarning}>⚠️ Verification Required</Text>
-              <Text style={styles.cardDesc}>Verify community residency to scale permissions up to high-priority workflows.</Text>
-              
-              <TextInput
-                style={styles.input}
-                placeholder="Physical House Address (e.g., Blk 2 Lot 4, Redwood St)"
-                placeholderTextColor="#9ca3af"
-                value={address}
-                onChangeText={setAddress}
-                editable={!isLoading}
-              />
-
-              {/* Upload Proof of Residence Button */}
-              <TouchableOpacity style={styles.uploadButton} onPress={pickImage} disabled={isLoading}>
-                <Text style={styles.uploadButtonText}>
-                  {imageUri ? '✓ Media Attached' : '📁 Upload Proof of Residence'}
-                </Text>
-              </TouchableOpacity>
-
-              {imageUri && (
-                <Image source={{ uri: imageUri }} style={styles.previewImage} />
-              )}
-
-              <TouchableOpacity style={styles.accentButton} onPress={handleVerifyResident} disabled={isLoading}>
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Text style={styles.accentButtonText}>Submit Verification</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* QUICK LINKS */}
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Quick Action Hub</Text>
-          <View style={styles.quickActionRow}>
-            <TouchableOpacity style={styles.actionBox} onPress={() => router.push('/(resident)/submit-complaint')}>
-              <Text style={styles.actionBoxIcon}>✍️</Text>
-              <Text style={styles.actionBoxText}>File Report</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBox} onPress={() => router.push('/(resident)/tracking')}>
-              <Text style={styles.actionBoxIcon}>🕒</Text>
-              <Text style={styles.actionBoxText}>Track Status</Text>
-            </TouchableOpacity>
+        {isPageLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2563EB" />
           </View>
+        ) : (
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            
+            {/* FEATURE 1: COMMUNITY VERIFICATION */}
+            <Text style={styles.sectionTitle}>Profile Account Status</Text>
 
-          {/* FEATURE 2: EMERGENCY HOTLINES */}
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>🚨 Emergency Direct Hotlines</Text>
-          {emergencyHotlines.map((hotline) => (
-            <View key={hotline.id} style={styles.hotlineCard}>
-              <Text style={styles.hotlineName}>{hotline.name}</Text>
-              <TouchableOpacity onPress={() => alert(`Dialing: ${hotline.phone}`)}>
-                <Text style={styles.hotlinePhone}>{hotline.phone} 📞</Text>
+            {/* APPROVED STATE */}
+            {verificationStatus === 'approved' && (
+              <View style={[styles.card, styles.verifiedCard]}>
+                <Text style={styles.cardTitleSuccess}>🛡️ Account Verified Securely</Text>
+                <Text style={styles.cardDesc}>Your address at "{address}" is locked. You have authorization to file official subdivision reports.</Text>
+                {verificationType && (
+                  <Text style={styles.cardDesc}>Verified with: {verificationType}</Text>
+                )}
+              </View>
+            )}
+
+            {/* PENDING STATE */}
+            {verificationStatus === 'pending' && (
+              <View style={[styles.card, styles.pendingCard]}>
+                <Text style={styles.cardTitlePending}>⏳ Verification Pending</Text>
+                <Text style={styles.cardDesc}>Your verification document is awaiting admin approval. This typically takes 24-48 hours. Please check back soon.</Text>
+                {verificationType && (
+                  <Text style={styles.cardDesc}>Document Type: {verificationType}</Text>
+                )}
+              </View>
+            )}
+
+            {/* REJECTED STATE */}
+            {verificationStatus === 'rejected' && (
+              <View style={[styles.card, styles.rejectedCard]}>
+                <Text style={styles.cardTitleError}>❌ Verification Rejected</Text>
+                <Text style={styles.cardDesc}>Your verification was rejected. Please review the reason below and resubmit with the correct information.</Text>
+                
+                {rejectionRemarks && (
+                  <View style={styles.remarksContainer}>
+                    <Text style={styles.remarksLabel}>Reason for Rejection:</Text>
+                    <Text style={styles.remarksText}>{rejectionRemarks}</Text>
+                  </View>
+                )}
+                
+                <TextInput
+                  style={styles.input}
+                  placeholder="Physical House Address (e.g., Blk 2 Lot 4, Redwood St)"
+                  placeholderTextColor="#9ca3af"
+                  value={address}
+                  onChangeText={setAddress}
+                  editable={!isLoading}
+                />
+
+                {/* <Text style={styles.fieldLabel}>Address Summary</Text>
+                <View style={styles.summaryContainer}>
+                  <Text style={styles.summaryText}>{address || 'No address entered yet.'}</Text>
+                </View> */}
+
+                <Text style={styles.fieldLabel}>Upload Valid Government ID</Text>
+                <TouchableOpacity style={styles.uploadButton} onPress={pickVerificationDocument} disabled={isLoading}>
+                  <Text style={styles.uploadButtonText}>
+                    {selectedFile ? `✓ ${selectedFile.name}` : '📁 Upload Valid Government ID'}
+                  </Text>
+                </TouchableOpacity>
+
+                {fileError ? <Text style={styles.errorText}>{fileError}</Text> : null}
+
+                {selectedFile?.isImage && (
+                  <Image source={{ uri: selectedFile.uri }} style={styles.previewImage} resizeMode="cover" />
+                )}
+
+                {selectedFile && !selectedFile.isImage && (
+                  <View style={styles.fileSummary}>
+                    <Text style={styles.fileName}>{selectedFile.name}</Text>
+                    <Text style={styles.fileSize}>{`${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB PDF`}</Text>
+                  </View>
+                )}
+
+                <TouchableOpacity style={styles.accentButton} onPress={handleVerifyResident} disabled={isLoading}>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Text style={styles.accentButtonText}>Submit Registration</Text>
+                  )}
+                </TouchableOpacity>
+                {/* <TouchableOpacity style={styles.backButton} onPress={() => router.back()} disabled={isLoading}>
+                  <Text style={styles.backButtonText}>Back</Text>
+                </TouchableOpacity> */}
+              </View>
+            )}
+
+            {/* NOT SUBMITTED STATE */}
+            {verificationStatus === 'not_submitted' && (
+              <View style={[styles.card, styles.actionCard]}>
+                <Text style={styles.cardTitleWarning}>⚠️ Verification Required</Text>
+                <Text style={styles.cardDesc}>Verify community residency to scale permissions up to high-priority workflows.</Text>
+                
+                <TextInput
+                  style={styles.input}
+                  placeholder="Physical House Address (e.g., Blk 2 Lot 4, Redwood St)"
+                  placeholderTextColor="#9ca3af"
+                  value={address}
+                  onChangeText={setAddress}
+                  editable={!isLoading}
+                />
+
+                <Text style={styles.fieldLabel}>Address Summary</Text>
+                <View style={styles.summaryContainer}>
+                  <Text style={styles.summaryText}>{address || 'No address entered yet.'}</Text>
+                </View>
+
+                <Text style={styles.fieldLabel}>Upload Valid Government ID</Text>
+                <TouchableOpacity style={styles.uploadButton} onPress={pickVerificationDocument} disabled={isLoading}>
+                  <Text style={styles.uploadButtonText}>
+                    {selectedFile ? `✓ ${selectedFile.name}` : '📁 Upload Valid Government ID'}
+                  </Text>
+                </TouchableOpacity>
+
+                {fileError ? <Text style={styles.errorText}>{fileError}</Text> : null}
+
+                {selectedFile?.isImage && (
+                  <Image source={{ uri: selectedFile.uri }} style={styles.previewImage} resizeMode="cover" />
+                )}
+
+                {selectedFile && !selectedFile.isImage && (
+                  <View style={styles.fileSummary}>
+                    <Text style={styles.fileName}>{selectedFile.name}</Text>
+                    <Text style={styles.fileSize}>{`${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB PDF`}</Text>
+                  </View>
+                )}
+
+                <TouchableOpacity style={styles.accentButton} onPress={handleVerifyResident} disabled={isLoading}>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Text style={styles.accentButtonText}>Submit Registration</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()} disabled={isLoading}>
+                  <Text style={styles.backButtonText}>Back</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* QUICK LINKS */}
+            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Quick Action Hub</Text>
+            <View style={styles.quickActionRow}>
+              <TouchableOpacity 
+                style={[styles.actionBox, verificationStatus !== 'approved' && styles.disabledBox]} 
+                onPress={() => verificationStatus === 'approved' && router.push('/(resident)/submit-complaint')}
+                disabled={verificationStatus !== 'approved'}
+              >
+                <Text style={styles.actionBoxIcon}>✍️</Text>
+                <Text style={styles.actionBoxText}>File Report</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.actionBox, verificationStatus !== 'approved' && styles.disabledBox]} 
+                onPress={() => verificationStatus === 'approved' && router.push('/(resident)/tracking')}
+                disabled={verificationStatus !== 'approved'}
+              >
+                <Text style={styles.actionBoxIcon}>🕒</Text>
+                <Text style={styles.actionBoxText}>Track Status</Text>
               </TouchableOpacity>
             </View>
-          ))}
 
-          {/* FEATURE 3: FAQS */}
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>💡 Frequently Asked Questions</Text>
-          {faqs.map((faq) => (
-            <View key={faq.id} style={styles.faqBlock}>
-              <Text style={styles.faqQuestion}>Q: {faq.q}</Text>
-              <Text style={styles.faqAnswer}>{faq.a}</Text>
-            </View>
-          ))}
+            {/* FEATURE 2: EMERGENCY HOTLINES */}
+            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>🚨 Emergency Direct Hotlines</Text>
+            {emergencyHotlines.map((hotline) => (
+              <View key={hotline.id} style={styles.hotlineCard}>
+                <Text style={styles.hotlineName}>{hotline.name}</Text>
+                <TouchableOpacity onPress={() => alert(`Dialing: ${hotline.phone}`)}>
+                  <Text style={styles.hotlinePhone}>{hotline.phone} 📞</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
 
-        </ScrollView>
+            {/* FEATURE 3: FAQS */}
+            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>💡 Frequently Asked Questions</Text>
+            {faqs.map((faq) => (
+              <View key={faq.id} style={styles.faqBlock}>
+                <Text style={styles.faqQuestion}>Q: {faq.q}</Text>
+                <Text style={styles.faqAnswer}>{faq.a}</Text>
+              </View>
+            ))}
+
+          </ScrollView>
+        )}
       </View>
 
     </SafeAreaView>
@@ -336,7 +516,6 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 8,
     marginBottom: 10,
-    resizeMode: 'cover',
   },
   accentButton: {
     backgroundColor: '#4f46e5',
@@ -409,5 +588,105 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#4b5563',
     lineHeight: 18,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pendingCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+    backgroundColor: '#fffbeb',
+  },
+  rejectedCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+  },
+  cardTitlePending: {
+    fontWeight: '700',
+    color: '#92400e',
+    fontSize: 15,
+    marginBottom: 4,
+  },
+  cardTitleError: {
+    fontWeight: '700',
+    color: '#991b1b',
+    fontSize: 15,
+    marginBottom: 4,
+  },
+  remarksContainer: {
+    backgroundColor: '#fee2e2',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#ef4444',
+  },
+  remarksLabel: {
+    fontWeight: '700',
+    color: '#991b1b',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  remarksText: {
+    color: '#7f1d1d',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    color: '#4b5563',
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  summaryContainer: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    padding: 12,
+    marginBottom: 10,
+  },
+  summaryText: {
+    color: '#111827',
+    fontSize: 14,
+  },
+  errorText: {
+    color: '#b91c1c',
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  fileSummary: {
+    backgroundColor: '#eef2ff',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  fileName: {
+    color: '#1e3a8a',
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  fileSize: {
+    color: '#475569',
+    fontSize: 13,
+  },
+  backButton: {
+    marginTop: 10,
+    borderColor: '#4b46e5',
+    borderWidth: 1,
+    backgroundColor: '#ffffff',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#4b46e5',
+    fontWeight: '700',
+  },
+  disabledBox: {
+    opacity: 0.5,
   },
 });

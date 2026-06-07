@@ -29,6 +29,19 @@ async function getUserById(req, res) {
   }
 }
 
+async function getCurrentUser(req, res) {
+  try {
+    const result = await usersService.getUserById(req.user.user_id, req.user);
+    if (result.error) {
+      return res.status(result.error.status).json(result.error.body);
+    }
+    return res.json(result.body);
+  } catch (error) {
+    console.error('Failed to fetch current user:', error.message);
+    return res.status(500).json({ status: 'error', message: 'Unable to retrieve current user', error: error.message });
+  }
+}
+
 async function updateUser(req, res) {
   try {
     const result = await usersService.updateUser(req.params.id, req.user, req.body);
@@ -73,8 +86,8 @@ async function reviewVerification(req, res) {
   }
 
   try {
-    const { verificationStatus } = req.body;
-    const result = await usersService.reviewVerification(req.params.id, req.user.user_id, verificationStatus);
+    const { verificationStatus, remarks } = req.body;
+    const result = await usersService.reviewVerification(req.params.id, req.user.user_id, verificationStatus, remarks);
     if (result.error) {
       return res.status(result.error.status).json(result.error.body);
     }
@@ -108,6 +121,7 @@ async function deactivateUser(req, res) {
 module.exports = {
   listUsers,
   getUserById,
+  getCurrentUser,
   updateUser,
   submitVerification,
   reviewVerification,

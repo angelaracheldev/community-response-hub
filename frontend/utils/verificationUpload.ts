@@ -1,19 +1,23 @@
 import { Platform } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 
-type IdFile = ImagePicker.ImagePickerAsset;
+type VerificationFile = {
+  uri: string;
+  name: string;
+  type: string;
+  size: number;
+};
 
 export async function buildVerificationFormData(
   address: string,
-  idFile: IdFile,
+  idFile: VerificationFile,
   verificationType = 'ID'
 ): Promise<FormData> {
   const formData = new FormData();
   formData.append('verificationType', verificationType);
   formData.append('address', address);
 
-  const name = idFile.fileName ?? 'id.jpg';
-  const type = idFile.mimeType ?? 'image/jpeg';
+  const name = idFile.name ?? 'id.jpg';
+  const type = idFile.type ?? 'image/jpeg';
 
   if (Platform.OS === 'web') {
     const response = await fetch(idFile.uri);

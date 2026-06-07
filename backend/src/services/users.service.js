@@ -98,7 +98,7 @@ async function submitVerification(requestUser, { verificationType, documentUrl, 
   };
 }
 
-async function reviewVerification(id, reviewerUserId, verificationStatus) {
+async function reviewVerification(id, reviewerUserId, verificationStatus, remarks) {
   const user = await usersRepository.findUserIdOnly(id);
   if (!user.rowCount) {
     return { error: { status: 404, body: { status: 'error', message: 'User not found' } } };
@@ -113,11 +113,10 @@ async function reviewVerification(id, reviewerUserId, verificationStatus) {
     verificationStatus,
     reviewedBy: reviewerUserId,
     userId: id,
+    remarks,
   });
 
-  if (verificationStatus === 'approved') {
-    await verificationsRepository.setUserVerified(id);
-  }
+  await verificationsRepository.setUserVerified(id, verificationStatus === 'approved');
 
   return {
     body: { status: 'ok', message: 'Verification reviewed successfully', timestamp: new Date().toISOString() },

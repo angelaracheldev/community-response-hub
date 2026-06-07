@@ -7,69 +7,146 @@ function sanitizeUser(user) {
   const { password_hash, ...safeUser } = user;
   return safeUser;
 }
+// Previous implementation of listUsers and getUserById with complex filtering and pagination logic directly in the route handler has been moved to users.controller.js for better separation of concerns and maintainability.
+// router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
+//   try {
+//     const filters = [];
+//     const params = [];
 
-router.get('/', authMiddleware, requireRole('admin'), async (req, res) => {
+//     if (req.query.roleId) {
+//       params.push(req.query.roleId);
+//       filters.push(`u.role_id = $${params.length}`);
+//     }
+//     if (req.query.isActive) {
+//       params.push(req.query.isActive === 'true');
+//       filters.push(`u.is_active = $${params.length}`);
+//     }
+//     if (req.query.verificationStatus) {
+//       params.push(req.query.verificationStatus.toLowerCase());
+//       filters.push(`COALESCE(rv.status, 'pending') = $${params.length}`);
+//     }
+
+//     // search
+//     if (req.query.search) {
+//       params.push(`%${req.query.search.toLowerCase()}%`);
+//       filters.push(`(LOWER(u.first_name || ' ' || u.last_name) LIKE $${params.length} OR LOWER(u.email) LIKE $${params.length} OR LOWER(u.user_code) LIKE $${params.length})`);
+//     }
+
+//     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+
+//     // pagination
+//     const page = Math.max(1, parseInt(req.query.page || '1', 10));
+//     const pageSize = Math.max(1, Math.min(100, parseInt(req.query.pageSize || '10', 10)));
+//     const offset = (page - 1) * pageSize;
+
+//     const countResult = await db.query(`SELECT COUNT(*)::int AS total FROM users u LEFT JOIN resident_verifications rv ON u.user_id = rv.user_id ${whereClause}`, params);
+//     const total = countResult.rows[0].total;
+
+//     const query = `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.role_id, r.role_name, u.is_verified, u.is_active, COALESCE(rv.status, 'not_submitted') AS verification_status, u.created_at
+//        FROM users u
+//        LEFT JOIN roles r ON u.role_id = r.role_id
+//        LEFT JOIN resident_verifications rv ON u.user_id = rv.user_id
+//        ${whereClause}
+//        ORDER BY u.created_at DESC
+//        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
+//     params.push(pageSize, offset);
+//     const result = await db.query(query, params);
+
+//     res.json({
+//       status: 'ok',
+//       total,
+//       page,
+//       pageSize,
+//       users: result.rows,
+//       timestamp: new Date().toISOString(),
+//     });
+//   } catch (error) {
+//     console.error('Failed to fetch users:', error.message);
+//     res.status(500).json({
+//       status: 'error',
+//       message: 'Unable to retrieve users',
+//       error: error.message,
+//     });
+//   }
+// });
+
+
+// Latest
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const filters = [];
-    const params = [];
+    const { id } = req.params;
 
-    if (req.query.roleId) {
-      params.push(req.query.roleId);
-      filters.push(`u.role_id = $${params.length}`);
+    const userQuery = `
+      SELECT
+        u.user_id,
+        u.user_code,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.phone_number,
+        u.address,
+        u.profile_image_url,
+        u.role_id,
+        r.role_name,
+        u.is_verified,
+        u.is_active,
+        u.created_at,
+
+        rv.status AS verification_status,
+        rv.verification_type,
+        rv.document_url,
+        rv.submitted_at,
+        rv.reviewed_at
+
+      FROM users u
+      LEFT JOIN roles r
+        ON u.role_id = r.role_id
+
+      LEFT JOIN resident_verifications rv
+        ON rv.user_id = u.user_id
+
+      WHERE u.user_id = $1
+    `;
+
+    const result = await db.query(userQuery, [id]);
+
+    if (!result.rowCount) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
     }
-    if (req.query.isActive) {
-      params.push(req.query.isActive === 'true');
-      filters.push(`u.is_active = $${params.length}`);
+
+    if (
+      req.user.role_name !== 'admin' &&
+      req.user.user_id !== id
+    ) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Forbidden',
+      });
     }
-    if (req.query.verificationStatus) {
-      params.push(req.query.verificationStatus.toLowerCase());
-      filters.push(`COALESCE(rv.status, 'pending') = $${params.length}`);
-    }
-
-    // search
-    if (req.query.search) {
-      params.push(`%${req.query.search.toLowerCase()}%`);
-      filters.push(`(LOWER(u.first_name || ' ' || u.last_name) LIKE $${params.length} OR LOWER(u.email) LIKE $${params.length} OR LOWER(u.user_code) LIKE $${params.length})`);
-    }
-
-    const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-
-    // pagination
-    const page = Math.max(1, parseInt(req.query.page || '1', 10));
-    const pageSize = Math.max(1, Math.min(100, parseInt(req.query.pageSize || '10', 10)));
-    const offset = (page - 1) * pageSize;
-
-    const countResult = await db.query(`SELECT COUNT(*)::int AS total FROM users u LEFT JOIN resident_verifications rv ON u.user_id = rv.user_id ${whereClause}`, params);
-    const total = countResult.rows[0].total;
-
-    const query = `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.role_id, r.role_name, u.is_verified, u.is_active, COALESCE(rv.status, 'not_submitted') AS verification_status, u.created_at
-       FROM users u
-       LEFT JOIN roles r ON u.role_id = r.role_id
-       LEFT JOIN resident_verifications rv ON u.user_id = rv.user_id
-       ${whereClause}
-       ORDER BY u.created_at DESC
-       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-
-    params.push(pageSize, offset);
-    const result = await db.query(query, params);
 
     res.json({
       status: 'ok',
-      total,
-      page,
-      pageSize,
-      users: result.rows,
+      user: result.rows[0],
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Failed to fetch users:', error.message);
+    console.error(
+      'Failed to fetch user by id:',
+      error.message
+    );
+
     res.status(500).json({
       status: 'error',
-      message: 'Unable to retrieve users',
+      message: 'Unable to retrieve user',
       error: error.message,
     });
   }
 });
+
 
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
@@ -265,9 +342,10 @@ router.patch('/:id/verification/review', authMiddleware, requireRole('admin'), [
       [verificationStatus, req.user.user_id, id]
     );
 
-    if (verificationStatus === 'approved') {
-      await db.query('UPDATE users SET is_verified = TRUE WHERE user_id = $1', [id]);
-    }
+    await db.query(
+  'UPDATE users SET is_verified = $1 WHERE user_id = $2',
+  [verificationStatus === 'approved', id]
+);
 
     // insert a user activity log for audit
     const actionType = verificationStatus === 'approved' ? 'verification_approved' : 'verification_rejected';
