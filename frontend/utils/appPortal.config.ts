@@ -43,10 +43,19 @@ export const RESIDENT_QUICK_ACTIONS: QuickAction[] = [
 ];
 
 export const RESPONDENT_NAV_ITEMS: AdminNavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', route: '/(respondent)/dashboard', icon: '📊' },
+  { id: 'home', label: 'Home', route: '/(respondent)/dashboard', icon: '🏠' },
+  { id: 'assignments', label: 'My Assignments', route: '/(respondent)/assignments', icon: '📋' },
 ];
 
-export const RESPONDENT_QUICK_ACTIONS: QuickAction[] = [];
+export const RESPONDENT_QUICK_ACTIONS: QuickAction[] = [
+  {
+    id: 'assignments',
+    label: 'My Assignments',
+    icon: '📋',
+    route: '/(respondent)/assignments',
+    color: '#6366F1',
+  },
+];
 
 export const APP_PORTALS: Record<AppPortal, AppPortalConfig> = {
   admin: {
@@ -68,8 +77,8 @@ export const APP_PORTALS: Record<AppPortal, AppPortalConfig> = {
     clearToken: clearResidentToken,
   },
   respondent: {
-    roleLabel: 'Respondent',
-    defaultDisplayName: 'Respondent',
+    roleLabel: 'Responder',
+    defaultDisplayName: 'Responder',
     loginRoute: '/(auth)/login',
     navItems: RESPONDENT_NAV_ITEMS,
     quickActions: RESPONDENT_QUICK_ACTIONS,

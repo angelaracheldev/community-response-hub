@@ -17,6 +17,7 @@ import { Link, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { API_BASE } from '../../utils/apiConfig';
 import { extractAccessToken, setResidentToken } from '../../utils/residentAuth';
+import { fetchResidentProfile } from '../../utils/residentProfile';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -91,7 +92,12 @@ export default function LoginScreen() {
           await setResidentToken(accessToken);
         }
 
-        router.replace('/(resident)/home');
+        const profile = await fetchResidentProfile();
+        if (profile?.role_name === 'responder') {
+          router.replace('/(respondent)/dashboard');
+        } else {
+          router.replace('/(resident)/home');
+        }
       } else {
         triggerLoginError(data.message || 'Invalid email or password. Please try again.');
       }

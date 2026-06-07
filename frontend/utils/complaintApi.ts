@@ -1,4 +1,5 @@
 import { API_BASE } from './apiConfig';
+import { fetchResidentProfile } from './residentProfile';
 import { getResidentToken } from './residentAuth';
 import { buildComplaintMediaFormData } from './complaintUpload';
 import * as ImagePicker from 'expo-image-picker';
@@ -151,6 +152,29 @@ export async function fetchMyComplaints(): Promise<ComplaintRecord[]> {
   const data = await response.json();
   if (!response.ok) {
     throw new Error(apiErrorMessage(data, 'Unable to load complaints'));
+  }
+
+  return (data.complaints ?? []) as ComplaintRecord[];
+}
+
+export async function fetchAssignedComplaints(): Promise<ComplaintRecord[]> {
+  const token = await getAuthToken();
+  const profile = await fetchResidentProfile();
+  if (!profile?.user_id) {
+    throw new Error('Unable to load your profile.');
+  }
+
+  const params = new URLSearchParams({
+    assignedToUserId: profile.user_id,
+    pageSize: '100',
+  });
+  const response = await fetch(`${API_BASE}/complaints?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(apiErrorMessage(data, 'Unable to load assignments'));
   }
 
   return (data.complaints ?? []) as ComplaintRecord[];

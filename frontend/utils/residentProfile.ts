@@ -10,6 +10,7 @@ export type ResidentProfile = {
   address: string | null;
   is_verified: boolean;
   is_active: boolean;
+  role_name?: string;
 };
 
 export async function fetchResidentProfile(): Promise<ResidentProfile | null> {
