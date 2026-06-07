@@ -16,6 +16,7 @@ export function isAllowedMediaType(mimeType: string | undefined, assetType?: str
   return assetType === 'image' || assetType === 'video';
 }
 
+
 export async function buildComplaintMediaFormData(
   assets: ImagePicker.ImagePickerAsset[]
 ): Promise<FormData> {
