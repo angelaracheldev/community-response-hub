@@ -114,11 +114,10 @@ export default function SubmitComplaintScreen() {
     const rejected: string[] = [];
 
     for (const asset of result.assets) {
-      if (isAllowedMediaType(asset.mimeType ?? undefined, asset.type)) {
-        valid.push(asset);
-      } else {
-        rejected.push(asset.fileName ?? 'Unknown file');
-      }
+      isAllowedMediaType(
+  asset.mimeType ?? undefined,
+  asset.type ?? undefined
+)
     }
 
     if (rejected.length) {

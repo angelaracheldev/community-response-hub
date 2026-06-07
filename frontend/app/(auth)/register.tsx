@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -38,6 +39,7 @@ const EMPTY_ADDRESS: StructuredAddress = {
   province: '',
   postalCode: '',
 };
+
 
 const STEP_SUBTITLES: Record<RegisterStep, string> = {
   1: 'Enter your account details to get started.',
@@ -176,7 +178,13 @@ export default function RegisterScreen() {
         await setResidentToken(accessToken);
 
         try {
-          const formData = await buildVerificationFormData(formattedAddress, idFile);
+          const verificationFile = {
+  uri: idFile.uri,
+  name: idFile.fileName ?? 'id.jpg',
+  type: idFile.mimeType ?? 'image/jpeg',
+  size: idFile.fileSize ?? 0,
+};
+          const formData = await buildVerificationFormData(formattedAddress, verificationFile);
           await fetch(`${API_BASE}/users/me/verification`, {
             method: 'POST',
             headers: {
