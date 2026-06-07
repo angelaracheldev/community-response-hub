@@ -27,7 +27,6 @@ import { useRouter } from 'expo-router';
 import { clearAdminToken, getAdminToken } from '../../utils/authStorage';
 import { API_BASE } from '../../utils/apiConfig';
 import { Picker } from '@react-native-picker/picker';
-import { NotificationDropdown } from '../../components/NotificationDropdown';
 //import NoDocumentImage from '../../assets/';
 
 type User = {
@@ -434,8 +433,6 @@ export default function AdminDashboard() {
             </TouchableOpacity>
           </View>
         </View>
-        <NotificationDropdown getToken={getAdminToken} />
-      </View>
 
         {/* Main Area */}
         <View style={styles.mainContent}>
@@ -824,43 +821,7 @@ export default function AdminDashboard() {
           </Modal>
 
         </View>
-        {/* <Modal
-  visible={successOpen}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setSuccessOpen(false)}
->
-  <View style={styles.confirmBackdrop}>
-    <View style={styles.confirmDialog}>
-
-      <Text style={styles.confirmTitle}>
-        Success
-      </Text>
-
-      <Text style={styles.confirmMessage}>
-        {successMessage}
-      </Text>
-
-      <TouchableOpacity
-        style={[
-          styles.confirmButton,
-          styles.yesButton,
-        ]}
-        onPress={() =>
-          setSuccessOpen(false)
-        }
-      >
-        <Text style={styles.confirmButtonText}>
-          OK
-        </Text>
-      </TouchableOpacity>
-      </Modal>
-
-    </View>
-
-    </View>
-  </View>
-</Modal> */}
+       
       </View>
     </SafeAreaView>
   );
