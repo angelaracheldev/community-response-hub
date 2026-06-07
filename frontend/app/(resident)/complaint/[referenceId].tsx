@@ -8,12 +8,15 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import ComplaintStatusBadge from '../../../components/ComplaintStatusBadge';
 import ComplaintEvidenceGallery from '../../../components/ComplaintEvidenceGallery';
 import ComplaintStatusTimeline from '../../../components/ComplaintStatusTimeline';
 import CancelComplaintModal from '../../../components/CancelComplaintModal';
+import { PageShell } from '../../../components/common/PageShell';
+import { getFloatingQuickActionsPadding } from '../../../components/dashboard/FloatingQuickActionsBar';
+import { useAppLayout } from '../../../hooks/useAppLayout';
 import {
   cancelComplaint,
   canCancelComplaint,
@@ -26,7 +29,6 @@ import {
   ComplaintMedia,
   ComplaintRecord,
 } from '../../../utils/complaintApi';
-import { getContentMaxWidth, getScrollBottomPadding } from '../../../utils/responsiveLayout';
 
 function DetailRow({
   label,
@@ -48,9 +50,12 @@ function DetailRow({
 export default function ResidentComplaintDetailScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const layout = useAppLayout();
   const { referenceId } = useLocalSearchParams<{ referenceId: string }>();
-  const contentMaxWidth = getContentMaxWidth(width);
-  const scrollPaddingBottom = getScrollBottomPadding(width);
+  const scrollPaddingBottom = layout.showMobileMenu
+    ? getFloatingQuickActionsPadding(width, insets.bottom)
+    : 32;
   const [complaint, setComplaint] = useState<ComplaintRecord | null>(null);
   const [media, setMedia] = useState<ComplaintMedia[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,18 +98,18 @@ export default function ResidentComplaintDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <PageShell portal="resident" activeNavId="tracking" pageTitle="Complaint Details" scrollEnabled={false}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4f46e5" />
         </View>
-      </SafeAreaView>
+      </PageShell>
     );
   }
 
   if (error || !complaint) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={[styles.container, { maxWidth: contentMaxWidth, paddingHorizontal: 24 }]}>
+      <PageShell portal="resident" activeNavId="tracking" pageTitle="Complaint Details" scrollEnabled={false}>
+        <View style={[styles.container, { paddingHorizontal: 0 }]}>
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={styles.backLink}>← Back</Text>
           </TouchableOpacity>
@@ -113,7 +118,7 @@ export default function ResidentComplaintDetailScreen() {
             <Text style={styles.retryText}>Try again</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </PageShell>
     );
   }
 
@@ -123,13 +128,11 @@ export default function ResidentComplaintDetailScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <PageShell portal="resident" activeNavId="tracking" pageTitle="Complaint Details" scrollEnabled={false}>
       <ScrollView
         contentContainerStyle={[
           styles.container,
           {
-            maxWidth: contentMaxWidth,
-            paddingHorizontal: 24,
             paddingBottom: scrollPaddingBottom,
           },
         ]}
@@ -227,12 +230,11 @@ export default function ResidentComplaintDetailScreen() {
         onClose={() => setCancelVisible(false)}
         onConfirm={handleCancel}
       />
-    </SafeAreaView>
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: {
     width: '100%',

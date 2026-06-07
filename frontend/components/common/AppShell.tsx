@@ -2,12 +2,14 @@ import React, { ReactNode, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { QuickAction } from '../../utils/adminDashboard.mock';
-import { AdminSidebar } from './AdminSidebar';
-import { FloatingQuickActionsBar, getFloatingQuickActionsPadding } from './FloatingQuickActionsBar';
+import {
+  FloatingQuickActionsBar,
+  getFloatingQuickActionsPadding,
+} from '../dashboard/FloatingQuickActionsBar';
 
 type Props = {
   children: ReactNode;
-  sidebar?: ReactNode;
+  sidebar: ReactNode;
   header: ReactNode;
   showSidebar: boolean;
   showMobileMenu: boolean;
@@ -16,7 +18,7 @@ type Props = {
   scrollEnabled?: boolean;
 };
 
-export function DashboardShell({
+export function AppShell({
   children,
   sidebar,
   header,
@@ -36,13 +38,9 @@ export function DashboardShell({
     ? getFloatingQuickActionsPadding(width, insets.bottom)
     : 32;
 
-  const sidebarNode = sidebar ?? (showMobileMenu ? <AdminSidebar activeId="dashboard" /> : null);
-
   return (
     <View style={styles.root}>
-      {showSidebar && sidebarNode ? (
-        <View style={styles.sidebarColumn}>{sidebarNode}</View>
-      ) : null}
+      {showSidebar ? <View style={styles.sidebarColumn}>{sidebar}</View> : null}
 
       <SafeAreaView style={styles.mainSafe} edges={['top', 'right', 'bottom']}>
         <View style={styles.main}>
@@ -86,9 +84,7 @@ export function DashboardShell({
                   sidebar as React.ReactElement<{ onClose?: () => void }>,
                   { onClose: closeMobileNav }
                 )
-              : (
-                <AdminSidebar activeId="dashboard" onClose={closeMobileNav} />
-              )}
+              : null}
           </Pressable>
         </Pressable>
       </Modal>

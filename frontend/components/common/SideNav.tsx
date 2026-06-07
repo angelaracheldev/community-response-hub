@@ -1,14 +1,19 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ADMIN_NAV_ITEMS } from '../../utils/adminDashboard.mock';
+import { ADMIN_NAV_ITEMS, AdminNavItem } from '../../utils/adminDashboard.mock';
 
 type Props = {
   activeId?: string;
   onClose?: () => void;
+  navItems?: AdminNavItem[];
 };
 
-export function AdminSidebar({ activeId = 'dashboard', onClose }: Props) {
+export function SideNav({
+  activeId = 'dashboard',
+  onClose,
+  navItems = ADMIN_NAV_ITEMS,
+}: Props) {
   const router = useRouter();
 
   const navigate = (route: string) => {
@@ -34,7 +39,7 @@ export function AdminSidebar({ activeId = 'dashboard', onClose }: Props) {
       </View>
 
       <View style={styles.nav}>
-        {ADMIN_NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const isActive = item.id === activeId;
           return (
             <TouchableOpacity

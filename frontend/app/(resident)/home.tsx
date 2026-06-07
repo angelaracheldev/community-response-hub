@@ -5,17 +5,15 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { API_BASE } from '../../utils/apiConfig';
 import { getResidentToken } from '../../utils/residentAuth';
 import { buildVerificationFormData } from '../../utils/verificationUpload';
-import { NotificationDropdown } from '../../components/NotificationDropdown';
+import { PageShell } from '../../components/common/PageShell';
 
 const BASE_URL = API_BASE;
 
@@ -189,31 +187,14 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.mainContainer}>
-        {/* Profile Navigation Header */}
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.welcomeText}>Hello, Resident 👋</Text>
-            <Text style={styles.subWelcome}>Marikina Sandbox Ecosystem</Text>
-          </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.logoutBtn} onPress={() => router.replace('/(auth)/login')}>
-              <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
-            <NotificationDropdown getToken={getResidentToken} />
-          </View>
+    <PageShell portal="resident" activeNavId="home" pageTitle="Dashboard">
+      {isPageLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563EB" />
         </View>
-
-        {isPageLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2563EB" />
-          </View>
-        ) : (
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            
-            {/* FEATURE 1: COMMUNITY VERIFICATION */}
-            <Text style={styles.sectionTitle}>Profile Account Status</Text>
+      ) : (
+        <>
+          <Text style={styles.sectionTitle}>Profile Account Status</Text>
 
             {/* APPROVED STATE */}
             {verificationStatus === 'approved' && (
@@ -350,29 +331,7 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
               </View>
             )}
 
-            {/* QUICK LINKS */}
-            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Quick Action Hub</Text>
-            <View style={styles.quickActionRow}>
-              <TouchableOpacity 
-                style={[styles.actionBox, verificationStatus !== 'approved' && styles.disabledBox]} 
-                onPress={() => verificationStatus === 'approved' && router.push('/(resident)/submit-complaint')}
-                disabled={verificationStatus !== 'approved'}
-              >
-                <Text style={styles.actionBoxIcon}>✍️</Text>
-                <Text style={styles.actionBoxText}>File Report</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.actionBox, verificationStatus !== 'approved' && styles.disabledBox]} 
-                onPress={() => verificationStatus === 'approved' && router.push('/(resident)/tracking')}
-                disabled={verificationStatus !== 'approved'}
-              >
-                <Text style={styles.actionBoxIcon}>🕒</Text>
-                <Text style={styles.actionBoxText}>Track Status</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* FEATURE 2: EMERGENCY HOTLINES */}
-            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>🚨 Emergency Direct Hotlines</Text>
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>🚨 Emergency Direct Hotlines</Text>
             {emergencyHotlines.map((hotline) => (
               <View key={hotline.id} style={styles.hotlineCard}>
                 <Text style={styles.hotlineName}>{hotline.name}</Text>
@@ -382,76 +341,24 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
               </View>
             ))}
 
-            {/* FEATURE 3: FAQS */}
-            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>💡 Frequently Asked Questions</Text>
-            {faqs.map((faq) => (
-              <View key={faq.id} style={styles.faqBlock}>
-                <Text style={styles.faqQuestion}>Q: {faq.q}</Text>
-                <Text style={styles.faqAnswer}>{faq.a}</Text>
-              </View>
-            ))}
-
-          </ScrollView>
-        )}
-      </View>
-
-    </SafeAreaView>
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>💡 Frequently Asked Questions</Text>
+          {faqs.map((faq) => (
+            <View key={faq.id} style={styles.faqBlock}>
+              <Text style={styles.faqQuestion}>Q: {faq.q}</Text>
+              <Text style={styles.faqAnswer}>{faq.a}</Text>
+            </View>
+          ))}
+        </>
+      )}
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  mainContainer: {
-    flex: 1,
-    width: '100%',
-    maxWidth: 450,
-    alignSelf: 'center',
-    paddingHorizontal: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  welcomeText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  subWelcome: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  logoutBtn: {
-    backgroundColor: '#fee2e2',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  logoutText: {
-    color: '#ef4444',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  scrollContent: {
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#1f2937',
+    color: '#111827',
     marginBottom: 12,
   },
   card: {
@@ -527,27 +434,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '600',
     fontSize: 14,
-  },
-  quickActionRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionBox: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.05)',
-  },
-  actionBoxIcon: {
-    fontSize: 24,
-    marginBottom: 6,
-  },
-  actionBoxText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
   },
   hotlineCard: {
     backgroundColor: '#ffffff',
@@ -685,8 +571,5 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#4b46e5',
     fontWeight: '700',
-  },
-  disabledBox: {
-    opacity: 0.5,
   },
 });

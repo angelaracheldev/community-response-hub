@@ -9,9 +9,12 @@ import {
   RefreshControl,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
+import { PageShell } from '../../components/common/PageShell';
+import { getFloatingQuickActionsPadding } from '../../components/dashboard/FloatingQuickActionsBar';
+import { useAppLayout } from '../../hooks/useAppLayout';
 import {
   fetchMyComplaints,
   formatAssigneeName,
@@ -19,13 +22,15 @@ import {
   formatDateTime,
   ComplaintRecord,
 } from '../../utils/complaintApi';
-import { getContentMaxWidth, getScrollBottomPadding } from '../../utils/responsiveLayout';
 
 export default function TrackingScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const contentMaxWidth = getContentMaxWidth(width);
-  const scrollPaddingBottom = getScrollBottomPadding(width);
+  const insets = useSafeAreaInsets();
+  const layout = useAppLayout();
+  const scrollPaddingBottom = layout.showMobileMenu
+    ? getFloatingQuickActionsPadding(width, insets.bottom)
+    : 32;
   const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,26 +63,22 @@ export default function TrackingScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <PageShell portal="resident" activeNavId="tracking" pageTitle="My Complaints" scrollEnabled={false}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4f46e5" />
         </View>
-      </SafeAreaView>
+      </PageShell>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <PageShell portal="resident" activeNavId="tracking" pageTitle="My Complaints" scrollEnabled={false}>
       <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          { maxWidth: contentMaxWidth, paddingBottom: scrollPaddingBottom },
-        ]}
+        contentContainerStyle={[styles.container, { paddingBottom: scrollPaddingBottom }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => loadComplaints(true)} />
         }
       >
-        <Text style={styles.title}>My Complaints</Text>
 
         {error ? (
           <View style={styles.errorBox}>
@@ -126,19 +127,15 @@ export default function TrackingScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: {
     width: '100%',
-    alignSelf: 'center',
-    padding: 24,
   },
-  title: { fontSize: 22, fontWeight: '800', marginBottom: 20, color: '#111827' },
   card: {
     backgroundColor: '#fff',
     padding: 16,

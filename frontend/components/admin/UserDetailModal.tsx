@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { adminListStyles as s } from './adminListStyles';
-import { useDashboardLayout } from '../../hooks/useDashboardLayout';
+import { useAppLayout } from '../../hooks/useAppLayout';
 import { API_BASE } from '../../utils/apiConfig';
 import { getAdminToken } from '../../utils/authStorage';
 import { VerificationUser } from './userTypes';
@@ -81,7 +81,7 @@ export function UserDetailModal({
   onUpdated,
   showVerificationActions = true,
 }: Props) {
-  const layout = useDashboardLayout();
+  const layout = useAppLayout();
   const isDesktop = layout.isDesktop;
   const { height: windowHeight } = useWindowDimensions();
   const desktopScrollMaxHeight = Math.max(windowHeight * 0.92 - 96, 320);

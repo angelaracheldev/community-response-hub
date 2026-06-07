@@ -11,9 +11,9 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { PageShell } from '../../components/common/PageShell';
 import { useResidentVerification } from '../../hooks/useResidentVerification';
 import { useComplaintCategories } from '../../hooks/useComplaintCategories';
 import {
@@ -197,17 +197,17 @@ export default function SubmitComplaintScreen() {
 
   if (verificationLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <PageShell portal="resident" activeNavId="submit" pageTitle="Add Complaint" scrollEnabled={false}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4f46e5" />
         </View>
-      </SafeAreaView>
+      </PageShell>
     );
   }
 
   if (!isVerified) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <PageShell portal="resident" activeNavId="submit" pageTitle="Add Complaint" scrollEnabled={false}>
         <View style={styles.blockedContainer}>
           <Text style={styles.blockedTitle}>Verification pending</Text>
           <Text style={styles.blockedText}>
@@ -218,12 +218,12 @@ export default function SubmitComplaintScreen() {
             <Text style={styles.primaryBtnText}>Back to Dashboard</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </PageShell>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <PageShell portal="resident" activeNavId="submit" pageTitle="Add Complaint" scrollEnabled={false}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {step < 3 && (
           <TouchableOpacity onPress={handleBack} style={styles.backLink} disabled={isSubmitting}>
@@ -429,14 +429,14 @@ export default function SubmitComplaintScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { width: '100%', maxWidth: 450, alignSelf: 'center', padding: 24, paddingBottom: 40 },
+  container: { width: '100%', paddingBottom: 16 },
   backLink: { marginBottom: 16 },
   backLinkText: { color: '#4f46e5', fontWeight: '600', fontSize: 14 },
   stepLabel: { fontSize: 13, fontWeight: '600', color: '#6b7280', marginBottom: 4 },
@@ -541,7 +541,6 @@ const styles = StyleSheet.create({
   blockedContainer: {
     flex: 1,
     width: '100%',
-    maxWidth: 450,
     alignSelf: 'center',
     padding: 24,
     justifyContent: 'center',

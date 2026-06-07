@@ -1,6 +1,6 @@
 import { useWindowDimensions } from 'react-native';
 
-export type DashboardLayout = {
+export type AppLayout = {
   isMobile: boolean;
   isTablet: boolean;
   isDesktop: boolean;
@@ -14,7 +14,7 @@ export type DashboardLayout = {
   contentMaxWidth: number | undefined;
 };
 
-export function useDashboardLayout(): DashboardLayout {
+export function useAppLayout(): AppLayout {
   const { width } = useWindowDimensions();
 
   const isMobile = width < 768;

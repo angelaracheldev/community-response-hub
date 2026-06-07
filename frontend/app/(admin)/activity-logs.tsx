@@ -12,8 +12,8 @@ import { AdminListCard } from '../../components/admin/AdminListCard';
 import { AdminPagination } from '../../components/admin/AdminPagination';
 import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
 import { adminListStyles as s } from '../../components/admin/adminListStyles';
-import { AdminPageShell } from '../../components/dashboard/AdminPageShell';
-import { useDashboardLayout } from '../../hooks/useDashboardLayout';
+import { PageShell } from '../../components/common/PageShell';
+import { useAppLayout } from '../../hooks/useAppLayout';
 import { API_BASE } from '../../utils/apiConfig';
 import { getAdminToken } from '../../utils/authStorage';
 
@@ -23,7 +23,7 @@ const LOG_TABS = [
 ];
 
 export default function ActivityLogs() {
-  const layout = useDashboardLayout();
+  const layout = useAppLayout();
   const token = getAdminToken();
   const [mode, setMode] = useState<'complaint' | 'user'>('complaint');
   const [targetId, setTargetId] = useState('');
@@ -107,7 +107,7 @@ export default function ActivityLogs() {
   };
 
   return (
-    <AdminPageShell activeNavId="activity" pageTitle="Activity Logs" scrollEnabled={layout.useCompactList}>
+    <PageShell portal="admin" activeNavId="activity" pageTitle="Activity Logs" scrollEnabled={layout.useCompactList}>
       <View style={s.toolbar}>
         <AdminSegmentTabs
           tabs={LOG_TABS}
@@ -208,7 +208,7 @@ export default function ActivityLogs() {
           onNext={() => loadLogs(page + 1)}
         />
       ) : null}
-    </AdminPageShell>
+    </PageShell>
   );
 }
 

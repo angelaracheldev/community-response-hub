@@ -6,16 +6,16 @@ type Props = {
   pageTitle: string;
   userName: string;
   userRole?: string;
-  getToken: () => string | null;
+  getToken: () => string | null | Promise<string | null>;
   onLogout: () => void;
   onMenuPress?: () => void;
   showMenuButton?: boolean;
 };
 
-export function AdminHeader({
+export function TopNav({
   pageTitle,
   userName,
-  userRole = 'Admin',
+  userRole = 'User',
   getToken,
   onLogout,
   onMenuPress,
@@ -24,6 +24,7 @@ export function AdminHeader({
   const { width } = useWindowDimensions();
   const [menuOpen, setMenuOpen] = useState(false);
   const showProfileText = width >= 768;
+  const avatarLetter = (userName.trim().charAt(0) || '?').toUpperCase();
 
   return (
     <View style={styles.header}>
@@ -41,7 +42,7 @@ export function AdminHeader({
 
         <TouchableOpacity style={styles.profileBtn} onPress={() => setMenuOpen(true)}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+            <Text style={styles.avatarText}>{avatarLetter}</Text>
           </View>
           {showProfileText ? (
             <View>

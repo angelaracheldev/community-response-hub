@@ -14,8 +14,8 @@ import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
 import { UserDetailModal } from '../../components/admin/UserDetailModal';
 import { UserVerificationPanel } from '../../components/admin/UserVerificationPanel';
 import { adminListStyles as s } from '../../components/admin/adminListStyles';
-import { AdminPageShell } from '../../components/dashboard/AdminPageShell';
-import { useDashboardLayout } from '../../hooks/useDashboardLayout';
+import { PageShell } from '../../components/common/PageShell';
+import { useAppLayout } from '../../hooks/useAppLayout';
 import { API_BASE } from '../../utils/apiConfig';
 import { getAdminToken } from '../../utils/authStorage';
 
@@ -25,7 +25,7 @@ const USER_TABS = [
 ];
 
 export default function AdminUsers() {
-  const layout = useDashboardLayout();
+  const layout = useAppLayout();
   const [tab, setTab] = useState<'residents' | 'responders'>('residents');
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -136,7 +136,8 @@ export default function AdminUsers() {
   );
 
   return (
-    <AdminPageShell
+    <PageShell
+      portal="admin"
       activeNavId="users"
       pageTitle="Manage Users"
       scrollEnabled={layout.useCompactList}
@@ -243,7 +244,7 @@ export default function AdminUsers() {
         onUpdated={handleUserUpdated}
         showVerificationActions={tab === 'residents'}
       />
-    </AdminPageShell>
+    </PageShell>
   );
 }
 

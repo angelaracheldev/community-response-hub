@@ -15,8 +15,8 @@ import { AdminListCard } from '../../components/admin/AdminListCard';
 import { AdminPagination } from '../../components/admin/AdminPagination';
 import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
 import { adminListStyles as s } from '../../components/admin/adminListStyles';
-import { AdminPageShell } from '../../components/dashboard/AdminPageShell';
-import { useDashboardLayout } from '../../hooks/useDashboardLayout';
+import { PageShell } from '../../components/common/PageShell';
+import { useAppLayout } from '../../hooks/useAppLayout';
 import { formatComplaintStatus } from '../../utils/complaintApi';
 import { ADMIN_API_BASE, API_BASE } from '../../utils/apiConfig';
 import { getAdminToken } from '../../utils/authStorage';
@@ -28,7 +28,7 @@ const COMPLAINT_TABS = [
 ];
 
 export default function AdminComplaints() {
-  const layout = useDashboardLayout();
+  const layout = useAppLayout();
   const [tab, setTab] = useState<'active' | 'closed' | 'resolved'>('active');
   const [complaints, setComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -127,7 +127,8 @@ export default function AdminComplaints() {
   };
 
   return (
-    <AdminPageShell
+    <PageShell
+      portal="admin"
       activeNavId="complaints"
       pageTitle="Manage Complaints"
       scrollEnabled={layout.useCompactList}
@@ -255,7 +256,7 @@ export default function AdminComplaints() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-    </AdminPageShell>
+    </PageShell>
   );
 }
 
