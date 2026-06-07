@@ -1,4 +1,17 @@
 import React, { useEffect, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
+const { width } = useWindowDimensions();
+
+const isMobile = width < 768;
+const isTablet = width >= 768 && width < 1024;
+const isDesktop = width >= 1024;
+console.log({
+  width,
+  isMobile,
+  isTablet,
+  isDesktop,
+});
+
 import {
   StyleSheet,
   Text,
@@ -226,14 +239,14 @@ export default function AdminDashboard() {
       setConfirmOpen(false);
       setConfirmUserId(null);
 
-      
+
       await loadUserTables(token);
 
       setSuccessMessage(
-  'Resident verification approved successfully.'
-);
+        'Resident verification approved successfully.'
+      );
 
-setSuccessOpen(true);
+      setSuccessOpen(true);
 
 
       if (selectedUser) {
@@ -280,7 +293,7 @@ setSuccessOpen(true);
           'Unable to reject verification'
         );
       }
-      
+
       setRejectOpen(false);
       setRejectReason('');
       setRejectUserId(null);
@@ -289,17 +302,17 @@ setSuccessOpen(true);
         'Resident verification rejected successfully.'
       );
 
-       
+
 
 
       setSuccessOpen(true);
 
-     
+
       if (selectedUser) {
-  await loadUserDetails(
-    selectedUser.user_id
-  );
-}
+        await loadUserDetails(
+          selectedUser.user_id
+        );
+      }
 
     } catch (error) {
       console.error(
@@ -497,13 +510,13 @@ setSuccessOpen(true);
                           <Text style={[styles.tableCell, styles.cellSmall]}>{user.is_verified ? 'Yes' : 'No'}</Text>
                           <Text style={[styles.tableCell, styles.cellSmall]}>{user.is_active ? 'Yes' : 'No'}</Text>
                           <Text
-  style={[
-    styles.tableCell,
-    styles.cellSmall
-  ]}
->
-  {user.verification_status}
-</Text>
+                            style={[
+                              styles.tableCell,
+                              styles.cellSmall
+                            ]}
+                          >
+                            {user.verification_status}
+                          </Text>
                           <TouchableOpacity style={styles.viewBtn} onPress={() => loadUserDetails(user.user_id)}>
                             <Text style={styles.viewBtnText}>View</Text>
                           </TouchableOpacity>
@@ -633,18 +646,10 @@ setSuccessOpen(true);
                           </Text>
                         </TouchableOpacity>
 
-                        {/* <TouchableOpacity
-        style={styles.rejectBtn}
-        onPress={() => rejectVerification(selectedUser.user_id)}
-      >
-        <Text style={styles.rejectBtnText}>
-          Reject Verification
-        </Text>
-      </TouchableOpacity> */}
-
                         <TouchableOpacity
                           style={styles.rejectBtn}
                           onPress={() => {
+                            // console.log('Reject button clicked');
                             setRejectUserId(selectedUser.user_id);
                             setRejectReason('');
                             setRejectOpen(true);
@@ -677,7 +682,7 @@ setSuccessOpen(true);
                     onPress={() => {
                       setConfirmOpen(false);
                       setConfirmUserId(null);
-                     
+
                     }}
                   >
                     <Text style={styles.confirmButtonText}>No</Text>
@@ -694,7 +699,7 @@ setSuccessOpen(true);
 
           </Modal>
           {/* Modal for Reject */}
-          {/* <Modal
+          <Modal
             visible={rejectOpen}
             transparent
             animationType="fade"
@@ -741,16 +746,13 @@ setSuccessOpen(true);
                       styles.noButton,
                     ]}
                     onPress={() => {
-                      setRejectOpen(false);
-                      setRejectReason('');
-                       setSuccessMessage(
-                        'Resident verification approved successfully.'
-                      );
+                      console.log('Reject button clicked');
+                      console.log(selectedUser);
 
-                      setSuccessOpen(true);
-
-                      await loadUserTables(token);
-                      await loadUserDetails(userId);
+                      // setRejectUserId(selectedUser.user_id);
+                      // setRejectReason('');
+                      // setRejectOpen(true);
+                      
                     }}
                   >
                     <Text style={styles.confirmButtonText}>
@@ -781,45 +783,45 @@ setSuccessOpen(true);
 
               </View>
             </View>
-          </Modal> */}
+          </Modal>
           <Modal
-  visible={successOpen}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setSuccessOpen(false)}
->
-  <View style={styles.confirmBackdrop}>
-    <View style={styles.confirmDialog}>
+            visible={successOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setSuccessOpen(false)}
+          >
+            <View style={styles.confirmBackdrop}>
+              <View style={styles.confirmDialog}>
 
-      <Text style={styles.successTitle}>
-        Success
-      </Text>
+                <Text style={styles.successTitle}>
+                  Success
+                </Text>
 
-      <Text style={styles.confirmMessage}>
-        {successMessage}
-      </Text>
+                <Text style={styles.confirmMessage}>
+                  {successMessage}
+                </Text>
 
-      <TouchableOpacity
-        style={[
-          styles.confirmButton,
-          styles.yesButton,
-          { width: '100%' },
-        ]}
-        onPress={() =>
-          setSuccessOpen(false)
-        }
-      >
-        <Text style={styles.confirmButtonText}>
-          OK
-        </Text>
-      </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.confirmButton,
+                    styles.yesButton,
+                    { width: '100%' },
+                  ]}
+                  onPress={() =>
+                    setSuccessOpen(false)
+                  }
+                >
+                  <Text style={styles.confirmButtonText}>
+                    OK
+                  </Text>
+                </TouchableOpacity>
 
-    </View>
-  </View>
-</Modal>
+              </View>
+            </View>
+          </Modal>
 
         </View>
-<Modal
+        {/* <Modal
   visible={successOpen}
   transparent
   animationType="fade"
@@ -852,7 +854,7 @@ setSuccessOpen(true);
 
     </View>
   </View>
-</Modal>
+</Modal> */}
       </View>
     </SafeAreaView>
   );
@@ -862,11 +864,11 @@ setSuccessOpen(true);
 
 const styles = StyleSheet.create({
   successTitle: {
-  fontSize: 22,
-  fontWeight: '800',
-  color: '#10B981',
-  marginBottom: 12,
-},
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#10B981',
+    marginBottom: 12,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#f3f4f6',
@@ -1057,7 +1059,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   verifyBtn: {
-    marginTop: 16,
+    flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
     backgroundColor: '#10B981',
