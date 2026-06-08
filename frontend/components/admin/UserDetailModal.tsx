@@ -14,8 +14,11 @@ import { adminListStyles as s } from '../../styles/admin/list';
 import { userDetailModalStyles as mStyles } from '../../styles/admin/userDetailModal';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { colors } from '../../styles/theme';
-import { API_BASE } from '../../utils/apiConfig';
-import { getAuthToken } from '../../utils/sessionAuth';
+import {
+  fetchUserById,
+  reviewUserVerification,
+  setUserActiveStatus,
+} from '../../utils/adminApi';
 import { VerificationUser } from './userTypes';
 
 const REJECTION_REASONS = [
@@ -96,7 +99,6 @@ export function UserDetailModal({
   const isDesktop = layout.isDesktop;
   const { height: windowHeight } = useWindowDimensions();
   const desktopScrollMaxHeight = Math.max(windowHeight * 0.92 - 96, 320);
-  const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<VerificationUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -108,35 +110,19 @@ export function UserDetailModal({
   const [successOpen, setSuccessOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  useEffect(() => {
-    void getAuthToken().then(setToken);
-  }, []);
-
-  const requestOptions = useCallback(
-    () => ({
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    }),
-    [token]
-  );
-
   const loadUser = useCallback(async () => {
-    if (!token || !userId) return;
+    if (!userId) return;
     setLoading(true);
     setUser(null);
     try {
-      const res = await fetch(`${API_BASE}/users/${userId}`, requestOptions());
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Unable to load user details');
-      setUser(data.user || null);
+      const loaded = await fetchUserById(userId);
+      setUser(loaded as VerificationUser | null);
     } catch (e) {
       console.error('Load user details error:', e);
     } finally {
       setLoading(false);
     }
-  }, [token, userId, requestOptions]);
+  }, [userId]);
 
   useEffect(() => {
     if (visible && userId) {
@@ -170,28 +156,17 @@ export function UserDetailModal({
   };
 
   const runConfirmAction = async () => {
-    if (!token || !user || !confirmKind) return;
+    if (!user || !confirmKind) return;
     setActionLoading(true);
     try {
       if (confirmKind === 'accept') {
-        const res = await fetch(`${API_BASE}/users/${user.user_id}/verification/review`, {
-          method: 'PATCH',
-          ...requestOptions(),
-          body: JSON.stringify({ verificationStatus: 'approved' }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Unable to approve verification');
+        await reviewUserVerification(user.user_id, 'approved');
         setConfirmOpen(false);
         setConfirmKind(null);
         await refreshAfterAction('Resident verification accepted successfully.', true);
       } else {
         const action = confirmKind === 'deactivate' ? 'deactivate' : 'activate';
-        const res = await fetch(`${API_BASE}/users/${user.user_id}/${action}`, {
-          method: 'PATCH',
-          ...requestOptions(),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Unable to update user status');
+        await setUserActiveStatus(user.user_id, action);
         setConfirmOpen(false);
         setConfirmKind(null);
         await refreshAfterAction(`User ${action}d successfully.`);
@@ -204,16 +179,10 @@ export function UserDetailModal({
   };
 
   const confirmReject = async () => {
-    if (!token || !user || !rejectReason) return;
+    if (!user || !rejectReason) return;
     setActionLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/users/${user.user_id}/verification/review`, {
-        method: 'PATCH',
-        ...requestOptions(),
-        body: JSON.stringify({ verificationStatus: 'rejected', remarks: rejectReason }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Unable to reject verification');
+      await reviewUserVerification(user.user_id, 'rejected', rejectReason);
       closeRejectModal();
       await refreshAfterAction('Resident verification rejected successfully.', true);
     } catch (e) {

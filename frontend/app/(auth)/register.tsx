@@ -6,7 +6,8 @@ import { Link, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { API_BASE } from '../../utils/apiConfig';
 import { connectSocket } from '../../hooks/useSocket';
-import { extractAccessToken, setAuthToken } from '../../utils/sessionAuth';
+import { extractAccessToken, extractRefreshToken, setAuthTokens } from '../../utils/sessionAuth';
+import { submitVerification } from '../../utils/userApi';
 import { buildVerificationFormData } from '../../utils/verificationUpload';
 import { authRegisterStyles as styles } from '../../styles/auth/register';
 import {
@@ -165,8 +166,9 @@ export default function RegisterScreen() {
       }
 
       const accessToken = extractAccessToken(registerData);
-      if (accessToken) {
-        await setAuthToken(accessToken);
+      const refreshToken = extractRefreshToken(registerData);
+      if (accessToken && refreshToken) {
+        await setAuthTokens(accessToken, refreshToken);
         await connectSocket();
 
         try {
@@ -177,14 +179,7 @@ export default function RegisterScreen() {
   size: idFile.fileSize ?? 0,
 };
           const formData = await buildVerificationFormData(formattedAddress, verificationFile);
-          await fetch(`${API_BASE}/users/me/verification`, {
-            method: 'POST',
-            headers: {
-              Accept: 'application/json',
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: formData,
-          });
+          await submitVerification(formData);
         } catch (verificationError) {
           console.warn('Verification request failed:', verificationError);
         }

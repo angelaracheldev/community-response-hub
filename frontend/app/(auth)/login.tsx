@@ -5,8 +5,8 @@ import { Link, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { API_BASE } from '../../utils/apiConfig';
 import { connectSocket } from '../../hooks/useSocket';
-import { extractAccessToken, setAuthToken } from '../../utils/sessionAuth';
-import { fetchResidentProfile } from '../../utils/residentProfile';
+import { extractAccessToken, extractRefreshToken, setAuthTokens } from '../../utils/sessionAuth';
+import { fetchCurrentUser } from '../../utils/userProfile';
 import { authLoginStyles as styles } from '../../styles/auth/login';
 
 export default function LoginScreen() {
@@ -76,19 +76,20 @@ export default function LoginScreen() {
 
       if (response.ok) {
         const accessToken = extractAccessToken(data);
-        if (!accessToken) {
-          triggerLoginError('Login succeeded but no access token was returned.');
+        const refreshToken = extractRefreshToken(data);
+        if (!accessToken || !refreshToken) {
+          triggerLoginError('Login succeeded but session tokens were not returned.');
           return;
         }
 
         const loginUser = (data as { data?: { user?: { role_name?: string } } })?.data?.user;
         let roleName = loginUser?.role_name;
 
-        await setAuthToken(accessToken);
+        await setAuthTokens(accessToken, refreshToken);
         await connectSocket();
 
         if (!roleName) {
-          const profile = await fetchResidentProfile();
+          const profile = await fetchCurrentUser();
           roleName = profile?.role_name;
         }
 

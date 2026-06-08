@@ -6,8 +6,7 @@ import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
 import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
-import { API_BASE } from '../../utils/apiConfig';
-import { getAuthToken } from '../../utils/sessionAuth';
+import { fetchActivityLogs } from '../../utils/adminApi';
 import { adminActivityLogsStyles as styles } from '../../styles/app/adminActivityLogs';
 
 const LOG_TABS = [
@@ -17,7 +16,6 @@ const LOG_TABS = [
 
 export default function ActivityLogs() {
   const layout = useAppLayout();
-  const [token, setToken] = useState<string | null>(null);
   const [mode, setMode] = useState<'complaint' | 'user'>('complaint');
   const [targetId, setTargetId] = useState('');
   const [description, setDescription] = useState('');
@@ -29,35 +27,22 @@ export default function ActivityLogs() {
   const [total, setTotal] = useState(0);
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
 
-  useEffect(() => {
-    void getAuthToken().then(setToken);
-  }, []);
-
   const loadLogs = async (p = 1, dir = sortDir) => {
-    if (!token) return;
     if (!targetId.trim()) return;
     setLoading(true);
     try {
-      const q = new URLSearchParams({
-        page: String(p),
-        pageSize: String(pageSize),
-        sortBy: 'created_at',
+      const data = await fetchActivityLogs({
+        mode,
+        targetId: targetId.trim(),
+        page: p,
+        pageSize,
         sortDir: dir,
+        description: description || undefined,
+        performedBy: performedBy || undefined,
       });
-      if (description) q.set('description', description);
-      if (performedBy) q.set('performedBy', performedBy);
-
-      const url =
-        mode === 'complaint'
-          ? `${API_BASE}/complaints/${encodeURIComponent(targetId)}/activity-logs?${q.toString()}`
-          : `${API_BASE}/users/${encodeURIComponent(targetId)}/activity-logs?${q.toString()}`;
-
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed');
-      setLogs(data.logs || []);
-      setTotal(data.total || 0);
-      setPage(data.page || p);
+      setLogs(data.logs);
+      setTotal(data.total);
+      setPage(data.page);
     } catch (e) {
       console.error('Load logs error', e);
     } finally {

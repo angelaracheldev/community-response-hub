@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Text, View, TextInput, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
-import { API_BASE } from '../../utils/apiConfig';
-import { getAuthToken } from '../../utils/sessionAuth';
 import { buildVerificationFormData } from '../../utils/verificationUpload';
+import {
+  fetchMyVerificationDetails,
+  submitVerification,
+  VerificationStatus,
+} from '../../utils/userApi';
 import { PageShell } from '../../components/common/PageShell';
 import { residentHomeStyles as styles } from '../../styles/app/residentHome';
-
-const BASE_URL = API_BASE;
-
-type VerificationStatus = 'not_submitted' | 'pending' | 'rejected' | 'approved';
 
 type SelectedFile = {
   uri: string;
@@ -51,28 +50,12 @@ export default function ResidentHomeScreen() {
 
   const loadVerificationStatus = async () => {
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        setIsPageLoading(false);
-        return;
-      }
-
-      const response = await fetch(`${BASE_URL}/users/me`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      if (response.ok && data.user) {
-        setVerificationStatus(data.user.verification_status || 'not_submitted');
-        setRejectionRemarks(data.user.verification_remarks || '');
-        setAddress(data.user.verification_address || '');
-        setVerificationType(data.user.verification_type || 'ID');
-      } else {
-        console.error('Unable to load verification status:', data);
+      const details = await fetchMyVerificationDetails();
+      if (details) {
+        setVerificationStatus(details.verification_status);
+        setRejectionRemarks(details.verification_remarks);
+        setAddress(details.verification_address);
+        setVerificationType(details.verification_type);
       }
     } catch (error) {
       console.error('Load verification status error:', error);
@@ -144,36 +127,18 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
     setFileError('');
 
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        alert('Unable to retrieve login token. Please sign in again.');
-        return;
-      }
-
       const formData = await buildVerificationFormData(address, selectedFile, verificationType);
-
-      const response = await fetch(`${BASE_URL}/users/me/verification`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setVerificationStatus('pending');
-        setRejectionRemarks('');
-        setSelectedFile(null);
-        alert('Verification document submitted successfully! Please wait for admin review.');
-        await loadVerificationStatus();
-      } else {
-        setFileError(data.message || 'Verification submission failed.');
-      }
+      await submitVerification(formData);
+      setVerificationStatus('pending');
+      setRejectionRemarks('');
+      setSelectedFile(null);
+      alert('Verification document submitted successfully! Please wait for admin review.');
+      await loadVerificationStatus();
     } catch (error) {
       console.error('API Verification Request Error:', error);
-      setFileError('Network connectivity error. Could not upload documents.');
+      setFileError(
+        error instanceof Error ? error.message : 'Network connectivity error. Could not upload documents.'
+      );
     } finally {
       setIsLoading(false);
     }
