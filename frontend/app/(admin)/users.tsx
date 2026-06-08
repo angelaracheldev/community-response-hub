@@ -167,6 +167,9 @@ export default function AdminUsers() {
               <TouchableOpacity style={[s.textBtn, s.textBtnOutline]} onPress={() => loadUsers(1, pageSize, search)}>
                 <Text style={[s.textBtnLabel, s.textBtnLabelOutline]}>Refresh</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={s.textBtn}>
+                <Text style={s.textBtnLabel}>+ Add User</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <>
@@ -175,6 +178,9 @@ export default function AdminUsers() {
               </TouchableOpacity>
               <TouchableOpacity style={s.linkBtn} onPress={() => loadUsers(1, pageSize, search)}>
                 <Text style={s.linkBtnText}>Refresh</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.addUserBtn}>
+                <Text style={styles.addUserBtnText}>+ Add User</Text>
               </TouchableOpacity>
             </>
           )}
@@ -256,4 +262,15 @@ const styles = StyleSheet.create({
   colSmall: { width: 72, textAlign: 'center' },
   colActions: { width: 88, textAlign: 'center' },
   colActionsCell: { width: 88, alignItems: 'flex-end' },
+  addUserBtn: {
+    backgroundColor: '#6366F1',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  addUserBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
 });
