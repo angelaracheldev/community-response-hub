@@ -210,6 +210,12 @@ async function cancelComplaint(id, requestUser, { cancellationReason }) {
     id,
   });
 
+  try {
+    await notificationEvents.onComplaintStatusUpdated(complaint, 'cancelled');
+  } catch (err) {
+    console.error('Failed to create cancellation notifications:', err.message);
+  }
+
   const refreshed = await complaintsRepository.findComplaintByIdentifier(id);
 
   return {

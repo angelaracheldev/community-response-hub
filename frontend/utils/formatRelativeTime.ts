@@ -1,9 +1,11 @@
+import { parseApiTimestamp } from './parseApiTimestamp';
+
 function formatTime(date: Date): string {
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 export function formatRelativeTime(iso: string): string {
-  const date = new Date(iso);
+  const date = parseApiTimestamp(iso);
   if (Number.isNaN(date.getTime())) return '';
 
   const now = new Date();

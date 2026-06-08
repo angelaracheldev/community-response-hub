@@ -1,4 +1,11 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+// TIMESTAMP WITHOUT TIME ZONE columns store UTC wall-clock values (Postgres in Docker).
+// Parse as UTC so Node hosts in other timezones (e.g. UTC+8) don't shift timestamps.
+types.setTypeParser(1114, (value) => {
+  if (value === null) return null;
+  return new Date(`${String(value).replace(' ', 'T')}Z`);
+});
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
