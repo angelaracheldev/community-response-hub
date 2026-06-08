@@ -171,7 +171,7 @@ export default function AdminUsers() {
               <TouchableOpacity style={[s.textBtn, s.textBtnOutline]} onPress={() => loadUsers(1, pageSize, search)}>
                 <Text style={[s.textBtnLabel, s.textBtnLabelOutline]}>Refresh</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.textBtn}>
+              <TouchableOpacity style={s.textBtn} onPress={() => setShowAddModal(true)}>
                 <Text style={s.textBtnLabel}>+ Add User</Text>
               </TouchableOpacity>
             </View>
@@ -183,7 +183,7 @@ export default function AdminUsers() {
               <TouchableOpacity style={s.linkBtn} onPress={() => loadUsers(1, pageSize, search)}>
                 <Text style={s.linkBtnText}>Refresh</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.addUserBtn}>
+              <TouchableOpacity style={styles.addUserBtn} onPress={() => setShowAddModal(true)}>
                 <Text style={styles.addUserBtnText}>+ Add User</Text>
               </TouchableOpacity>
             </>
