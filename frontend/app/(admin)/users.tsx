@@ -1,23 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AdminListCard } from '../../components/admin/AdminListCard';
 import { AdminPagination } from '../../components/admin/AdminPagination';
 import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
 import { UserDetailModal } from '../../components/admin/UserDetailModal';
 import { UserVerificationPanel } from '../../components/admin/UserVerificationPanel';
-import { adminListStyles as s } from '../../components/admin/adminListStyles';
+import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { API_BASE } from '../../utils/apiConfig';
 import { getAdminToken } from '../../utils/authStorage';
+import { adminUsersStyles as styles } from '../../styles/admin/users';
+import { colors } from '../../styles/theme';
 
 const USER_TABS = [
   { id: 'residents', label: 'Residents' },
@@ -196,7 +190,7 @@ export default function AdminUsers() {
       ) : null}
 
       {loading ? (
-        <ActivityIndicator style={s.loader} color="#6366F1" />
+        <ActivityIndicator style={s.loader} color={colors.primary} />
       ) : layout.useCompactList ? (
         <>
           <Text style={s.sectionTitle}>All {tabLabel}</Text>
@@ -254,23 +248,4 @@ export default function AdminUsers() {
   );
 }
 
-const styles = StyleSheet.create({
-  colCode: { flex: 1, minWidth: 96, maxWidth: 120 },
-  colName: { flex: 2, minWidth: 130 },
-  colEmail: { flex: 3, minWidth: 180 },
-  colPhone: { flex: 2, minWidth: 120 },
-  colSmall: { width: 72, textAlign: 'center' },
-  colActions: { width: 88, textAlign: 'center' },
-  colActionsCell: { width: 88, alignItems: 'flex-end' },
-  addUserBtn: {
-    backgroundColor: '#6366F1',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  addUserBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-});
+

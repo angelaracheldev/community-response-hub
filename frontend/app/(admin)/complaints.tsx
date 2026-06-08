@@ -1,25 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
 import { AdminListCard } from '../../components/admin/AdminListCard';
 import { AdminPagination } from '../../components/admin/AdminPagination';
 import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
-import { adminListStyles as s } from '../../components/admin/adminListStyles';
+import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { formatComplaintStatus } from '../../utils/complaintApi';
 import { ADMIN_API_BASE, API_BASE } from '../../utils/apiConfig';
 import { getAdminToken } from '../../utils/authStorage';
+import { adminComplaintsStyles as styles } from '../../styles/app/adminComplaints';
 
 const COMPLAINT_TABS = [
   { id: 'active', label: 'Active' },
@@ -260,11 +252,4 @@ export default function AdminComplaints() {
   );
 }
 
-const styles = StyleSheet.create({
-  colId: { width: 100 },
-  colTitle: { flex: 1, minWidth: 100 },
-  colCat: { width: 100 },
-  colStatus: { width: 110 },
-  colSmall: { width: 72 },
-  colActions: { width: 80 },
-});
+

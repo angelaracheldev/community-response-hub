@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { PageShell } from '../../components/common/PageShell';
 import { RecentComplaintsList } from '../../components/dashboard/RecentComplaintsList';
@@ -8,6 +8,7 @@ import { WelcomeBanner } from '../../components/dashboard/WelcomeBanner';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { useAppSession } from '../../hooks/useAppSession';
 import { DashboardStat, RecentComplaintItem } from '../../utils/adminDashboard.mock';
+import { respondentDashboardStyles as styles } from '../../styles/app/respondentDashboard';
 import {
   ComplaintRecord,
   fetchAssignedComplaints,
@@ -125,12 +126,4 @@ export default function RespondentDashboard() {
   );
 }
 
-const styles = StyleSheet.create({
-  loading: {
-    paddingVertical: 48,
-    alignItems: 'center',
-  },
-  section: {
-    marginTop: 12,
-  },
-});
+

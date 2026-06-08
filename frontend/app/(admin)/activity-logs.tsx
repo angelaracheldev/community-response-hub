@@ -1,21 +1,14 @@
 import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AdminListCard } from '../../components/admin/AdminListCard';
 import { AdminPagination } from '../../components/admin/AdminPagination';
 import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
-import { adminListStyles as s } from '../../components/admin/adminListStyles';
+import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { API_BASE } from '../../utils/apiConfig';
 import { getAdminToken } from '../../utils/authStorage';
+import { adminActivityLogsStyles as styles } from '../../styles/app/adminActivityLogs';
 
 const LOG_TABS = [
   { id: 'complaint', label: 'Complaint' },
@@ -212,24 +205,4 @@ export default function ActivityLogs() {
   );
 }
 
-const styles = StyleSheet.create({
-  filtersDesktop: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    alignItems: 'center',
-  },
-  filterInputDesktop: {
-    flex: 1,
-    minWidth: 140,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  colWhen: { width: 140 },
-  colAction: { width: 120 },
-  colBy: { width: 120 },
-  colDesc: { flex: 1, minWidth: 100 },
-});
+

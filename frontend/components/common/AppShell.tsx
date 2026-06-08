@@ -1,7 +1,8 @@
 import React, { ReactNode, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Modal, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { QuickAction } from '../../utils/adminDashboard.mock';
+import { appShellStyles as styles } from '../../styles/common/appShell';
 import {
   FloatingQuickActionsBar,
   getFloatingQuickActionsPadding,
@@ -92,36 +93,4 @@ export function AppShell({
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-  },
-  sidebarColumn: {
-    alignSelf: 'stretch',
-    backgroundColor: '#0F172A',
-  },
-  mainSafe: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  main: {
-    flex: 1,
-    position: 'relative',
-  },
-  content: {},
-  contentFlex: {
-    flex: 1,
-  },
-  overlay: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-  },
-  drawer: {
-    width: 260,
-    height: '100%',
-    backgroundColor: '#0F172A',
-  },
-});
+

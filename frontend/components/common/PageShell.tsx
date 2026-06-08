@@ -1,11 +1,12 @@
 import React, { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { AppShell } from './AppShell';
 import { SideNav } from './SideNav';
 import { TopNav } from './TopNav';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { useAppSession } from '../../hooks/useAppSession';
 import { AppPortal } from '../../utils/appPortal.config';
+import { pageShellStyles as styles } from '../../styles/common/pageShell';
 
 type Props = {
   portal: AppPortal;
@@ -58,8 +59,4 @@ export function PageShell({
   );
 }
 
-const styles = StyleSheet.create({
-  contentWrapFlex: {
-    flex: 1,
-  },
-});
+

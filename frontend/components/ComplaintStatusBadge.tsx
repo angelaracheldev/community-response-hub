@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { formatComplaintStatus } from '../utils/complaintApi';
+import { complaintStatusBadgeStyles as styles } from '../styles/complaint/statusBadge';
 
 const STATUS_STYLES: Record<string, { backgroundColor: string; color: string }> = {
   pending: { backgroundColor: '#FEF9C3', color: '#854D0E' },
@@ -29,22 +30,4 @@ export default function ComplaintStatusBadge({ status, compact }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    alignSelf: 'flex-start',
-  },
-  compact: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  text: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  compactText: {
-    fontSize: 11,
-  },
-});
+

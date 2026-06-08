@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PageShell } from '../../components/common/PageShell';
 import { DonutChartCard } from '../../components/dashboard/DonutChartCard';
@@ -11,6 +11,7 @@ import { WelcomeBanner } from '../../components/dashboard/WelcomeBanner';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { useAppSession } from '../../hooks/useAppSession';
 import { ADMIN_DASHBOARD_MOCK } from '../../utils/adminDashboard.mock';
+import { adminDashboardStyles as styles } from '../../styles/app/adminDashboard';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -46,16 +47,4 @@ export default function AdminDashboard() {
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-  },
-  rowStack: {
-    flexDirection: 'column',
-  },
-  section: {
-    marginTop: 12,
-  },
-});
+

@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { DashboardStat } from '../../utils/adminDashboard.mock';
 import { StatCard } from './StatCard';
+import { statCardGridStyles as styles } from '../../styles/dashboard/statCardGrid';
 
 type Props = {
   stats: DashboardStat[];
@@ -22,16 +23,4 @@ export function StatCardGrid({ stats, columns }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -6,
-  },
-  cell: {
-    flexGrow: 1,
-    minWidth: 150,
-    paddingHorizontal: 6,
-    marginBottom: 12,
-  },
-});
+

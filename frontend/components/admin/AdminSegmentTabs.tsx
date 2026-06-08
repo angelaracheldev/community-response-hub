@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { adminSegmentTabsStyles as styles } from '../../styles/admin/segmentTabs';
 
 export type AdminTab = {
   id: string;
@@ -34,38 +35,4 @@ export function AdminSegmentTabs({ tabs, activeId, onChange, compact }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  rowCompact: {
-    flexWrap: 'nowrap',
-  },
-  tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  tabCompact: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  tabActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  tabText: {
-    color: '#374151',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  tabTextActive: {
-    color: '#fff',
-  },
-});
+
