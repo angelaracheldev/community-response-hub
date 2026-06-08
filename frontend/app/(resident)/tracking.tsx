@@ -1,17 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  ActivityIndicator,
-  TouchableOpacity,
-  RefreshControl,
-  useWindowDimensions,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, View, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
+import { PageShell } from '../../components/common/PageShell';
+import { getFloatingQuickActionsPadding } from '../../components/dashboard/FloatingQuickActionsBar';
+import { useAppLayout } from '../../hooks/useAppLayout';
+import { residentTrackingStyles as styles } from '../../styles/app/residentTracking';
 import {
   fetchMyComplaints,
   formatAssigneeName,
@@ -19,13 +14,15 @@ import {
   formatDateTime,
   ComplaintRecord,
 } from '../../utils/complaintApi';
-import { getContentMaxWidth, getScrollBottomPadding } from '../../utils/responsiveLayout';
 
 export default function TrackingScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const contentMaxWidth = getContentMaxWidth(width);
-  const scrollPaddingBottom = getScrollBottomPadding(width);
+  const insets = useSafeAreaInsets();
+  const layout = useAppLayout();
+  const scrollPaddingBottom = layout.showMobileMenu
+    ? getFloatingQuickActionsPadding(width, insets.bottom)
+    : 32;
   const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,26 +55,22 @@ export default function TrackingScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <PageShell portal="resident" activeNavId="tracking" pageTitle="My Complaints" scrollEnabled={false}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4f46e5" />
         </View>
-      </SafeAreaView>
+      </PageShell>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <PageShell portal="resident" activeNavId="tracking" pageTitle="My Complaints" scrollEnabled={false}>
       <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          { maxWidth: contentMaxWidth, paddingBottom: scrollPaddingBottom },
-        ]}
+        contentContainerStyle={[styles.container, { paddingBottom: scrollPaddingBottom }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => loadComplaints(true)} />
         }
       >
-        <Text style={styles.title}>My Complaints</Text>
 
         {error ? (
           <View style={styles.errorBox}>
@@ -126,48 +119,8 @@ export default function TrackingScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </PageShell>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: {
-    width: '100%',
-    alignSelf: 'center',
-    padding: 24,
-  },
-  title: { fontSize: 22, fontWeight: '800', marginBottom: 20, color: '#111827' },
-  card: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
-  cardTitle: { fontSize: 16, fontWeight: '600', flex: 1, color: '#111827' },
-  metaRow: { color: '#4b5563', fontSize: 13, marginTop: 8 },
-  metaLabel: { color: '#6b7280', fontWeight: '600' },
-  refRow: { color: '#9ca3af', fontSize: 11, marginTop: 6 },
-  emptyBox: {
-    backgroundColor: '#fff',
-    padding: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  emptyText: { color: '#6b7280', fontSize: 14, textAlign: 'center' },
-  errorBox: {
-    backgroundColor: '#fef2f2',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#fecaca',
-  },
-  errorText: { color: '#b91c1c', fontSize: 14, marginBottom: 8 },
-  retryText: { color: '#4f46e5', fontWeight: '600', fontSize: 14 },
-});
+

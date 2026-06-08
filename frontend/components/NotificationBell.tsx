@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { NotificationBadge } from './NotificationBadge';
+import { notificationBellStyles as styles } from '../styles/notifications/bell';
 
 type Props = {
   unreadCount: number;
@@ -23,24 +24,4 @@ export function NotificationBell({ unreadCount, onPress, active = false }: Props
   );
 }
 
-const styles = StyleSheet.create({
-  bellBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bellBtnActive: {
-    backgroundColor: '#F3F4F6',
-  },
-  bellWrap: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bellIcon: {
-    fontSize: 20,
-    opacity: 0.85,
-  },
-});
+

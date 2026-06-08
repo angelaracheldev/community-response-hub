@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Dimensions, Platform, StyleSheet, View } from 'react-native';
+import { Dimensions, Platform, View } from 'react-native';
 import { useNotifications } from '../hooks/useNotifications';
 import { NotificationBell } from './NotificationBell';
 import { NotificationCenter } from './NotificationCenter';
+import { notificationDropdownStyles as styles } from '../styles/notifications/dropdown';
 
 const DROPDOWN_WIDTH = 380;
 
@@ -118,9 +119,4 @@ export function NotificationDropdown({ getToken }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  anchor: {
-    position: 'relative',
-    zIndex: 100,
-  },
-});
+

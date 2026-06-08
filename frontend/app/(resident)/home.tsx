@@ -1,21 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Image,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, View, TextInput, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { API_BASE } from '../../utils/apiConfig';
 import { getResidentToken } from '../../utils/residentAuth';
 import { buildVerificationFormData } from '../../utils/verificationUpload';
-import { NotificationDropdown } from '../../components/NotificationDropdown';
+import { PageShell } from '../../components/common/PageShell';
+import { residentHomeStyles as styles } from '../../styles/app/residentHome';
 
 const BASE_URL = API_BASE;
 
@@ -189,31 +180,14 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.mainContainer}>
-        {/* Profile Navigation Header */}
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.welcomeText}>Hello, Resident 👋</Text>
-            <Text style={styles.subWelcome}>Marikina Sandbox Ecosystem</Text>
-          </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.logoutBtn} onPress={() => router.replace('/(auth)/login')}>
-              <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
-            <NotificationDropdown getToken={getResidentToken} />
-          </View>
+    <PageShell portal="resident" activeNavId="home" pageTitle="Dashboard">
+      {isPageLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563EB" />
         </View>
-
-        {isPageLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2563EB" />
-          </View>
-        ) : (
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            
-            {/* FEATURE 1: COMMUNITY VERIFICATION */}
-            <Text style={styles.sectionTitle}>Profile Account Status</Text>
+      ) : (
+        <>
+          <Text style={styles.sectionTitle}>Profile Account Status</Text>
 
             {/* APPROVED STATE */}
             {verificationStatus === 'approved' && (
@@ -350,29 +324,7 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
               </View>
             )}
 
-            {/* QUICK LINKS */}
-            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Quick Action Hub</Text>
-            <View style={styles.quickActionRow}>
-              <TouchableOpacity 
-                style={[styles.actionBox, verificationStatus !== 'approved' && styles.disabledBox]} 
-                onPress={() => verificationStatus === 'approved' && router.push('/(resident)/submit-complaint')}
-                disabled={verificationStatus !== 'approved'}
-              >
-                <Text style={styles.actionBoxIcon}>✍️</Text>
-                <Text style={styles.actionBoxText}>File Report</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.actionBox, verificationStatus !== 'approved' && styles.disabledBox]} 
-                onPress={() => verificationStatus === 'approved' && router.push('/(resident)/tracking')}
-                disabled={verificationStatus !== 'approved'}
-              >
-                <Text style={styles.actionBoxIcon}>🕒</Text>
-                <Text style={styles.actionBoxText}>Track Status</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* FEATURE 2: EMERGENCY HOTLINES */}
-            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>🚨 Emergency Direct Hotlines</Text>
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>🚨 Emergency Direct Hotlines</Text>
             {emergencyHotlines.map((hotline) => (
               <View key={hotline.id} style={styles.hotlineCard}>
                 <Text style={styles.hotlineName}>{hotline.name}</Text>
@@ -382,311 +334,16 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
               </View>
             ))}
 
-            {/* FEATURE 3: FAQS */}
-            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>💡 Frequently Asked Questions</Text>
-            {faqs.map((faq) => (
-              <View key={faq.id} style={styles.faqBlock}>
-                <Text style={styles.faqQuestion}>Q: {faq.q}</Text>
-                <Text style={styles.faqAnswer}>{faq.a}</Text>
-              </View>
-            ))}
-
-          </ScrollView>
-        )}
-      </View>
-
-    </SafeAreaView>
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>💡 Frequently Asked Questions</Text>
+          {faqs.map((faq) => (
+            <View key={faq.id} style={styles.faqBlock}>
+              <Text style={styles.faqQuestion}>Q: {faq.q}</Text>
+              <Text style={styles.faqAnswer}>{faq.a}</Text>
+            </View>
+          ))}
+        </>
+      )}
+    </PageShell>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  mainContainer: {
-    flex: 1,
-    width: '100%',
-    maxWidth: 450,
-    alignSelf: 'center',
-    paddingHorizontal: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  welcomeText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  subWelcome: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  logoutBtn: {
-    backgroundColor: '#fee2e2',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  logoutText: {
-    color: '#ef4444',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  scrollContent: {
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.05)',
-    marginBottom: 16,
-  },
-  verifiedCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#10b981',
-    backgroundColor: '#ecfdf5',
-  },
-  actionCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#f59e0b',
-  },
-  cardTitleSuccess: {
-    fontWeight: '700',
-    color: '#065f46',
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  cardTitleWarning: {
-    fontWeight: '700',
-    color: '#92400e',
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  cardDesc: {
-    color: '#4b5563',
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  input: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#111827',
-    marginBottom: 10,
-  },
-  uploadButton: {
-    backgroundColor: '#e5e7eb',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  uploadButtonText: {
-    color: '#374151',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  previewImage: {
-    width: '100%',
-    height: 150,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  accentButton: {
-    backgroundColor: '#4f46e5',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  accentButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  quickActionRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionBox: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.05)',
-  },
-  actionBoxIcon: {
-    fontSize: 24,
-    marginBottom: 6,
-  },
-  actionBoxText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  hotlineCard: {
-    backgroundColor: '#ffffff',
-    padding: 14,
-    borderRadius: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
-  },
-  hotlineName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    flex: 1,
-    marginRight: 8,
-  },
-  hotlinePhone: {
-    fontSize: 14,
-    color: '#ef4444',
-    fontWeight: '700',
-  },
-  faqBlock: {
-    marginBottom: 16,
-    backgroundColor: '#ffffff',
-    padding: 14,
-    borderRadius: 10,
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
-  },
-  faqQuestion: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 4,
-  },
-  faqAnswer: {
-    fontSize: 13,
-    color: '#4b5563',
-    lineHeight: 18,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pendingCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#f59e0b',
-    backgroundColor: '#fffbeb',
-  },
-  rejectedCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#ef4444',
-    backgroundColor: '#fef2f2',
-  },
-  cardTitlePending: {
-    fontWeight: '700',
-    color: '#92400e',
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  cardTitleError: {
-    fontWeight: '700',
-    color: '#991b1b',
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  remarksContainer: {
-    backgroundColor: '#fee2e2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#ef4444',
-  },
-  remarksLabel: {
-    fontWeight: '700',
-    color: '#991b1b',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  remarksText: {
-    color: '#7f1d1d',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    color: '#4b5563',
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  summaryContainer: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    padding: 12,
-    marginBottom: 10,
-  },
-  summaryText: {
-    color: '#111827',
-    fontSize: 14,
-  },
-  errorText: {
-    color: '#b91c1c',
-    fontSize: 13,
-    marginBottom: 10,
-  },
-  fileSummary: {
-    backgroundColor: '#eef2ff',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  fileName: {
-    color: '#1e3a8a',
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  fileSize: {
-    color: '#475569',
-    fontSize: 13,
-  },
-  backButton: {
-    marginTop: 10,
-    borderColor: '#4b46e5',
-    borderWidth: 1,
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#4b46e5',
-    fontWeight: '700',
-  },
-  disabledBox: {
-    opacity: 0.5,
-  },
-});

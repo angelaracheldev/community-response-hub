@@ -1,19 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Image,
-  Alert,
-  Platform,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, View, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert, Platform } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { PageShell } from '../../components/common/PageShell';
 import { useResidentVerification } from '../../hooks/useResidentVerification';
 import { useComplaintCategories } from '../../hooks/useComplaintCategories';
 import {
@@ -23,6 +12,7 @@ import {
   uploadComplaintMedia,
 } from '../../utils/complaintApi';
 import { isAllowedMediaType } from '../../utils/complaintUpload';
+import { residentSubmitComplaintStyles as styles } from '../../styles/app/residentSubmitComplaint';
 import {
   FieldErrors,
   hasFieldErrors,
@@ -197,17 +187,17 @@ export default function SubmitComplaintScreen() {
 
   if (verificationLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <PageShell portal="resident" activeNavId="submit" pageTitle="Add Complaint" scrollEnabled={false}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4f46e5" />
         </View>
-      </SafeAreaView>
+      </PageShell>
     );
   }
 
   if (!isVerified) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <PageShell portal="resident" activeNavId="submit" pageTitle="Add Complaint" scrollEnabled={false}>
         <View style={styles.blockedContainer}>
           <Text style={styles.blockedTitle}>Verification pending</Text>
           <Text style={styles.blockedText}>
@@ -218,12 +208,12 @@ export default function SubmitComplaintScreen() {
             <Text style={styles.primaryBtnText}>Back to Dashboard</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </PageShell>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <PageShell portal="resident" activeNavId="submit" pageTitle="Add Complaint" scrollEnabled={false}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {step < 3 && (
           <TouchableOpacity onPress={handleBack} style={styles.backLink} disabled={isSubmitting}>
@@ -429,123 +419,8 @@ export default function SubmitComplaintScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </PageShell>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { width: '100%', maxWidth: 450, alignSelf: 'center', padding: 24, paddingBottom: 40 },
-  backLink: { marginBottom: 16 },
-  backLinkText: { color: '#4f46e5', fontWeight: '600', fontSize: 14 },
-  stepLabel: { fontSize: 13, fontWeight: '600', color: '#6b7280', marginBottom: 4 },
-  title: { fontSize: 22, fontWeight: '800', marginBottom: 6, color: '#111827' },
-  subtitle: { fontSize: 14, color: '#6b7280', marginBottom: 20, lineHeight: 20 },
-  label: { fontSize: 14, fontWeight: '600', marginTop: 12, marginBottom: 6, color: '#374151' },
-  hint: { fontSize: 12, color: '#9ca3af', marginBottom: 8 },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-  },
-  inputError: { borderColor: '#ef4444' },
-  textArea: { minHeight: 100, textAlignVertical: 'top' },
-  errorText: { color: '#ef4444', fontSize: 12, marginTop: 4 },
-  mediaBtn: {
-    backgroundColor: '#fff',
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: '#4f46e5',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  mediaBtnText: { color: '#4f46e5', fontWeight: '600' },
-  categoryList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  categoryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  categoryChipSelected: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
-  categoryChipText: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  categoryChipTextSelected: { color: '#fff' },
-  evidenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
-  evidenceItem: { width: 90 },
-  evidenceThumb: { width: 90, height: 90, borderRadius: 8, backgroundColor: '#e5e7eb' },
-  videoPlaceholder: {
-    width: 90,
-    height: 90,
-    borderRadius: 8,
-    backgroundColor: '#1e293b',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoLabel: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  removeBtn: { marginTop: 4, alignItems: 'center' },
-  removeBtnText: { fontSize: 11, color: '#ef4444', fontWeight: '600' },
-  primaryBtn: {
-    backgroundColor: '#10b981',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  secondaryBtn: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  secondaryBtnText: { color: '#374151', fontWeight: '600', fontSize: 15 },
-  btnDisabled: { opacity: 0.7 },
-  reviewCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  reviewLabel: { fontSize: 12, fontWeight: '600', color: '#6b7280', marginTop: 12, marginBottom: 4 },
-  reviewValue: { fontSize: 15, color: '#111827', lineHeight: 22 },
-  successCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#d1fae5',
-  },
-  successIcon: {
-    fontSize: 40,
-    color: '#10b981',
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  successTitle: { fontSize: 20, fontWeight: '800', color: '#111827', marginBottom: 8 },
-  successMessage: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 20 },
-  successDetail: { alignSelf: 'stretch', marginTop: 16 },
-  complaintId: { fontSize: 13, color: '#111827', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
-  blockedContainer: {
-    flex: 1,
-    width: '100%',
-    maxWidth: 450,
-    alignSelf: 'center',
-    padding: 24,
-    justifyContent: 'center',
-  },
-  blockedTitle: { fontSize: 22, fontWeight: '800', color: '#92400e', marginBottom: 12 },
-  blockedText: { fontSize: 15, color: '#4b5563', lineHeight: 22, marginBottom: 24 },
-});
+

@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
+import { notificationMessageStyles as styles } from '../styles/notifications/message';
 
 type Props = {
   message: string;
@@ -38,18 +39,4 @@ export function NotificationMessage({ message, bold = false }: Props) {
   return <Text style={[styles.message, bold && styles.messageBold]}>{parts}</Text>;
 }
 
-const styles = StyleSheet.create({
-  message: {
-    fontSize: 13,
-    color: '#374151',
-    lineHeight: 18,
-  },
-  messageBold: {
-    color: '#111827',
-    fontWeight: '500',
-  },
-  quoted: {
-    fontWeight: '700',
-    color: '#111827',
-  },
-});
+
