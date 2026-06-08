@@ -10,7 +10,7 @@ import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { formatComplaintStatus } from '../../utils/complaintApi';
 import { ADMIN_API_BASE, API_BASE } from '../../utils/apiConfig';
-import { getAdminToken } from '../../utils/authStorage';
+import { getAuthToken } from '../../utils/sessionAuth';
 import { adminComplaintsStyles as styles } from '../../styles/app/adminComplaints';
 
 const COMPLAINT_TABS = [
@@ -29,13 +29,16 @@ export default function AdminComplaints() {
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
-  const token = getAdminToken();
+  useEffect(() => {
+    void getAuthToken().then(setToken);
+  }, []);
 
   useEffect(() => {
     if (!token) return;
     loadComplaints(1, pageSize, tab);
-  }, [tab]);
+  }, [tab, token]);
 
   const loadComplaints = async (p = 1, ps = pageSize, currentTab: typeof tab = 'active') => {
     if (!token) return;

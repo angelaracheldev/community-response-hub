@@ -3,7 +3,7 @@ import { Text, View, TextInput, TouchableOpacity, ActivityIndicator, Image } fro
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { API_BASE } from '../../utils/apiConfig';
-import { getResidentToken } from '../../utils/residentAuth';
+import { getAuthToken } from '../../utils/sessionAuth';
 import { buildVerificationFormData } from '../../utils/verificationUpload';
 import { PageShell } from '../../components/common/PageShell';
 import { residentHomeStyles as styles } from '../../styles/app/residentHome';
@@ -51,7 +51,7 @@ export default function ResidentHomeScreen() {
 
   const loadVerificationStatus = async () => {
     try {
-      const token = await getResidentToken();
+      const token = await getAuthToken();
       if (!token) {
         setIsPageLoading(false);
         return;
@@ -144,7 +144,7 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
     setFileError('');
 
     try {
-      const token = await getResidentToken();
+      const token = await getAuthToken();
       if (!token) {
         alert('Unable to retrieve login token. Please sign in again.');
         return;

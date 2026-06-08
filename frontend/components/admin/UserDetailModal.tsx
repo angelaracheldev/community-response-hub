@@ -15,7 +15,7 @@ import { userDetailModalStyles as mStyles } from '../../styles/admin/userDetailM
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { colors } from '../../styles/theme';
 import { API_BASE } from '../../utils/apiConfig';
-import { getAdminToken } from '../../utils/authStorage';
+import { getAuthToken } from '../../utils/sessionAuth';
 import { VerificationUser } from './userTypes';
 
 const REJECTION_REASONS = [
@@ -96,7 +96,7 @@ export function UserDetailModal({
   const isDesktop = layout.isDesktop;
   const { height: windowHeight } = useWindowDimensions();
   const desktopScrollMaxHeight = Math.max(windowHeight * 0.92 - 96, 320);
-  const token = getAdminToken();
+  const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<VerificationUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -107,6 +107,10 @@ export function UserDetailModal({
   const [rejectReason, setRejectReason] = useState('');
   const [successOpen, setSuccessOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    void getAuthToken().then(setToken);
+  }, []);
 
   const requestOptions = useCallback(
     () => ({

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { getAdminToken } from '../../utils/authStorage';
+import { getAuthToken } from '../../utils/sessionAuth';
 import { API_BASE } from '../../utils/apiConfig';
 import { adminComplaintDetailStyles as styles } from '../../styles/app/adminComplaintDetail';
 
@@ -44,13 +44,15 @@ export default function ComplaintDetailPage() {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const authToken = getAdminToken();
-    if (!authToken) {
-      router.replace('/(admin)/login');
-      return;
-    }
-    setToken(authToken);
-  }, []);
+    void (async () => {
+      const authToken = await getAuthToken();
+      if (!authToken) {
+        router.replace('/(auth)/login');
+        return;
+      }
+      setToken(authToken);
+    })();
+  }, [router]);
 
   useEffect(() => {
     if (!token || !id) return;

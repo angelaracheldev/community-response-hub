@@ -4,8 +4,7 @@ import {
   AdminNavItem,
   QuickAction,
 } from './adminDashboard.mock';
-import { clearAdminToken, getAdminToken } from './authStorage';
-import { clearResidentToken, getResidentToken } from './residentAuth';
+import * as sessionAuth from './sessionAuth';
 
 export type AppPortal = 'admin' | 'resident' | 'respondent';
 
@@ -61,11 +60,11 @@ export const APP_PORTALS: Record<AppPortal, AppPortalConfig> = {
   admin: {
     roleLabel: 'Admin',
     defaultDisplayName: 'Admin',
-    loginRoute: '/(admin)/login',
+    loginRoute: '/(auth)/login',
     navItems: ADMIN_NAV_ITEMS,
     quickActions: ADMIN_DASHBOARD_MOCK.quickActions,
-    getToken: getAdminToken,
-    clearToken: clearAdminToken,
+    getToken: sessionAuth.getAuthToken,
+    clearToken: sessionAuth.clearAuthToken,
   },
   resident: {
     roleLabel: 'Resident',
@@ -73,8 +72,8 @@ export const APP_PORTALS: Record<AppPortal, AppPortalConfig> = {
     loginRoute: '/(auth)/login',
     navItems: RESIDENT_NAV_ITEMS,
     quickActions: RESIDENT_QUICK_ACTIONS,
-    getToken: getResidentToken,
-    clearToken: clearResidentToken,
+    getToken: sessionAuth.getAuthToken,
+    clearToken: sessionAuth.clearAuthToken,
   },
   respondent: {
     roleLabel: 'Responder',
@@ -82,7 +81,7 @@ export const APP_PORTALS: Record<AppPortal, AppPortalConfig> = {
     loginRoute: '/(auth)/login',
     navItems: RESPONDENT_NAV_ITEMS,
     quickActions: RESPONDENT_QUICK_ACTIONS,
-    getToken: getResidentToken,
-    clearToken: clearResidentToken,
+    getToken: sessionAuth.getAuthToken,
+    clearToken: sessionAuth.clearAuthToken,
   },
 };

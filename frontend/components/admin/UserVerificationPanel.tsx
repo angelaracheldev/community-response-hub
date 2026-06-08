@@ -4,7 +4,7 @@ import { AdminListCard } from './AdminListCard';
 import { AdminSegmentTabs } from './AdminSegmentTabs';
 import { UserDetailModal } from './UserDetailModal';
 import { API_BASE } from '../../utils/apiConfig';
-import { getAdminToken } from '../../utils/authStorage';
+import { getAuthToken } from '../../utils/sessionAuth';
 
 import { VerificationUser } from './userTypes';
 import { userVerificationPanelStyles as vStyles } from '../../styles/admin/userVerificationPanel';
@@ -35,11 +35,15 @@ function filterLabel(filter: VerificationFilter): string {
 }
 
 export function UserVerificationPanel({ compact, onUpdated, refreshTrigger = 0 }: Props) {
-  const token = getAdminToken();
+  const [token, setToken] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<VerificationFilter>('pending');
   const [residents, setResidents] = useState<VerificationUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [detailUserId, setDetailUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void getAuthToken().then(setToken);
+  }, []);
 
   const requestOptions = useCallback(
     () => ({

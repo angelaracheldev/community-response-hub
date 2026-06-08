@@ -9,7 +9,7 @@ import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { API_BASE } from '../../utils/apiConfig';
-import { getAdminToken } from '../../utils/authStorage';
+import { getAuthToken } from '../../utils/sessionAuth';
 import { adminUsersStyles as styles } from '../../styles/admin/users';
 import { colors } from '../../styles/theme';
 
@@ -29,15 +29,19 @@ export default function AdminUsers() {
   const [total, setTotal] = useState(0);
   const [detailUserId, setDetailUserId] = useState<string | null>(null);
   const [verificationRefresh, setVerificationRefresh] = useState(0);
+  const [token, setToken] = useState<string | null>(null);
 
-  const token = getAdminToken();
   const roleId = tab === 'residents' ? 1 : 2;
   const tabLabel = tab === 'residents' ? 'Residents' : 'Responders';
 
   useEffect(() => {
+    void getAuthToken().then(setToken);
+  }, []);
+
+  useEffect(() => {
     if (!token) return;
     loadUsers(page, pageSize, search);
-  }, [tab]);
+  }, [tab, token]);
 
   const loadUsers = async (p = 1, ps = pageSize, query = '') => {
     if (!token) return;

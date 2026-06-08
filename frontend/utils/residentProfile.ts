@@ -1,5 +1,5 @@
 import { API_BASE } from './apiConfig';
-import { getResidentToken } from './residentAuth';
+import { getAuthToken } from './sessionAuth';
 
 export type ResidentProfile = {
   user_id: string;
@@ -14,7 +14,7 @@ export type ResidentProfile = {
 };
 
 export async function fetchResidentProfile(): Promise<ResidentProfile | null> {
-  const token = await getResidentToken();
+  const token = await getAuthToken();
   if (!token) return null;
 
   try {

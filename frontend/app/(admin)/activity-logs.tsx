@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AdminListCard } from '../../components/admin/AdminListCard';
 import { AdminPagination } from '../../components/admin/AdminPagination';
@@ -7,7 +7,7 @@ import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { API_BASE } from '../../utils/apiConfig';
-import { getAdminToken } from '../../utils/authStorage';
+import { getAuthToken } from '../../utils/sessionAuth';
 import { adminActivityLogsStyles as styles } from '../../styles/app/adminActivityLogs';
 
 const LOG_TABS = [
@@ -17,7 +17,7 @@ const LOG_TABS = [
 
 export default function ActivityLogs() {
   const layout = useAppLayout();
-  const token = getAdminToken();
+  const [token, setToken] = useState<string | null>(null);
   const [mode, setMode] = useState<'complaint' | 'user'>('complaint');
   const [targetId, setTargetId] = useState('');
   const [description, setDescription] = useState('');
@@ -28,6 +28,10 @@ export default function ActivityLogs() {
   const [pageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
+
+  useEffect(() => {
+    void getAuthToken().then(setToken);
+  }, []);
 
   const loadLogs = async (p = 1, dir = sortDir) => {
     if (!token) return;

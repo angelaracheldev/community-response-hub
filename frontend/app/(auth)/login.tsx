@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { API_BASE } from '../../utils/apiConfig';
-import { extractAccessToken, setResidentToken } from '../../utils/residentAuth';
+import { extractAccessToken, setAuthToken } from '../../utils/sessionAuth';
 import { fetchResidentProfile } from '../../utils/residentProfile';
 import { authLoginStyles as styles } from '../../styles/auth/login';
 
@@ -74,18 +74,30 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log('Login Success Data Matrix:', data);
-        
         const accessToken = extractAccessToken(data);
-        if (accessToken) {
-          await setResidentToken(accessToken);
+        if (!accessToken) {
+          triggerLoginError('Login succeeded but no access token was returned.');
+          return;
         }
 
-        const profile = await fetchResidentProfile();
-        if (profile?.role_name === 'responder') {
+        const loginUser = (data as { data?: { user?: { role_name?: string } } })?.data?.user;
+        let roleName = loginUser?.role_name;
+
+        await setAuthToken(accessToken);
+
+        if (!roleName) {
+          const profile = await fetchResidentProfile();
+          roleName = profile?.role_name;
+        }
+
+        if (roleName === 'admin') {
+          router.replace('/(admin)/dashboard');
+        } else if (roleName === 'responder') {
           router.replace('/(respondent)/dashboard');
-        } else {
+        } else if (roleName === 'resident') {
           router.replace('/(resident)/home');
+        } else {
+          triggerLoginError('This account is not authorized to sign in here.');
         }
       } else {
         triggerLoginError(data.message || 'Invalid email or password. Please try again.');
@@ -226,16 +238,6 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Back Button */}
-          <TouchableOpacity 
-            onPress={() => router.push('/')} 
-            style={styles.backButton}
-            activeOpacity={0.7}
-            disabled={isLoading}
-          >
-            <Text style={[styles.backButtonText, isLoading && { opacity: 0.5 }]}>← Back</Text>
-          </TouchableOpacity>
-
           {/* Header Section */}
           <View style={styles.headerContainer}>
             <Text style={styles.title}>Welcome Back</Text>
