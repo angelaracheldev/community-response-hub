@@ -1,4 +1,5 @@
 import { API_BASE } from './apiConfig';
+import { authFetch } from './authFetch';
 
 export type Notification = {
   notification_id: string;
@@ -35,7 +36,6 @@ function apiErrorMessage(
 }
 
 export async function fetchNotifications(
-  token: string,
   params?: { page?: number; limit?: number; is_read?: boolean }
 ): Promise<NotificationListResult> {
   const query = new URLSearchParams();
@@ -46,9 +46,7 @@ export async function fetchNotifications(
   const qs = query.toString();
   const url = `${API_BASE}/notifications${qs ? `?${qs}` : ''}`;
 
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await authFetch(url);
   const data = await response.json();
 
   if (!response.ok) {
@@ -63,10 +61,8 @@ export async function fetchNotifications(
   };
 }
 
-export async function fetchUnreadCount(token: string): Promise<number> {
-  const response = await fetch(`${API_BASE}/notifications/unread-count`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+export async function fetchUnreadCount(): Promise<number> {
+  const response = await authFetch(`${API_BASE}/notifications/unread-count`);
   const data = await response.json();
 
   if (!response.ok) {
@@ -76,13 +72,9 @@ export async function fetchUnreadCount(token: string): Promise<number> {
   return data.count ?? 0;
 }
 
-export async function openNotification(
-  token: string,
-  notificationId: string
-): Promise<OpenNotificationResult> {
-  const response = await fetch(`${API_BASE}/notifications/${notificationId}/open`, {
+export async function openNotification(notificationId: string): Promise<OpenNotificationResult> {
+  const response = await authFetch(`${API_BASE}/notifications/${notificationId}/open`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}` },
   });
   const data = await response.json();
 
@@ -96,10 +88,9 @@ export async function openNotification(
   };
 }
 
-export async function markAllNotificationsRead(token: string): Promise<number> {
-  const response = await fetch(`${API_BASE}/notifications/read-all`, {
+export async function markAllNotificationsRead(): Promise<number> {
+  const response = await authFetch(`${API_BASE}/notifications/read-all`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}` },
   });
   const data = await response.json();
 

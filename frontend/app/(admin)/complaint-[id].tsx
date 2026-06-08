@@ -2,82 +2,35 @@ import React, { useEffect, useState } from 'react';
 import { Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { getAuthToken } from '../../utils/sessionAuth';
-import { API_BASE } from '../../utils/apiConfig';
+import {
+  AdminComplaint,
+  ComplaintActivityLog,
+  fetchAdminComplaint,
+  fetchComplaintActivityLogs,
+} from '../../utils/adminApi';
 import { adminComplaintDetailStyles as styles } from '../../styles/app/adminComplaintDetail';
-
-
-type ActivityLog = {
-  activity_log_id: string;
-  action_type: string;
-  old_value?: string | null;
-  new_value?: string | null;
-  description?: string | null;
-  created_at: string;
-  first_name?: string | null;
-  last_name?: string | null;
-  email?: string | null;
-};
-
-type Complaint = {
-  complaint_id: string;
-  reference_id: string;
-  title: string;
-  status: string;
-  priority_level: string;
-  category_name: string;
-  location_text?: string | null;
-  description: string;
-  remarks?: string | null;
-  created_at: string;
-  updated_at: string;
-  assigned_to_first_name?: string | null;
-  assigned_to_last_name?: string | null;
-};
 
 export default function ComplaintDetailPage() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [complaint, setComplaint] = useState<Complaint | null>(null);
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [complaint, setComplaint] = useState<AdminComplaint | null>(null);
+  const [logs, setLogs] = useState<ComplaintActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    void (async () => {
-      const authToken = await getAuthToken();
-      if (!authToken) {
-        router.replace('/(auth)/login');
-        return;
-      }
-      setToken(authToken);
-    })();
-  }, [router]);
+    if (!id) return;
+    void loadComplaintAndLogs(id);
+  }, [id]);
 
-  useEffect(() => {
-    if (!token || !id) return;
-    loadComplaintAndLogs(token, id);
-  }, [token, id]);
-
-  const loadComplaintAndLogs = async (authToken: string, complaintId: string): Promise<void> => {
+  const loadComplaintAndLogs = async (complaintId: string): Promise<void> => {
     try {
       setLoading(true);
-      const headers = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken}`,
-      };
-
-      const complaintRes = await fetch(`${API_BASE}/complaints/${complaintId}`, { headers });
-      const complaintData = await complaintRes.json();
-      if (complaintRes.ok && complaintData?.data) {
-        setComplaint(complaintData.data);
-      }
-
-      const logsRes = await fetch(`${API_BASE}/activity-logs/complaint/${complaintId}`, { headers });
-      const logsData = await logsRes.json();
-      if (logsRes.ok && logsData?.logs) {
-        setLogs(logsData.logs);
-      }
+      const [complaintData, logsData] = await Promise.all([
+        fetchAdminComplaint(complaintId),
+        fetchComplaintActivityLogs(complaintId),
+      ]);
+      setComplaint(complaintData);
+      setLogs(logsData);
     } catch (err) {
       console.error('Failed to load complaint:', err);
     } finally {

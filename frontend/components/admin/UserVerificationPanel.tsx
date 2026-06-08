@@ -3,9 +3,7 @@ import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { AdminListCard } from './AdminListCard';
 import { AdminSegmentTabs } from './AdminSegmentTabs';
 import { UserDetailModal } from './UserDetailModal';
-import { API_BASE } from '../../utils/apiConfig';
-import { getAuthToken } from '../../utils/sessionAuth';
-
+import { fetchUsersByVerificationStatus } from '../../utils/adminApi';
 import { VerificationUser } from './userTypes';
 import { userVerificationPanelStyles as vStyles } from '../../styles/admin/userVerificationPanel';
 
@@ -35,44 +33,23 @@ function filterLabel(filter: VerificationFilter): string {
 }
 
 export function UserVerificationPanel({ compact, onUpdated, refreshTrigger = 0 }: Props) {
-  const [token, setToken] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<VerificationFilter>('pending');
   const [residents, setResidents] = useState<VerificationUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    void getAuthToken().then(setToken);
-  }, []);
-
-  const requestOptions = useCallback(
-    () => ({
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    }),
-    [token]
-  );
-
   const loadResidents = useCallback(async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(
-        `${API_BASE}/users?roleId=1&verificationStatus=${statusFilter}`,
-        requestOptions()
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to load verifications');
-      setResidents(data.users || []);
+      const users = await fetchUsersByVerificationStatus(statusFilter);
+      setResidents(users as VerificationUser[]);
     } catch (e) {
       console.error('Load verifications error:', e);
       setResidents([]);
     } finally {
       setLoading(false);
     }
-  }, [token, statusFilter, requestOptions]);
+  }, [statusFilter]);
 
   useEffect(() => {
     loadResidents();

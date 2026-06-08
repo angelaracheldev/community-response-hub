@@ -40,7 +40,7 @@ export function useNotifications(getToken: TokenGetter) {
     const token = await resolveToken(getTokenRef.current);
     if (!token) return;
     try {
-      const count = await fetchUnreadCount(token);
+      const count = await fetchUnreadCount();
       setUnreadCount(count);
     } catch {
       // Badge refresh is best-effort; list errors surface separately.
@@ -66,7 +66,7 @@ export function useNotifications(getToken: TokenGetter) {
       setError(null);
 
       try {
-        const result = await fetchNotifications(token, { page: targetPage, limit: PAGE_LIMIT });
+        const result = await fetchNotifications({ page: targetPage, limit: PAGE_LIMIT });
         setTotalCount(result.count);
         setPage(result.page);
         setNotifications((prev) =>
@@ -115,7 +115,7 @@ export function useNotifications(getToken: TokenGetter) {
 
       setOpeningId(notificationId);
       try {
-        await openNotificationApi(token, notificationId);
+        await openNotificationApi(notificationId);
         setNotifications((prev) =>
           prev.map((n) =>
             n.notification_id === notificationId ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
@@ -140,7 +140,7 @@ export function useNotifications(getToken: TokenGetter) {
 
     setMarkingAll(true);
     try {
-      await markAllNotificationsRead(token);
+      await markAllNotificationsRead();
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, is_read: true, read_at: n.read_at ?? new Date().toISOString() }))
       );

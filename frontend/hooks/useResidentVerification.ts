@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchResidentProfile } from '../utils/residentProfile';
+import { fetchCurrentUser } from '../utils/userProfile';
 
 export function useResidentVerification() {
   const [isVerified, setIsVerified] = useState<boolean | null>(null);
@@ -8,7 +8,7 @@ export function useResidentVerification() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const profile = await fetchResidentProfile();
+    const profile = await fetchCurrentUser();
     setIsVerified(profile?.is_verified ?? false);
     setFirstName(profile?.first_name ?? '');
     setLoading(false);

@@ -5,7 +5,7 @@ const authRepository = require('../repositories/auth.repository');
 const { sanitizeAuthUser } = require('../utils/sanitizeUser');
 
 const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
+const REFRESH_TOKEN_EXPIRY = '30d';
 
 function signAccessToken(userId) {
   return jwt.sign({ userId }, jwtSecret, { expiresIn: ACCESS_TOKEN_EXPIRY });

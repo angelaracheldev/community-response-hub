@@ -8,8 +8,7 @@ import { UserVerificationPanel } from '../../components/admin/UserVerificationPa
 import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
-import { API_BASE } from '../../utils/apiConfig';
-import { getAuthToken } from '../../utils/sessionAuth';
+import { fetchUsers } from '../../utils/adminApi';
 import { adminUsersStyles as styles } from '../../styles/admin/users';
 import { colors } from '../../styles/theme';
 
@@ -29,35 +28,21 @@ export default function AdminUsers() {
   const [total, setTotal] = useState(0);
   const [detailUserId, setDetailUserId] = useState<string | null>(null);
   const [verificationRefresh, setVerificationRefresh] = useState(0);
-  const [token, setToken] = useState<string | null>(null);
-
   const roleId = tab === 'residents' ? 1 : 2;
   const tabLabel = tab === 'residents' ? 'Residents' : 'Responders';
 
   useEffect(() => {
-    void getAuthToken().then(setToken);
-  }, []);
-
-  useEffect(() => {
-    if (!token) return;
     loadUsers(page, pageSize, search);
-  }, [tab, token]);
+  }, [tab]);
 
   const loadUsers = async (p = 1, ps = pageSize, query = '') => {
-    if (!token) return;
     setLoading(true);
     try {
-      const q = new URLSearchParams({ roleId: String(roleId), page: String(p), pageSize: String(ps) });
-      if (query) q.set('search', query);
-      const res = await fetch(`${API_BASE}/users?${q.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed');
-      setUsers(data.users || []);
-      setTotal(data.total || 0);
-      setPage(data.page || p);
-      setPageSize(data.pageSize || ps);
+      const data = await fetchUsers({ roleId, page: p, pageSize: ps, search: query || undefined });
+      setUsers(data.users);
+      setTotal(data.total);
+      setPage(data.page);
+      setPageSize(data.pageSize);
     } catch (e) {
       console.error('Load users error', e);
     } finally {

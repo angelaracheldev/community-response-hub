@@ -1,6 +1,6 @@
 import { API_BASE } from './apiConfig';
-import { fetchResidentProfile } from './residentProfile';
-import { getAuthToken as readAuthToken } from './sessionAuth';
+import { authFetch } from './authFetch';
+import { fetchCurrentUser } from './userProfile';
 import { buildComplaintMediaFormData } from './complaintUpload';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -49,12 +49,6 @@ function apiErrorMessage(
   return fallback;
 }
 
-async function requireAuthToken(): Promise<string> {
-  const token = await readAuthToken();
-  if (!token) throw new Error('You must be logged in to submit a complaint.');
-  return token;
-}
-
 export function formatComplaintStatus(status: string): string {
   const labels: Record<string, string> = {
     pending: 'Pending',
@@ -94,11 +88,9 @@ export function formatDateTime(iso: string): string {
 }
 
 export async function createComplaint(payload: CreateComplaintPayload): Promise<ComplaintRecord> {
-  const token = await requireAuthToken();
-  const response = await fetch(`${API_BASE}/complaints`, {
+  const response = await authFetch(`${API_BASE}/complaints`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
@@ -116,15 +108,12 @@ export async function uploadComplaintMedia(
   referenceId: string,
   assets: ImagePicker.ImagePickerAsset[]
 ): Promise<void> {
-  const token = await requireAuthToken();
-
   for (let i = 0; i < assets.length; i += MEDIA_BATCH_SIZE) {
     const batch = assets.slice(i, i + MEDIA_BATCH_SIZE);
     const formData = await buildComplaintMediaFormData(batch);
 
-    const response = await fetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}/media`, {
+    const response = await authFetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}/media`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
 
@@ -136,18 +125,13 @@ export async function uploadComplaintMedia(
 }
 
 export async function deleteFailedComplaint(referenceId: string): Promise<void> {
-  const token = await requireAuthToken();
-  await fetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}`, {
+  await authFetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
 export async function fetchMyComplaints(): Promise<ComplaintRecord[]> {
-  const token = await requireAuthToken();
-  const response = await fetch(`${API_BASE}/complaints/my`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await authFetch(`${API_BASE}/complaints/my`);
 
   const data = await response.json();
   if (!response.ok) {
@@ -158,8 +142,7 @@ export async function fetchMyComplaints(): Promise<ComplaintRecord[]> {
 }
 
 export async function fetchAssignedComplaints(): Promise<ComplaintRecord[]> {
-  const token = await requireAuthToken();
-  const profile = await fetchResidentProfile();
+  const profile = await fetchCurrentUser();
   if (!profile?.user_id) {
     throw new Error('Unable to load your profile.');
   }
@@ -168,9 +151,7 @@ export async function fetchAssignedComplaints(): Promise<ComplaintRecord[]> {
     assignedToUserId: profile.user_id,
     pageSize: '100',
   });
-  const response = await fetch(`${API_BASE}/complaints?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await authFetch(`${API_BASE}/complaints?${params.toString()}`);
 
   const data = await response.json();
   if (!response.ok) {
@@ -181,10 +162,7 @@ export async function fetchAssignedComplaints(): Promise<ComplaintRecord[]> {
 }
 
 export async function fetchComplaintByReferenceId(referenceId: string): Promise<ComplaintRecord> {
-  const token = await requireAuthToken();
-  const response = await fetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await authFetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}`);
 
   const data = await response.json();
   if (!response.ok) {
@@ -195,10 +173,7 @@ export async function fetchComplaintByReferenceId(referenceId: string): Promise<
 }
 
 export async function fetchComplaintMedia(referenceId: string): Promise<ComplaintMedia[]> {
-  const token = await requireAuthToken();
-  const response = await fetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}/media`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await authFetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}/media`);
 
   const data = await response.json();
   if (!response.ok) {
@@ -212,11 +187,9 @@ export async function cancelComplaint(
   referenceId: string,
   cancellationReason: string
 ): Promise<ComplaintRecord> {
-  const token = await requireAuthToken();
-  const response = await fetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}/cancel`, {
+  const response = await authFetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}/cancel`, {
     method: 'PATCH',
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ cancellationReason }),

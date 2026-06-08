@@ -8,9 +8,8 @@ import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
 import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
+import { fetchAdminComplaintDetails, fetchAdminComplaints } from '../../utils/adminApi';
 import { formatComplaintStatus } from '../../utils/complaintApi';
-import { ADMIN_API_BASE, API_BASE } from '../../utils/apiConfig';
-import { getAuthToken } from '../../utils/sessionAuth';
 import { adminComplaintsStyles as styles } from '../../styles/app/adminComplaints';
 
 const COMPLAINT_TABS = [
@@ -29,33 +28,22 @@ export default function AdminComplaints() {
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
-
   useEffect(() => {
-    void getAuthToken().then(setToken);
-  }, []);
-
-  useEffect(() => {
-    if (!token) return;
     loadComplaints(1, pageSize, tab);
-  }, [tab, token]);
+  }, [tab]);
 
   const loadComplaints = async (p = 1, ps = pageSize, currentTab: typeof tab = 'active') => {
-    if (!token) return;
     setLoading(true);
     try {
-      const q = new URLSearchParams({ page: String(p), pageSize: String(ps) });
-      if (currentTab === 'active') q.set('statusGroup', 'active');
-      if (currentTab === 'closed') q.set('statusGroup', 'closed');
-      if (currentTab === 'resolved') q.set('statusGroup', 'resolved');
-      const url = `${API_BASE}/complaints?${q.toString()}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed');
-      setComplaints(data.complaints || []);
-      setTotal(data.total || 0);
-      setPage(data.page || p);
-      setPageSize(data.pageSize || ps);
+      const data = await fetchAdminComplaints({
+        page: p,
+        pageSize: ps,
+        statusGroup: currentTab,
+      });
+      setComplaints(data.complaints);
+      setTotal(data.total);
+      setPage(data.page);
+      setPageSize(data.pageSize);
     } catch (e) {
       console.error('Load complaints error', e);
     } finally {
@@ -64,15 +52,10 @@ export default function AdminComplaints() {
   };
 
   const openDetails = async (complaintId: string) => {
-    if (!token) return;
     setModalOpen(true);
     setSelected(null);
     try {
-      const res = await fetch(`${ADMIN_API_BASE}/admin/complaints/${complaintId}/details`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed');
+      const data = await fetchAdminComplaintDetails(complaintId);
       setSelected(data);
     } catch (e) {
       console.error('Load complaint details error', e);
