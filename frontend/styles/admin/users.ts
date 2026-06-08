@@ -2,11 +2,12 @@ import { StyleSheet } from 'react-native';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
 export const adminUsersStyles = StyleSheet.create({
-  colCode: { flex: 1, minWidth: 96, maxWidth: 120 },
-  colName: { flex: 2, minWidth: 130 },
+  colName: { flex: 2, minWidth: 150 },
+  colRole: { width: 100 },
   colEmail: { flex: 3, minWidth: 180 },
-  colPhone: { flex: 2, minWidth: 120 },
-  colSmall: { width: 72, textAlign: 'center' },
+  colPhone: { width: 120 },
+  colStatus: { width: 80, textAlign: 'center' },
+  colDate: { width: 100, textAlign: 'center' },
   colActions: { width: 88, textAlign: 'center' },
   colActionsCell: { width: 88, alignItems: 'flex-end' },
   addUserBtn: {

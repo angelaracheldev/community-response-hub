@@ -163,3 +163,55 @@ export function validateComplaintForm(fields: {
 
   return errors;
 }
+
+export function validateAddUserForm(fields: {
+  fullName: string;
+  role: string;
+  email: string;
+  password: string;
+  phone: string;
+  address: string;
+  hasIdFile: boolean;
+}): FieldErrors {
+  const errors: FieldErrors = {};
+
+  if (!fields.fullName.trim()) {
+    errors.fullName = 'Full Name is required';
+  } else if (fields.fullName.trim().length < 3) {
+    errors.fullName = 'Full Name must be at least 3 characters';
+  }
+
+  if (!fields.role) {
+    errors.role = 'Role is required';
+  }
+
+  const email = fields.email.trim();
+  if (!email) {
+    errors.email = 'Email Address is required';
+  } else if (!isValidEmail(email)) {
+    errors.email = 'Enter a valid email address';
+  }
+
+  if (!fields.password) {
+    errors.password = 'Password is required';
+  } else if (fields.password.length < 8) {
+    errors.password = 'Password must be at least 8 characters';
+  }
+
+  const phone = fields.phone.trim();
+  if (!phone) {
+    errors.phone = 'Phone Number is required';
+  } else if (!PHONE_RE.test(phone.replace(/\s/g, ''))) {
+    errors.phone = 'Use a valid PH mobile number (e.g. 09171234567)';
+  }
+
+  if (!fields.address.trim()) {
+    errors.address = 'Address is required';
+  }
+
+  if (!fields.hasIdFile) {
+    errors.idFile = 'Valid ID / Proof of Address is required';
+  }
+
+  return errors;
+}
