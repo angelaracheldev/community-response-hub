@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { disconnectSocket } from './useSocket';
 import { APP_PORTALS, AppPortal, AppPortalConfig } from '../utils/appPortal.config';
 import { fetchSessionDisplayName } from '../utils/sessionProfile';
 
@@ -33,6 +34,7 @@ export function useAppSession(portal: AppPortal) {
   }, [portal, router]);
 
   const logout = useCallback(() => {
+    disconnectSocket();
     void Promise.resolve(config.clearToken()).then(() => {
       router.replace(config.loginRoute);
     });

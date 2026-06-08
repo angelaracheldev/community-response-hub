@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { API_BASE } from '../../utils/apiConfig';
+import { connectSocket } from '../../hooks/useSocket';
 import { extractAccessToken, setAuthToken } from '../../utils/sessionAuth';
 import { fetchResidentProfile } from '../../utils/residentProfile';
 import { authLoginStyles as styles } from '../../styles/auth/login';
@@ -84,6 +85,7 @@ export default function LoginScreen() {
         let roleName = loginUser?.role_name;
 
         await setAuthToken(accessToken);
+        await connectSocket();
 
         if (!roleName) {
           const profile = await fetchResidentProfile();
