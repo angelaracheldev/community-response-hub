@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import type { Socket } from 'socket.io-client';
+import { onSocketAvailable } from './useSocket';
 import {
   fetchNotifications,
   fetchUnreadCount,
@@ -11,7 +13,7 @@ import {
 type TokenGetter = () => string | null | Promise<string | null>;
 
 const PAGE_LIMIT = 20;
-const POLL_INTERVAL_MS = 60_000;
+const POLL_INTERVAL_MS = 300_000;
 
 async function resolveToken(getToken: TokenGetter): Promise<string | null> {
   const token = getToken();
@@ -161,6 +163,36 @@ export function useNotifications(getToken: TokenGetter) {
     const interval = setInterval(refreshUnreadCount, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [refreshUnreadCount]);
+
+  useEffect(() => {
+    const onNew = (notification: Notification) => {
+      setNotifications((prev) => {
+        if (prev.some((item) => item.notification_id === notification.notification_id)) {
+          return prev;
+        }
+        return [notification, ...prev];
+      });
+      if (!notification.is_read) {
+        setUnreadCount((count) => count + 1);
+      }
+      setTotalCount((count) => count + 1);
+    };
+
+    let activeSocket: Socket | null = null;
+
+    const unsubscribe = onSocketAvailable((socket) => {
+      if (activeSocket) {
+        activeSocket.off('notification:new', onNew);
+      }
+      activeSocket = socket;
+      socket.on('notification:new', onNew);
+    });
+
+    return () => {
+      unsubscribe();
+      activeSocket?.off('notification:new', onNew);
+    };
+  }, []);
 
   const hasMore = notifications.length < totalCount;
 

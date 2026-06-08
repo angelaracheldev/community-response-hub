@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { API_BASE } from '../../utils/apiConfig';
+import { connectSocket } from '../../hooks/useSocket';
 import { extractAccessToken, setAuthToken } from '../../utils/sessionAuth';
 import { buildVerificationFormData } from '../../utils/verificationUpload';
 import { authRegisterStyles as styles } from '../../styles/auth/register';
@@ -166,6 +167,7 @@ export default function RegisterScreen() {
       const accessToken = extractAccessToken(registerData);
       if (accessToken) {
         await setAuthToken(accessToken);
+        await connectSocket();
 
         try {
           const verificationFile = {

@@ -1,5 +1,6 @@
 const { NOTIFICATION_TYPES, ENTITY_TYPES } = require('../constants/notificationTypes');
 const notificationsRepository = require('../repositories/notifications.repository');
+const { getIo } = require('../socket/emitter');
 
 function parseBooleanQuery(value) {
   if (value === undefined || value === null || value === '') return undefined;
@@ -31,7 +32,14 @@ async function createNotification({ userId, type, entityType, entityId, message 
     message,
   });
 
-  return result.rows[0];
+  const notification = result.rows[0];
+
+  const io = getIo();
+  if (io) {
+    io.to(`user:${userId}`).emit('notification:new', notification);
+  }
+
+  return notification;
 }
 
 async function getNotifications(userId, query) {
