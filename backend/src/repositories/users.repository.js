@@ -1,5 +1,32 @@
 const db = require('../config/database');
 
+async function findUserIdByEmail(email) {
+  return db.query('SELECT user_id FROM users WHERE email = $1', [email.toLowerCase()]);
+}
+
+async function findRoleById(roleId) {
+  return db.query('SELECT role_id, role_name FROM roles WHERE role_id = $1', [roleId]);
+}
+
+async function insertUser({
+  roleId,
+  firstName,
+  lastName,
+  email,
+  passwordHash,
+  salt,
+  phoneNumber,
+  address,
+  isVerified,
+}) {
+  return db.query(
+    `INSERT INTO users (role_id, first_name, last_name, email, password_hash, salt, phone_number, address, is_verified, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE)
+     RETURNING user_id, user_code, first_name, last_name, email, phone_number, address, role_id, is_verified, is_active, created_at`,
+    [roleId, firstName, lastName, email.toLowerCase(), passwordHash, salt, phoneNumber || null, address || null, isVerified]
+  );
+}
+
 async function listUsers({ filters, params }) {
   const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
   return db.query(
@@ -38,6 +65,26 @@ async function findUserIdOnly(id) {
   return db.query('SELECT user_id FROM users WHERE user_id = $1', [id]);
 }
 
+async function insertUser({
+  roleId,
+  firstName,
+  lastName,
+  email,
+  passwordHash,
+  salt,
+  phoneNumber,
+  address,
+  isVerified = false,
+  isActive = true,
+}) {
+  return db.query(
+    `INSERT INTO users (role_id, first_name, last_name, email, password_hash, salt, phone_number, address, is_verified, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     RETURNING user_id, user_code, first_name, last_name, email, phone_number, address, role_id, is_verified, is_active, created_at`,
+    [roleId, firstName, lastName, email.toLowerCase(), passwordHash, salt, phoneNumber, address, isVerified, isActive]
+  );
+}
+
 async function findActiveUsersByRoleName(roleName) {
   return db.query(
     `SELECT u.user_id
@@ -49,10 +96,14 @@ async function findActiveUsersByRoleName(roleName) {
 }
 
 module.exports = {
+  findUserIdByEmail,
+  findRoleById,
+  insertUser,
   listUsers,
   findUserById,
   updateUser,
   setUserActive,
   findUserIdOnly,
   findActiveUsersByRoleName,
+  insertUser,
 };

@@ -257,3 +257,26 @@ export async function fetchActivityLogs(params: {
     page: data.page ?? params.page,
   };
 }
+
+export async function createUser(payload: {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string | null;
+  role_id: number;
+  password?: string;
+}): Promise<AdminUser> {
+  const response = await authFetch(`${API_BASE}/users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await parseJson<{ user?: AdminUser }>(response, 'Failed to create user');
+  if (!data.user) {
+    throw new Error('Create user response did not include a user');
+  }
+  return data.user;
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Platform, Text, TouchableOpacity, useWindowDimensions, View, ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { QuickAction } from '../../utils/adminDashboard.mock';
@@ -24,18 +24,18 @@ export function FloatingQuickActionsBar({ actions }: Props) {
         {
           paddingBottom: Math.max(insets.bottom, isFloated ? 16 : 8),
           paddingHorizontal: isFloated ? 16 : 0,
+          pointerEvents: 'box-none', 
         },
         Platform.OS === 'web' && isFloated
           ? ({
-              position: 'fixed',
+              position: 'fixed' as any, // 👈 FIX: Cast 'fixed' as any to bypass native ViewStyle limits
               bottom: 0,
               left: 0,
               right: 0,
               zIndex: 100,
-            } as object)
+            } as ViewStyle)
           : styles.wrapperAbsolute,
       ]}
-      pointerEvents="box-none"
     >
       <View
         style={[
@@ -45,9 +45,9 @@ export function FloatingQuickActionsBar({ actions }: Props) {
             width: '100%',
           },
           Platform.OS === 'web' && isFloated
-            ? ({
+            ? {
                 alignSelf: 'center',
-              } as object)
+              }
             : null,
         ]}
       >
@@ -77,5 +77,3 @@ export function getFloatingQuickActionsPadding(screenWidth: number, bottomInset 
   const isFloated = screenWidth >= 450;
   return BAR_HEIGHT + Math.max(bottomInset, isFloated ? 16 : 8) + 16;
 }
-
-

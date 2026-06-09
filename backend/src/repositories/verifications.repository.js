@@ -18,6 +18,14 @@ async function insertVerification({ userId, verificationType, documentUrl, addre
   );
 }
 
+async function insertApprovedVerification({ userId, verificationType, documentUrl, address, reviewedBy }) {
+  return db.query(
+    `INSERT INTO resident_verifications (user_id, verification_type, document_url, address, status, reviewed_by, reviewed_at)
+     VALUES ($1, $2, $3, $4, 'approved', $5, CURRENT_TIMESTAMP)`,
+    [userId, verificationType, documentUrl, address, reviewedBy]
+  );
+}
+
 async function reviewVerification({ verificationStatus, reviewedBy, userId, remarks }) {
   return db.query(
     `UPDATE resident_verifications SET status = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP, remarks = $4 WHERE user_id = $3`,
