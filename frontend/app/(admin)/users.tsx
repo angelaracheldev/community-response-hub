@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { UserCreateModal } from '../../components/admin/UserCreateModal';
+import { ActivityIndicator, FlatList, Text, TextInput, TouchableOpacity, View, Modal } from 'react-native';
 import { AdminListCard } from '../../components/admin/AdminListCard';
 import { AdminPagination } from '../../components/admin/AdminPagination';
 import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
 import { UserDetailModal } from '../../components/admin/UserDetailModal';
 import { UserVerificationPanel } from '../../components/admin/UserVerificationPanel';
-import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { fetchUsers } from '../../utils/adminApi';
+import { adminListStyles as s } from '../../styles/admin/list';
 import { adminUsersStyles as styles } from '../../styles/admin/users';
 import { colors } from '../../styles/theme';
 
@@ -27,6 +28,7 @@ export default function AdminUsers() {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [detailUserId, setDetailUserId] = useState<string | null>(null);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false); // Controls creation modal visibility
   const [verificationRefresh, setVerificationRefresh] = useState(0);
   const roleId = tab === 'residents' ? 1 : 2;
   const tabLabel = tab === 'residents' ? 'Residents' : 'Responders';
@@ -150,7 +152,8 @@ export default function AdminUsers() {
               <TouchableOpacity style={[s.textBtn, s.textBtnOutline]} onPress={() => loadUsers(1, pageSize, search)}>
                 <Text style={[s.textBtnLabel, s.textBtnLabelOutline]}>Refresh</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.textBtn}>
+              {/* Mobile Add User Button */}
+              <TouchableOpacity style={s.textBtn} onPress={() => setIsAddModalVisible(true)}>
                 <Text style={s.textBtnLabel}>+ Add User</Text>
               </TouchableOpacity>
             </View>
@@ -162,7 +165,8 @@ export default function AdminUsers() {
               <TouchableOpacity style={s.linkBtn} onPress={() => loadUsers(1, pageSize, search)}>
                 <Text style={s.linkBtnText}>Refresh</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.addUserBtn}>
+              {/* Desktop Add User Button */}
+              <TouchableOpacity style={styles.addUserBtn} onPress={() => setIsAddModalVisible(true)}>
                 <Text style={styles.addUserBtnText}>+ Add User</Text>
               </TouchableOpacity>
             </>
@@ -226,6 +230,7 @@ export default function AdminUsers() {
         />
       ) : null}
 
+      {/* Existing View Details Modal */}
       <UserDetailModal
         visible={detailUserId !== null}
         userId={detailUserId}
@@ -233,8 +238,17 @@ export default function AdminUsers() {
         onUpdated={handleUserUpdated}
         showVerificationActions={tab === 'residents'}
       />
+
+      {/* Actual working Creation Modal */}
+      <UserCreateModal
+        visible={isAddModalVisible}
+        onClose={() => setIsAddModalVisible(false)}
+        onSuccess={() => {
+          setIsAddModalVisible(false);
+          loadUsers(1, pageSize, ''); // Refreshes the table back on page 1
+        }}
+        defaultRoleId={roleId}
+      />
     </PageShell>
   );
 }
-
-

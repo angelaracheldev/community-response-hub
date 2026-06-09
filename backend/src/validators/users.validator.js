@@ -46,7 +46,21 @@ const reviewVerificationValidation = [
     .withMessage('remarks must be a string'),
 ];
 
+const createUserValidation = [
+  body('first_name').trim().notEmpty().withMessage('First name is required'),
+  body('last_name').trim().notEmpty().withMessage('Last name is required'),
+  body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
+  body('phone_number').optional({ nullable: true, checkFalsy: true }).isString().withMessage('Phone number must be a string'),
+  body('address').optional({ nullable: true, checkFalsy: true }).isString().withMessage('Address must be a string'),
+  body('role_id').isInt({ min: 1 }).withMessage('Valid role_id is required'),
+  body('password')
+    .optional({ nullable: true, checkFalsy: true })
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters'),
+];
+
 module.exports = {
+  createUserValidation,
   submitVerificationValidation,
   reviewVerificationValidation,
 };

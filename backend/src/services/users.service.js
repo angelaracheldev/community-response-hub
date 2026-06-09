@@ -1,5 +1,51 @@
+const bcrypt = require('bcrypt');
 const usersRepository = require('../repositories/users.repository');
 const verificationsRepository = require('../repositories/verifications.repository');
+
+const DEFAULT_ADMIN_CREATED_PASSWORD = 'TemporaryWelcome2026!';
+
+async function createUser(body) {
+  const roleId = Number(body.role_id);
+  const role = await usersRepository.findRoleById(roleId);
+  if (!role.rowCount) {
+    return { error: { status: 400, body: { status: 'error', message: 'Invalid role_id' } } };
+  }
+
+  const roleName = role.rows[0].role_name;
+  if (!['resident', 'responder'].includes(roleName)) {
+    return { error: { status: 400, body: { status: 'error', message: 'Only residents and responders can be created here' } } };
+  }
+
+  const existing = await usersRepository.findUserIdByEmail(body.email);
+  if (existing.rowCount) {
+    return { error: { status: 400, body: { status: 'error', message: 'Email address is already registered.' } } };
+  }
+
+  const salt = await bcrypt.genSalt(12);
+  const passwordHash = await bcrypt.hash(body.password || DEFAULT_ADMIN_CREATED_PASSWORD, salt);
+  const result = await usersRepository.insertUser({
+    roleId,
+    firstName: body.first_name,
+    lastName: body.last_name,
+    email: body.email,
+    passwordHash,
+    salt,
+    phoneNumber: body.phone_number,
+    address: body.address,
+    isVerified: true,
+  });
+
+  return {
+    status: 201,
+    body: {
+      status: 'ok',
+      message: 'User created successfully',
+      user: result.rows[0],
+      temporaryPassword: body.password ? undefined : DEFAULT_ADMIN_CREATED_PASSWORD,
+      timestamp: new Date().toISOString(),
+    },
+  };
+}
 
 async function listUsers(query) {
   const filters = [];
@@ -138,6 +184,7 @@ async function deactivateUser(id) {
 }
 
 module.exports = {
+  createUser,
   listUsers,
   getUserById,
   updateUser,
