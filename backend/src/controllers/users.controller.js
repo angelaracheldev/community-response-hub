@@ -2,6 +2,24 @@ const { validationResult } = require('express-validator');
 const usersService = require('../services/users.service');
 const verificationMediaService = require('../services/verificationMedia.service');
 
+async function createUser(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', errors: errors.array() });
+  }
+
+  try {
+    const result = await usersService.createUser(req.body);
+    if (result.error) {
+      return res.status(result.error.status).json(result.error.body);
+    }
+    return res.status(result.status).json(result.body);
+  } catch (error) {
+    console.error('Failed to create user:', error.message);
+    return res.status(500).json({ status: 'error', message: 'Unable to create user', error: error.message });
+  }
+}
+
 async function listUsers(req, res) {
   try {
     const result = await usersService.listUsers(req.query);
@@ -118,7 +136,36 @@ async function deactivateUser(req, res) {
   }
 }
 
+async function createUser(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', errors: errors.array() });
+  }
+
+  try {
+    let documentUrl = null;
+    if (req.file) {
+      documentUrl = await verificationMediaService.uploadVerificationDocument(req.file);
+    }
+
+    const result = await usersService.createUser(req.user, {
+      ...req.body,
+      documentUrl,
+    });
+
+    if (result.error) {
+      return res.status(result.error.status).json(result.error.body);
+    }
+
+    return res.status(result.status || 201).json(result.body);
+  } catch (error) {
+    console.error('Failed to create user:', error.message);
+    return res.status(500).json({ status: 'error', message: 'Unable to create user', error: error.message });
+  }
+}
+
 module.exports = {
+  createUser,
   listUsers,
   getUserById,
   getCurrentUser,
@@ -127,4 +174,5 @@ module.exports = {
   reviewVerification,
   activateUser,
   deactivateUser,
+  createUser,
 };

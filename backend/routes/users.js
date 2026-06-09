@@ -385,4 +385,71 @@ router.patch('/:id/deactivate', authMiddleware, requireRole('admin'), async (req
   }
 });
 
+const bcrypt = require('bcrypt'); // Make sure bcrypt is imported at the top or here
+
+// POST /api/users - Create a new user (Admin Only)
+router.post('/', authMiddleware, requireRole('admin'), [
+  body('first_name').notEmpty().withMessage('First name is required'),
+  body('last_name').notEmpty().withMessage('Last name is required'),
+  body('email').isEmail().withMessage('A valid email is required'),
+  body('role_id').isInt().withMessage('Valid Role ID is required'),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', errors: errors.array() });
+  }
+
+  try {
+    const { first_name, last_name, email, phone_number, role_id, address } = req.body;
+
+    // 1. Check if email already taken
+    const existingUser = await db.query('SELECT user_id FROM users WHERE email = $1', [email.toLowerCase()]);
+    if (existingUser.rowCount > 0) {
+      return res.status(400).json({ status: 'error', message: 'Email address is already registered.' });
+    }
+
+    // 2. Satisfy the NOT NULL database requirement by creating a secure default password
+    const defaultPassword = 'TemporaryWelcome2026!'; 
+    const salt = await bcrypt.genSalt(12);
+    const password_hash = await bcrypt.hash(defaultPassword, salt);
+
+    // 3. Save to database (The trg_generate_user_code trigger will handle the user_code calculation)
+    const insertQuery = `
+      INSERT INTO users (role_id, first_name, last_name, email, password_hash, salt, phone_number, address, is_verified, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, TRUE)
+      RETURNING user_id, user_code, first_name, last_name, email, role_id, is_active, created_at
+    `;
+
+    const result = await db.query(insertQuery, [
+      role_id,
+      first_name,
+      last_name,
+      email.toLowerCase(),
+      password_hash,
+      salt,
+      phone_number || null,
+      address || null
+    ]);
+
+    // 4. Send back the clean object using your sanitize filter
+    res.status(201).json({
+      status: 'ok',
+      message: 'User created successfully',
+      user: sanitizeUser(result.rows[0]),
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    // 1. Check your backend terminal window! This prints the complete crash report details there.
+    console.error('SERVER CRASH LOG:', error); 
+
+    res.status(500).json({ 
+      status: 'error', 
+      // CHANGE THIS LINE: Pass error.message directly so your frontend can read it
+      message: error.message || 'Failed to create user', 
+      detail: error.detail
+    });
+  }
+});
+
 module.exports = router;
