@@ -1,4 +1,4 @@
-const dbRepository = require('../repositories/db.repository');
+const dbRepository = require('../repositories/stats.repository');
 const { nodeEnv } = require('../config');
 
 async function healthCheck() {

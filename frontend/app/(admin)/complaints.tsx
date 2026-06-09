@@ -52,6 +52,7 @@ export default function AdminComplaints() {
   };
 
   const openDetails = async (complaintId: string) => {
+    console.log('Opening complaint:', complaintId);
     setModalOpen(true);
     setSelected(null);
     try {

@@ -10,13 +10,34 @@ function apiErrorMessage(
   return fallback;
 }
 
+// parseJson from github or main latest gitpull
+// async function parseJson<T>(response: Response, fallback: string): Promise<T> {
+//   const data = await response.json();
+//   if (!response.ok) {
+//     throw new Error(apiErrorMessage(data, fallback));
+//   }
+//   return data as T;
+// }
+
+
+// parseJson latest to address the case where response is not json
 async function parseJson<T>(response: Response, fallback: string): Promise<T> {
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(apiErrorMessage(data, fallback));
+  const text = await response.text();
+
+  try {
+    const data = JSON.parse(text);
+
+    if (!response.ok) {
+      throw new Error(apiErrorMessage(data, fallback));
+    }
+
+    return data as T;
+  } catch (err) {
+    console.error('Invalid JSON response:', text);
+    throw new Error(fallback);
   }
-  return data as T;
 }
+
 
 export type PaginatedComplaints = {
   complaints: Record<string, unknown>[];
@@ -114,13 +135,25 @@ export async function fetchAdminComplaints(params: {
   };
 }
 
-export async function fetchAdminComplaintDetails(
-  complaintId: string
-): Promise<AdminComplaintDetail> {
+// export async function fetchAdminComplaintDetails(
+//   complaintId: string
+// ): Promise<AdminComplaintDetail> {
+//   const response = await authFetch(
+//     // `${ADMIN_API_BASE}/admin/complaints/${complaintId}/details`
+//     // `${API_BASE}/complaints/${complaintId}/details`
+//     `${API_BASE}/complaints/${encodeURIComponent(complaintId)}/details`
+//   );
+//   return parseJson<AdminComplaintDetail>(response, 'Failed to load complaint details');
+// }
+
+export async function fetchAdminComplaintDetails(complaintId: string) {
   const response = await authFetch(
-    `${ADMIN_API_BASE}/admin/complaints/${complaintId}/details`
+    // `${API_BASE}/complaints/${encodeURIComponent(complaintId)}/details`
+    // `${API_BASE}/complaints/${complaintId}/details`
+    `${API_BASE}/admin/complaints/${complaintId}/details`
   );
-  return parseJson<AdminComplaintDetail>(response, 'Failed to load complaint details');
+
+  return parseJson(response, 'Failed to load complaint details');
 }
 
 export async function fetchAdminComplaint(complaintId: string): Promise<AdminComplaint | null> {
