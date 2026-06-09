@@ -12,15 +12,15 @@ import { fetchUsers } from '../../utils/adminApi';
 import { adminListStyles as s } from '../../styles/admin/list';
 import { adminUsersStyles as styles } from '../../styles/admin/users';
 import { colors } from '../../styles/theme';
-
 const USER_TABS = [
   { id: 'residents', label: 'Residents' },
   { id: 'responders', label: 'Responders' },
+  { id: 'staff', label: 'Staff' },
 ];
 
 export default function AdminUsers() {
   const layout = useAppLayout();
-  const [tab, setTab] = useState<'residents' | 'responders'>('residents');
+  const [tab, setTab] = useState<'residents' | 'responders' | 'staff'>('residents');
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -28,10 +28,19 @@ export default function AdminUsers() {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [detailUserId, setDetailUserId] = useState<string | null>(null);
+<<<<<<< HEAD
   const [isAddModalVisible, setIsAddModalVisible] = useState(false); // Controls creation modal visibility
   const [verificationRefresh, setVerificationRefresh] = useState(0);
   const roleId = tab === 'residents' ? 1 : 2;
   const tabLabel = tab === 'residents' ? 'Residents' : 'Responders';
+=======
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [verificationRefresh, setVerificationRefresh] = useState(0);
+  const [token, setToken] = useState<string | null>(null);
+
+  const roleId = tab === 'residents' ? 1 : tab === 'responders' ? 2 : 3;
+  const tabLabel = tab === 'residents' ? 'Residents' : tab === 'responders' ? 'Responders' : 'Staff';
+>>>>>>> 629ca85a8b251531ded84ed9d72ccae6c6c4b066
 
   useEffect(() => {
     loadUsers(page, pageSize, search);
@@ -69,16 +78,21 @@ export default function AdminUsers() {
   );
 
   const renderUserItem = ({ item, index }: { item: any; index: number }) => {
+    const fullName = `${item.first_name} ${item.last_name}`;
+    const dateCreated = new Date(item.created_at).toLocaleDateString();
+    const status = item.is_active ? 'Active' : 'Inactive';
+
     if (layout.useCompactList) {
       return (
         <AdminListCard
-          title={`${item.first_name} ${item.last_name}`}
+          title={fullName}
           subtitle={item.user_code}
           fields={[
+            { label: 'Role', value: item.role_name },
             { label: 'Email', value: item.email },
             { label: 'Phone', value: item.phone_number || '-' },
-            { label: 'Verified', value: item.is_verified ? 'Yes' : 'No' },
-            { label: 'Active', value: item.is_active ? 'Yes' : 'No' },
+            { label: 'Status', value: status },
+            { label: 'Created', value: dateCreated },
           ]}
           actions={renderUserActions(item)}
         />
@@ -89,11 +103,11 @@ export default function AdminUsers() {
 
     return (
       <View style={[s.tableRow, isLast && s.tableRowLast]}>
-        <Text style={[s.col, styles.colCode]} numberOfLines={1}>
-          {item.user_code}
-        </Text>
         <Text style={[s.col, styles.colName]} numberOfLines={1}>
-          {item.first_name} {item.last_name}
+          {fullName}
+        </Text>
+        <Text style={[s.col, styles.colRole]} numberOfLines={1}>
+          {item.role_name}
         </Text>
         <Text style={[s.col, styles.colEmail]} numberOfLines={1}>
           {item.email}
@@ -101,8 +115,8 @@ export default function AdminUsers() {
         <Text style={[s.col, styles.colPhone]} numberOfLines={1}>
           {item.phone_number || '-'}
         </Text>
-        <Text style={[s.col, styles.colSmall]}>{item.is_verified ? 'Yes' : 'No'}</Text>
-        <Text style={[s.col, styles.colSmall]}>{item.is_active ? 'Yes' : 'No'}</Text>
+        <Text style={[s.col, styles.colStatus]}>{status}</Text>
+        <Text style={[s.col, styles.colDate]}>{dateCreated}</Text>
         <View style={[s.col, styles.colActionsCell]}>{renderUserActions(item)}</View>
       </View>
     );
@@ -110,12 +124,12 @@ export default function AdminUsers() {
 
   const desktopTableHeader = (
     <View style={s.tableHeader}>
-      <Text style={[s.col, s.colHeader, styles.colCode]}>User Code</Text>
       <Text style={[s.col, s.colHeader, styles.colName]}>Full Name</Text>
+      <Text style={[s.col, s.colHeader, styles.colRole]}>Role</Text>
       <Text style={[s.col, s.colHeader, styles.colEmail]}>Email</Text>
       <Text style={[s.col, s.colHeader, styles.colPhone]}>Phone</Text>
-      <Text style={[s.col, s.colHeader, styles.colSmall]}>Verified</Text>
-      <Text style={[s.col, s.colHeader, styles.colSmall]}>Active</Text>
+      <Text style={[s.col, s.colHeader, styles.colStatus]}>Status</Text>
+      <Text style={[s.col, s.colHeader, styles.colDate]}>Date Created</Text>
       <Text style={[s.col, s.colHeader, styles.colActions]}>Actions</Text>
     </View>
   );
@@ -152,8 +166,12 @@ export default function AdminUsers() {
               <TouchableOpacity style={[s.textBtn, s.textBtnOutline]} onPress={() => loadUsers(1, pageSize, search)}>
                 <Text style={[s.textBtnLabel, s.textBtnLabelOutline]}>Refresh</Text>
               </TouchableOpacity>
+<<<<<<< HEAD
               {/* Mobile Add User Button */}
               <TouchableOpacity style={s.textBtn} onPress={() => setIsAddModalVisible(true)}>
+=======
+              <TouchableOpacity style={s.textBtn} onPress={() => setShowAddModal(true)}>
+>>>>>>> 629ca85a8b251531ded84ed9d72ccae6c6c4b066
                 <Text style={s.textBtnLabel}>+ Add User</Text>
               </TouchableOpacity>
             </View>
@@ -165,8 +183,12 @@ export default function AdminUsers() {
               <TouchableOpacity style={s.linkBtn} onPress={() => loadUsers(1, pageSize, search)}>
                 <Text style={s.linkBtnText}>Refresh</Text>
               </TouchableOpacity>
+<<<<<<< HEAD
               {/* Desktop Add User Button */}
               <TouchableOpacity style={styles.addUserBtn} onPress={() => setIsAddModalVisible(true)}>
+=======
+              <TouchableOpacity style={styles.addUserBtn} onPress={() => setShowAddModal(true)}>
+>>>>>>> 629ca85a8b251531ded84ed9d72ccae6c6c4b066
                 <Text style={styles.addUserBtnText}>+ Add User</Text>
               </TouchableOpacity>
             </>
@@ -239,6 +261,7 @@ export default function AdminUsers() {
         showVerificationActions={tab === 'residents'}
       />
 
+<<<<<<< HEAD
       {/* Actual working Creation Modal */}
       <UserCreateModal
         visible={isAddModalVisible}
@@ -248,6 +271,12 @@ export default function AdminUsers() {
           loadUsers(1, pageSize, ''); // Refreshes the table back on page 1
         }}
         defaultRoleId={roleId}
+=======
+      <AddUserModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={() => loadUsers(1, pageSize, search)}
+>>>>>>> 629ca85a8b251531ded84ed9d72ccae6c6c4b066
       />
     </PageShell>
   );

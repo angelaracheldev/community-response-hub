@@ -65,6 +65,26 @@ async function findUserIdOnly(id) {
   return db.query('SELECT user_id FROM users WHERE user_id = $1', [id]);
 }
 
+async function insertUser({
+  roleId,
+  firstName,
+  lastName,
+  email,
+  passwordHash,
+  salt,
+  phoneNumber,
+  address,
+  isVerified = false,
+  isActive = true,
+}) {
+  return db.query(
+    `INSERT INTO users (role_id, first_name, last_name, email, password_hash, salt, phone_number, address, is_verified, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     RETURNING user_id, user_code, first_name, last_name, email, phone_number, address, role_id, is_verified, is_active, created_at`,
+    [roleId, firstName, lastName, email.toLowerCase(), passwordHash, salt, phoneNumber, address, isVerified, isActive]
+  );
+}
+
 async function findActiveUsersByRoleName(roleName) {
   return db.query(
     `SELECT u.user_id
@@ -85,4 +105,5 @@ module.exports = {
   setUserActive,
   findUserIdOnly,
   findActiveUsersByRoleName,
+  insertUser,
 };

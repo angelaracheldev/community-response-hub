@@ -183,6 +183,65 @@ async function deactivateUser(id) {
   };
 }
 
+async function createUser(adminUser, userData) {
+  const { fullName, role, email, password, phoneNumber, address, documentUrl } = userData;
+
+  const existing = await authRepository.findUserIdByEmail(email);
+  if (existing.rowCount) {
+    return { error: { status: 400, body: { status: 'error', message: 'Email already registered' } } };
+  }
+
+  const roleResult = await authRepository.findRoleIdByName(role);
+  if (!roleResult.rowCount) {
+    return { error: { status: 400, body: { status: 'error', message: 'Invalid role' } } };
+  }
+  const roleId = roleResult.rows[0].role_id;
+
+  const salt = await bcrypt.genSalt(12);
+  const passwordHash = await bcrypt.hash(password, salt);
+
+  const nameParts = fullName.trim().split(' ');
+  const firstName = nameParts[0];
+  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
+
+  const isResident = role === 'resident';
+
+  const userResult = await usersRepository.insertUser({
+    roleId,
+    firstName,
+    lastName,
+    email,
+    passwordHash,
+    salt,
+    phoneNumber,
+    address,
+    isVerified: isResident, // Residents created by admin are automatically verified
+    isActive: true,
+  });
+
+  const newUser = userResult.rows[0];
+
+  if (isResident && documentUrl) {
+    await verificationsRepository.insertApprovedVerification({
+      userId: newUser.user_id,
+      verificationType: 'Admin Manual Creation',
+      documentUrl,
+      address,
+      reviewedBy: adminUser.user_id,
+    });
+  }
+
+  return {
+    status: 201,
+    body: {
+      status: 'ok',
+      message: 'User account created successfully. Please provide the login credentials to the user and advise them to change their password immediately after logging in.',
+      user: newUser,
+      timestamp: new Date().toISOString(),
+    },
+  };
+}
+
 module.exports = {
   createUser,
   listUsers,
@@ -192,4 +251,5 @@ module.exports = {
   reviewVerification,
   activateUser,
   deactivateUser,
+  createUser,
 };
