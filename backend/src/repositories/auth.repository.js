@@ -27,9 +27,20 @@ async function findUserWithRoleByEmail(email) {
   );
 }
 
+async function findUserWithRoleById(userId) {
+  return db.query(
+    `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.profile_image_url, u.role_id, r.role_name, u.is_verified, u.is_active
+     FROM users u
+     LEFT JOIN roles r ON u.role_id = r.role_id
+     WHERE u.user_id = $1`,
+    [userId]
+  );
+}
+
 module.exports = {
   findUserIdByEmail,
   findRoleIdByName,
   insertUser,
   findUserWithRoleByEmail,
+  findUserWithRoleById,
 };

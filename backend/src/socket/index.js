@@ -1,14 +1,7 @@
 const jwt = require('jsonwebtoken');
-const db = require('../config/database');
 const { jwtSecret } = require('../config');
+const authRepository = require('../repositories/auth.repository');
 const { setIo } = require('./emitter');
-
-const USER_SELECT = `
-  SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.profile_image_url, u.role_id, r.role_name, u.is_verified, u.is_active
-  FROM users u
-  LEFT JOIN roles r ON u.role_id = r.role_id
-  WHERE u.user_id = $1
-`;
 
 async function authenticateSocketUser(socket) {
   const token = socket.handshake.auth?.token;
@@ -21,7 +14,7 @@ async function authenticateSocketUser(socket) {
     throw new Error('Invalid token payload');
   }
 
-  const result = await db.query(USER_SELECT, [payload.userId]);
+  const result = await authRepository.findUserWithRoleById(payload.userId);
   if (!result.rowCount) {
     throw new Error('User not found');
   }
