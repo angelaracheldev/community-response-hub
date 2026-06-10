@@ -8,25 +8,6 @@ async function findRoleById(roleId) {
   return db.query('SELECT role_id, role_name FROM roles WHERE role_id = $1', [roleId]);
 }
 
-async function insertUser({
-  roleId,
-  firstName,
-  lastName,
-  email,
-  passwordHash,
-  salt,
-  phoneNumber,
-  address,
-  isVerified,
-}) {
-  return db.query(
-    `INSERT INTO users (role_id, first_name, last_name, email, password_hash, salt, phone_number, address, is_verified, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE)
-     RETURNING user_id, user_code, first_name, last_name, email, phone_number, address, role_id, is_verified, is_active, created_at`,
-    [roleId, firstName, lastName, email.toLowerCase(), passwordHash, salt, phoneNumber || null, address || null, isVerified]
-  );
-}
-
 async function listUsers({ filters, params }) {
   const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
   return db.query(
@@ -81,7 +62,7 @@ async function insertUser({
     `INSERT INTO users (role_id, first_name, last_name, email, password_hash, salt, phone_number, address, is_verified, is_active)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING user_id, user_code, first_name, last_name, email, phone_number, address, role_id, is_verified, is_active, created_at`,
-    [roleId, firstName, lastName, email.toLowerCase(), passwordHash, salt, phoneNumber, address, isVerified, isActive]
+    [roleId, firstName, lastName, email.toLowerCase(), passwordHash, salt, phoneNumber || null, address || null, isVerified, isActive]
   );
 }
 
@@ -105,5 +86,4 @@ module.exports = {
   setUserActive,
   findUserIdOnly,
   findActiveUsersByRoleName,
-  insertUser,
 };
