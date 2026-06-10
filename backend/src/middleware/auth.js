@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
-const db = require('../config/database');
 const { jwtSecret } = require('../config');
+const authRepository = require('../repositories/auth.repository');
 
 async function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -15,13 +15,7 @@ async function authMiddleware(req, res, next) {
       return res.status(401).json({ status: 'error', message: 'Invalid token payload' });
     }
 
-    const result = await db.query(
-      `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.profile_image_url, u.role_id, r.role_name, u.is_verified, u.is_active
-       FROM users u
-       LEFT JOIN roles r ON u.role_id = r.role_id
-       WHERE u.user_id = $1`,
-      [payload.userId]
-    );
+    const result = await authRepository.findUserWithRoleById(payload.userId);
 
     if (!result.rowCount) {
       return res.status(401).json({ status: 'error', message: 'User not found' });
