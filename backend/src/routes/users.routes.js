@@ -6,19 +6,10 @@ const {
   createUserValidation,
   submitVerificationValidation,
   reviewVerificationValidation,
-  createUserValidation,
 } = require('../validators/users.validator');
 
 router.post('/', authMiddleware, requireRole('admin'), createUserValidation, usersController.createUser);
 router.get('/', authMiddleware, requireRole('admin'), usersController.listUsers);
-router.post(
-  '/',
-  authMiddleware,
-  requireRole('admin'),
-  uploadVerification.single('file'),
-  createUserValidation,
-  usersController.createUser
-);
 router.get('/me', authMiddleware, usersController.getCurrentUser);
 router.get('/:id', authMiddleware, usersController.getUserById);
 router.patch('/:id', authMiddleware, usersController.updateUser);

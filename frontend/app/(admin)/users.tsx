@@ -28,19 +28,10 @@ export default function AdminUsers() {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [detailUserId, setDetailUserId] = useState<string | null>(null);
-<<<<<<< HEAD
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false); // Controls creation modal visibility
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [verificationRefresh, setVerificationRefresh] = useState(0);
-  const roleId = tab === 'residents' ? 1 : 2;
-  const tabLabel = tab === 'residents' ? 'Residents' : 'Responders';
-=======
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [verificationRefresh, setVerificationRefresh] = useState(0);
-  const [token, setToken] = useState<string | null>(null);
-
   const roleId = tab === 'residents' ? 1 : tab === 'responders' ? 2 : 3;
   const tabLabel = tab === 'residents' ? 'Residents' : tab === 'responders' ? 'Responders' : 'Staff';
->>>>>>> 629ca85a8b251531ded84ed9d72ccae6c6c4b066
 
   useEffect(() => {
     loadUsers(page, pageSize, search);
@@ -166,12 +157,7 @@ export default function AdminUsers() {
               <TouchableOpacity style={[s.textBtn, s.textBtnOutline]} onPress={() => loadUsers(1, pageSize, search)}>
                 <Text style={[s.textBtnLabel, s.textBtnLabelOutline]}>Refresh</Text>
               </TouchableOpacity>
-<<<<<<< HEAD
-              {/* Mobile Add User Button */}
               <TouchableOpacity style={s.textBtn} onPress={() => setIsAddModalVisible(true)}>
-=======
-              <TouchableOpacity style={s.textBtn} onPress={() => setShowAddModal(true)}>
->>>>>>> 629ca85a8b251531ded84ed9d72ccae6c6c4b066
                 <Text style={s.textBtnLabel}>+ Add User</Text>
               </TouchableOpacity>
             </View>
@@ -183,12 +169,7 @@ export default function AdminUsers() {
               <TouchableOpacity style={s.linkBtn} onPress={() => loadUsers(1, pageSize, search)}>
                 <Text style={s.linkBtnText}>Refresh</Text>
               </TouchableOpacity>
-<<<<<<< HEAD
-              {/* Desktop Add User Button */}
               <TouchableOpacity style={styles.addUserBtn} onPress={() => setIsAddModalVisible(true)}>
-=======
-              <TouchableOpacity style={styles.addUserBtn} onPress={() => setShowAddModal(true)}>
->>>>>>> 629ca85a8b251531ded84ed9d72ccae6c6c4b066
                 <Text style={styles.addUserBtnText}>+ Add User</Text>
               </TouchableOpacity>
             </>
@@ -261,22 +242,14 @@ export default function AdminUsers() {
         showVerificationActions={tab === 'residents'}
       />
 
-<<<<<<< HEAD
-      {/* Actual working Creation Modal */}
       <UserCreateModal
         visible={isAddModalVisible}
         onClose={() => setIsAddModalVisible(false)}
         onSuccess={() => {
           setIsAddModalVisible(false);
-          loadUsers(1, pageSize, ''); // Refreshes the table back on page 1
+          loadUsers(1, pageSize, '');
         }}
         defaultRoleId={roleId}
-=======
-      <AddUserModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onSuccess={() => loadUsers(1, pageSize, search)}
->>>>>>> 629ca85a8b251531ded84ed9d72ccae6c6c4b066
       />
     </PageShell>
   );
