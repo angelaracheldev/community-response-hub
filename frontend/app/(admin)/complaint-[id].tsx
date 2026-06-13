@@ -2,13 +2,40 @@ import React, { useEffect, useState } from 'react';
 import { Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AdminComplaintActions from '../../components/admin/AdminComplaintActions';
+
+
+//Working Import Before adding new API calls
 import {
   AdminComplaint,
   ComplaintActivityLog,
   fetchAdminComplaint,
   fetchComplaintActivityLogs,
 } from '../../utils/adminApi';
+
+// import {
+//   fetchAdminComplaint,
+//   fetchComplaintActivityLogs,
+//   fetchComplaintMedia,
+//   ComplaintMedia,
+// } from '../../utils/adminApi';
+
+import ComplaintEvidenceGallery from '../../components/ComplaintEvidenceGallery';
+
 import { adminComplaintDetailStyles as styles } from '../../styles/app/adminComplaintDetail';
+
+function formatActionType(action: string) {
+  const map: Record<string,string> = {
+    complaint_created: 'Complaint Submitted',
+    complaint_assigned: 'Responder Assigned',
+    complaint_reassigned: 'Responder Reassigned',
+    priority_changed: 'Priority Changed',
+    complaint_rejected: 'Complaint Rejected',
+    complaint_resolved: 'Complaint Resolved',
+  };
+
+  return map[action] || action;
+}
 
 export default function ComplaintDetailPage() {
   const router = useRouter();
@@ -58,6 +85,16 @@ export default function ComplaintDetailPage() {
 
         {complaint ? (
           <>
+          <AdminComplaintActions
+  complaintId={complaint.complaint_id}
+  currentStatus={complaint.status}
+  currentPriority={complaint.priority_level}
+  onRefresh={() => {
+    if (id) {
+      void loadComplaintAndLogs(id);
+    }
+  }}
+/>
             <View style={styles.headerCard}>
               <Text style={styles.complaintTitle}>{complaint.title}</Text>
               <View style={styles.badgeRow}>
@@ -100,7 +137,9 @@ export default function ComplaintDetailPage() {
               )}
             </View>
 
-            <Text style={styles.timelineHeading}>Activity Timeline</Text>
+            <Text style={styles.timelineHeading}>  
+                Activity Timeline
+            </Text>
             {logs.length === 0 ? (
               <Text style={styles.emptyText}>No activities recorded.</Text>
             ) : (
@@ -111,7 +150,7 @@ export default function ComplaintDetailPage() {
                     {index < logs.length - 1 && <View style={styles.timelineLine} />}
 
                     <View style={styles.timelineContent}>
-                      <Text style={styles.actionType}>{log.action_type}</Text>
+                      <Text style={styles.actionType}>{formatActionType(log.action_type)  }</Text>
                       <Text style={styles.activityBy}>
                         {log.first_name} {log.last_name} • {new Date(log.created_at).toLocaleString()}
                       </Text>
@@ -133,6 +172,7 @@ export default function ComplaintDetailPage() {
           <Text style={styles.emptyText}>Complaint not found.</Text>
         )}
       </ScrollView>
+
     </SafeAreaView>
   );
 }

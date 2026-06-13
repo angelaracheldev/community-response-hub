@@ -1,7 +1,6 @@
 const bcrypt = require('bcrypt');
 const usersRepository = require('../repositories/users.repository');
 const verificationsRepository = require('../repositories/verifications.repository');
-
 const DEFAULT_ADMIN_CREATED_PASSWORD = 'TemporaryWelcome2026!';
 
 async function createUser(body) {
@@ -183,6 +182,104 @@ async function deactivateUser(id) {
   };
 }
 
+async function getResponders() {
+  const result = await pool.query(`
+    SELECT
+      user_id,
+      first_name,
+      last_name
+    FROM users
+    WHERE role = 'responder'
+      AND is_active = true
+    ORDER BY first_name
+  `);
+
+  return {
+    status: 200,
+    body: {
+      users: result.rows,
+    },
+  };
+}
+
+async function updatePriority(
+  id,
+  {
+    priorityLevel,
+    performedBy,
+  }
+) {
+  const complaintRes =
+    await complaintsRepository.findComplaintById(
+      id
+    );
+
+  if (!complaintRes.rowCount) {
+    return {
+      error: {
+        status: 404,
+        body: {
+          status: 'error',
+          message:
+            'Complaint not found',
+        },
+      },
+    };
+  }
+
+  const complaint =
+    complaintRes.rows[0];
+
+  const oldPriority =
+    complaint.priority_level;
+
+  if (
+    oldPriority === priorityLevel
+  ) {
+    return {
+      error: {
+        status: 400,
+        body: {
+          status: 'error',
+          message:
+            'Priority is already set to this value',
+        },
+      },
+    };
+  }
+
+  await complaintsRepository.updatePriority(
+    {
+      id,
+      priorityLevel,
+    }
+  );
+
+  await activityLogsRepository.insertLog(
+    {
+      complaintId: id,
+      performedBy,
+      actionType:
+        'priority_updated',
+
+      oldValue: oldPriority,
+      newValue: priorityLevel,
+
+      description: `Priority changed from ${oldPriority} to ${priorityLevel}`,
+    }
+  );
+
+  return {
+    body: {
+      status: 'ok',
+      message:
+        'Priority updated successfully',
+      timestamp:
+        new Date().toISOString(),
+    },
+  };
+}
+
 module.exports = {
   createUser,
   listUsers,
@@ -191,5 +288,7 @@ module.exports = {
   submitVerification,
   reviewVerification,
   activateUser,
-  deactivateUser,
+  deactivateUser, 
+  getResponders,
+  updatePriority,
 };
