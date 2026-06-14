@@ -81,6 +81,7 @@ async function assignComplaint(req, res) {
     const result = await complaintsService.assignComplaint(req.params.id, {
       assignedToUserId,
       assignedByUserId: req.user.user_id,
+    
     });
     if (result.error) {
       return res.status(result.error.status).json(result.error.body);
@@ -123,6 +124,62 @@ async function deleteFailedComplaint(req, res) {
   }
 }
 
+async function updateComplaintPriority(req, res) {
+  try {
+    const result = await complaintsService.updateComplaintPriority(
+      req.params.id,
+      req.body,
+      req.user
+    );
+
+    if (result.error) {
+      return res.status(result.error.status).json(result.error.body);
+    }
+
+    return res.json(result.body);
+  } catch (err) {
+    console.error('Failed to update priority:', err.message);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Unable to update priority',
+    });
+  }
+}
+
+async function rejectComplaint(req, res) {
+  try {
+    const { reason } = req.body;
+
+    if (!reason || reason.trim().length < 10) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Reason must be at least 10 characters'
+      });
+    }
+
+    const result = await complaintsService.rejectComplaint(
+      req.params.id,
+      req.user,
+      reason
+    );
+
+    if (result.error) {
+      return res
+        .status(result.error.status)
+        .json(result.error.body);
+    }
+
+    return res.json(result.body);
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      status: 'error',
+      message: 'Unable to reject complaint'
+    });
+  }
+}
+
 module.exports = {
   createComplaint,
   listComplaints,
@@ -132,4 +189,7 @@ module.exports = {
   assignComplaint,
   cancelComplaint,
   deleteFailedComplaint,
+  updateComplaintPriority,
+  rejectComplaint
 };
+

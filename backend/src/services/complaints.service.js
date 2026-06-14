@@ -5,6 +5,7 @@ const assignmentsRepository = require('../repositories/assignments.repository');
 const activityLogsRepository = require('../repositories/activityLogs.repository');
 const notificationEvents = require('./notificationEvents.service');
 
+
 async function createComplaint(requestUser, body) {
   const { categoryId, title, description, locationText, latitude, longitude, priorityLevel } = body;
   const category = await complaintsRepository.findCategoryById(categoryId);
@@ -169,6 +170,13 @@ async function updateComplaintStatus(id, { complaintStatus, remarks }) {
     }
   }
 
+  await activityLogsRepository.insertLog({
+  complaintId: id,
+  performedBy: requestUser.user_id,
+  actionType: 'complaint_rejected',
+  description: remarks || 'Complaint rejected',
+});
+
   return {
     body: {
       status: 'ok',
@@ -228,29 +236,371 @@ async function cancelComplaint(id, requestUser, { cancellationReason }) {
   };
 }
 
+// async function assignComplaint(id, { assignedToUserId, assignedByUserId }) {
+//   const complaint = await complaintsRepository.findComplaintIdOnly(id);
+//   if (!complaint.rowCount) {
+//     return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
+//   }
+
+//   await assignmentsRepository.deactivateAssignmentsForComplaint(id);
+//   const assignment = await assignmentsRepository.insertAssignment({
+//     complaintId: id,
+//     assignedToUserId,
+//     assignedByUserId,
+//   });
+//   await complaintsRepository.setComplaintStatusAssigned(id);
+
+//   await activityLogsRepository.insertLog({
+//   complaintId: id,
+//   performedBy: assignedByUserId,
+//   actionType: 'complaint_assigned',
+//   description: 'Complaint assigned to responder',
+// });
+//   return {
+//     body: {
+//       status: 'ok',
+//       message: 'Complaint assigned successfully',
+//       data: assignment.rows[0],
+//       timestamp: new Date().toISOString(),
+//     },
+//   };
+// }
+
+
+// async function updateComplaintPriority(id, { priorityLevel }) {
+//   const result =
+//     await complaintsRepository.updateComplaintPriority({
+//       priorityLevel,
+//       id,
+//     });
+  
+//     await activityLogsRepository.insertLog({
+//   complaintId: id,
+//   performedBy: null,
+//   actionType: 'priority_changed',
+//   description: `Priority changed to ${priorityLevel}`,
+// });
+
+//   if (!result.rowCount) {
+//     return {
+//       error: {
+//         status: 404,
+//         body: {
+//           status: 'error',
+//           message: 'Complaint not found',
+//         },
+//       },
+//     };
+//   }
+
+//   return {
+//     body: {
+//       status: 'ok',
+//       data: result.rows[0],
+//     },
+//   };
+// }
+
+// updateComplaintPriority function with requestUser for activity log
+
+// async function updateComplaintPriority(id, { priorityLevel }) {
+//   const priority = priorityLevel?.toLowerCase();
+
+//   if (!PRIORITY_VALUES.includes(priority)) {
+//     return {
+//       error: {
+//         status: 400,
+//         body: {
+//           status: 'error',
+//           message: 'Invalid priority level',
+//         },
+//       },
+//     };
+//   }
+
+//   const result =
+//     await complaintsRepository.updateComplaintPriority({
+//       priorityLevel: priority,
+//       id,
+//     });
+
+//   await activityLogsRepository.insertLog({
+//   complaintId: id,
+//   performedBy: requestUser.user_id,
+//   actionType: 'priority_changed',
+//   oldValue: oldPriority,
+//   newValue: priorityLevel,
+//   description: 'Complaint priority updated',
+// });
+
+//   if (!result.rowCount) {
+//     return {
+//       error: {
+//         status: 404,
+//         body: {
+//           status: 'error',
+//           message: 'Complaint not found',
+//         },
+//       },
+//     };
+//   }
+
+//   return {
+//     body: {
+//       status: 'ok',
+//       data: result.rows[0],
+//     },
+//   };
+// }
+
 async function assignComplaint(id, { assignedToUserId, assignedByUserId }) {
-  const complaint = await complaintsRepository.findComplaintIdOnly(id);
-  if (!complaint.rowCount) {
-    return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
+  const complaintRes = await complaintsRepository.findComplaintById(id);
+
+  if (!complaintRes.rowCount) {
+    return {
+      error: {
+        status: 404,
+        body: {
+          status: 'error',
+          message: 'Complaint not found',
+        },
+      },
+    };
   }
 
+  const complaint = complaintRes.rows[0];
+  const currentStatus = complaint.status;
+
+  // ==============================
+  // 🚫 STATUS VALIDATION RULES
+  // ==============================
+  const allowedStatuses = ['pending', 'assigned', 'in_progress'];
+
+  if (!allowedStatuses.includes(currentStatus)) {
+    return {
+      error: {
+        status: 400,
+        body: {
+          status: 'error',
+          message: `Cannot assign complaint in status: ${currentStatus}`,
+        },
+      },
+    };
+  }
+
+  // ==============================
+  // 🔁 CHECK IF REASSIGNMENT
+  // ==============================
+  const existingAssignment =
+    await assignmentsRepository.getLatestAssignmentByComplaintId?.(id);
+
+  const isReassignment = !!existingAssignment?.rowCount;
+
+  const previousResponder = isReassignment
+    ? existingAssignment.rows[0].assigned_to
+    : null;
+
+  // ==============================
+  // 🧹 DEACTIVATE OLD ASSIGNMENTS
+  // ==============================
   await assignmentsRepository.deactivateAssignmentsForComplaint(id);
+
+  // ==============================
+  // ➕ CREATE NEW ASSIGNMENT
+  // ==============================
   const assignment = await assignmentsRepository.insertAssignment({
     complaintId: id,
     assignedToUserId,
     assignedByUserId,
   });
-  await complaintsRepository.setComplaintStatusAssigned(id);
+
+  // ==============================
+  // 🔄 UPDATE COMPLAINT STATUS
+  // ==============================
+  await complaintsRepository.updateComplaintStatus({
+    id,
+    status: 'assigned',
+  });
+
+  // ==============================
+  // 📊 ACTIVITY LOG (STRUCTURED)
+  // ==============================
+  await activityLogsRepository.insertLog({
+    complaintId: id,
+    performedBy: assignedByUserId,
+    actionType: isReassignment
+      ? 'responder_reassigned'
+      : 'responder_assigned',
+
+    oldValue: previousResponder,
+    newValue: assignedToUserId,
+
+    description: isReassignment
+      ? `Reassigned from ${previousResponder} to ${assignedToUserId}`
+      : `Assigned to responder ${assignedToUserId}`,
+  });
+
+  // ==============================
+  // 🔔 NOTIFICATIONS
+  // ==============================
+  try {
+    await notificationEvents.onComplaintAssigned?.({
+      complaint,
+      assignedToUserId,
+      isReassignment,
+    });
+  } catch (err) {
+    console.error('Assignment notification failed:', err.message);
+  }
 
   return {
     body: {
       status: 'ok',
-      message: 'Complaint assigned successfully',
+      message: isReassignment
+        ? 'Complaint reassigned successfully'
+        : 'Complaint assigned successfully',
+
       data: assignment.rows[0],
       timestamp: new Date().toISOString(),
     },
   };
 }
+
+async function updateComplaintPriority(id, { priorityLevel }, requestUser) {
+  const priority = priorityLevel?.toLowerCase();
+
+  // 1. Validate user context (IMPORTANT FIX)
+  if (!requestUser || !requestUser.user_id) {
+    return {
+      error: {
+        status: 401,
+        body: {
+          status: 'error',
+          message: 'Unauthorized request',
+        },
+      },
+    };
+  }
+
+  // 2. Validate priority
+  if (!PRIORITY_VALUES.includes(priority)) {
+    return {
+      error: {
+        status: 400,
+        body: {
+          status: 'error',
+          message: 'Invalid priority level',
+        },
+      },
+    };
+  }
+
+  // 3. Get existing complaint (for audit log)
+  const existing = await complaintsRepository.findComplaintById(id);
+
+  if (!existing.rowCount) {
+    return {
+      error: {
+        status: 404,
+        body: {
+          status: 'error',
+          message: 'Complaint not found',
+        },
+      },
+    };
+  }
+
+  const oldPriority = existing.rows[0].priority_level;
+
+  // 4. Update DB
+  const result = await complaintsRepository.updateComplaintPriority({
+    priorityLevel: priority,
+    id,
+  });
+
+  // 5. Activity log (SAFE + CONTROLLED)
+  try {
+    await activityLogsRepository.insertLog({
+      complaintId: id,
+      performedBy: requestUser.user_id,
+      actionType: 'priority_changed',
+      oldValue: oldPriority,
+      newValue: priority,
+      description: `Priority changed from ${oldPriority} to ${priority}`,
+    });
+  } catch (logErr) {
+    console.error('Priority activity log failed:', logErr.message);
+  }
+
+  // 6. Handle update failure
+  if (!result.rowCount) {
+    return {
+      error: {
+        status: 404,
+        body: {
+          status: 'error',
+          message: 'Complaint not found',
+        },
+      },
+    };
+  }
+
+  // 7. Success response
+  return {
+    body: {
+      status: 'ok',
+      message: 'Priority updated successfully',
+      data: result.rows[0],
+      timestamp: new Date().toISOString(),
+    },
+  };
+}
+
+async function rejectComplaint(complaintId, user, reason) {
+  const result = await complaintsRepository.findComplaintById(complaintId);
+
+  if (!result.rowCount) {
+    return {
+      error: {
+        status: 404,
+        body: {
+          status: 'error',
+          message: 'Complaint not found'
+        }
+      }
+    };
+  }
+
+  const complaint = result.rows[0];
+
+  // update status using EXISTING repository function
+  const updated = await complaintsRepository.updateComplaintStatus({
+    status: 'rejected',
+    remarks: reason,
+    id: complaintId
+  });
+
+  // activity log using EXISTING function
+  await activityLogsRepository.insertLog({
+    complaintId,
+    performedBy: user.user_id,
+    actionType: 'complaint_rejected',
+    oldValue: complaint.status,
+    newValue: 'rejected',
+    description: `Complaint rejected: ${reason}`
+  });
+
+  return {
+    body: {
+      status: 'ok',
+      message: 'Complaint rejected successfully',
+      data: updated.rows?.[0],
+      timestamp: new Date().toISOString()
+    }
+  };
+}
+
+
 
 module.exports = {
   createComplaint,
@@ -261,4 +611,7 @@ module.exports = {
   assignComplaint,
   cancelComplaint,
   deleteFailedComplaint,
+  updateComplaintPriority,  
+  rejectComplaint,
+  
 };

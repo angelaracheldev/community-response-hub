@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const uploadVerification = require('../middleware/uploadVerification');
 const usersController = require('../controllers/users.controller');
+const { getResponders } = require('../controllers/users.controller');
 const {
   createUserValidation,
   submitVerificationValidation,
@@ -11,6 +12,7 @@ const {
 router.post('/', authMiddleware, requireRole('admin'), createUserValidation, usersController.createUser);
 router.get('/', authMiddleware, requireRole('admin'), usersController.listUsers);
 router.get('/me', authMiddleware, usersController.getCurrentUser);
+router.get('/responders', authMiddleware, requireRole('admin'), usersController.getResponders);
 router.get('/:id', authMiddleware, usersController.getUserById);
 router.patch('/:id', authMiddleware, usersController.updateUser);
 router.post(
@@ -29,5 +31,7 @@ router.patch(
 );
 router.patch('/:id/activate', authMiddleware, requireRole('admin'), usersController.activateUser);
 router.patch('/:id/deactivate', authMiddleware, requireRole('admin'), usersController.deactivateUser);
+
+
 
 module.exports = router;

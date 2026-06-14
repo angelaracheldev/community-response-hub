@@ -1,6 +1,8 @@
 const { validationResult } = require('express-validator');
 const usersService = require('../services/users.service');
 const verificationMediaService = require('../services/verificationMedia.service');
+const db = require('../config/database');
+
 
 async function createUser(req, res) {
   const errors = validationResult(req);
@@ -136,6 +138,45 @@ async function deactivateUser(req, res) {
   }
 }
 
+async function getResponders(req, res) {
+  try {
+    const result = await usersService.listUsers({});
+
+    const responders = result.body.users.filter(
+      (u) => u.role_name === 'responder'
+    );
+
+    res.json({ users: responders });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: 'Failed to fetch responders',
+    });
+  }
+}
+
+
+async function updatePriority(req, res) {
+  const result =
+    await complaintsService.updatePriority(
+      req.params.id,
+      {
+        priorityLevel:
+          req.body.priorityLevel,
+        performedBy:
+          req.user.userId,
+      }
+    );
+
+  if (result.error) {
+    return res
+      .status(result.error.status)
+      .json(result.error.body);
+  }
+
+  return res.json(result.body);
+}
+
 module.exports = {
   createUser,
   listUsers,
@@ -146,4 +187,6 @@ module.exports = {
   reviewVerification,
   activateUser,
   deactivateUser,
+  getResponders,
+  updatePriority,
 };

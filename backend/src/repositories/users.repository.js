@@ -76,6 +76,36 @@ async function findActiveUsersByRoleName(roleName) {
   );
 }
 
+async function getResponders() {
+  return db.query(`
+    SELECT 
+      user_id,
+      first_name,
+      last_name,
+      email
+    FROM users
+    WHERE role_id = 2
+      AND is_active = true
+    ORDER BY first_name ASC
+  `);
+}
+
+
+async function updatePriority({
+  id,
+  priorityLevel,
+}) {
+  return db.query(
+    `
+    UPDATE complaints
+    SET priority_level = $2,
+        updated_at = NOW()
+    WHERE complaint_id = $1
+    `,
+    [id, priorityLevel]
+  );
+}
+
 module.exports = {
   findUserIdByEmail,
   findRoleById,
@@ -86,4 +116,6 @@ module.exports = {
   setUserActive,
   findUserIdOnly,
   findActiveUsersByRoleName,
+  getResponders,
+  updatePriority,
 };

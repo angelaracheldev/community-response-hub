@@ -124,6 +124,20 @@ async function deleteComplaintById(id) {
   const complaintId = lookup.rows[0].complaint_id;
   return db.query('DELETE FROM complaints WHERE complaint_id = $1 RETURNING complaint_id, reference_id', [complaintId]);
 }
+async function updateComplaintPriority({ priorityLevel, id }) {
+  const lookup = await findComplaintByIdentifier(id);
+  if (!lookup.rowCount) return lookup;
+
+  const complaintId = lookup.rows[0].complaint_id;
+
+  return db.query(
+    `UPDATE complaints 
+     SET priority_level = $1, updated_at = CURRENT_TIMESTAMP
+     WHERE complaint_id = $2
+     RETURNING complaint_id, priority_level`,
+    [priorityLevel, complaintId]
+  );
+}
 
 module.exports = {
   findCategoryById,
@@ -136,5 +150,7 @@ module.exports = {
   findComplaintIdOnly,
   setComplaintStatusAssigned,
   deleteComplaintById,
-  isUuid,
+  isUuid, 
+  updateComplaintPriority
 };
+
