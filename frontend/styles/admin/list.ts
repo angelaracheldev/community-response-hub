@@ -290,4 +290,286 @@ export const adminListStyles = StyleSheet.create({
     color: colors.text.inverse,
     fontWeight: fontWeight.extrabold,
   },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background.overlay,
+    padding: spacing.lg,
+  },
+  modalBackdropTablet: {
+    padding: spacing.xl,
+  },
+  modalDialog: {
+    width: '100%',
+    maxWidth: 960,
+    maxHeight: '92%',
+    backgroundColor: colors.background.surface,
+    borderRadius: radius.xxl,
+    overflow: 'hidden',
+  },
+  modalDialogTablet: {
+    maxWidth: 720,
+  },
+  modalDetailHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.default,
+    backgroundColor: colors.background.surface,
+  },
+  modalDetailHeaderCompact: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  modalDetailTitle: {
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.extrabold,
+    color: colors.text.primary,
+  },
+  modalDetailTitleCompact: {
+    fontSize: fontSize.lg,
+  },
+  modalDetailSubtitle: {
+    marginTop: spacing.xs,
+    fontSize: fontSize.base,
+    color: colors.text.muted,
+    fontWeight: fontWeight.semibold,
+  },
+  modalDetailSubtitleCompact: {
+    fontSize: fontSize.sm,
+  },
+  modalHeaderCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.muted,
+  },
+  modalHeaderCloseText: {
+    fontSize: fontSize.xl,
+    color: colors.text.secondary,
+    fontWeight: fontWeight.bold,
+  },
+  modalDetailScroll: {
+    flexGrow: 0,
+  },
+  modalDetailContent: {
+    padding: spacing.xxl,
+  },
+  modalDetailContentCompact: {
+    padding: spacing.lg,
+  },
+  modalDetailBody: {
+    gap: spacing.lg,
+  },
+  modalDetailBodyDesktop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xl,
+  },
+  modalDetailMain: {
+    gap: spacing.lg,
+    flex: 1,
+    minWidth: 0,
+  },
+  modalDetailActions: {
+    gap: spacing.lg,
+    width: '100%',
+  },
+  modalDetailActionsDesktop: {
+    width: 300,
+    flexShrink: 0,
+  },
+  modalDetailActionsTablet: {
+    width: 280,
+    flexShrink: 0,
+  },
+  modalDetailCard: {
+    backgroundColor: colors.background.subtle,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  modalDetailCardCompact: {
+    padding: spacing.md,
+  },
+  modalDetailCardTitle: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.extrabold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  modalDetailCardTitleCompact: {
+    fontSize: fontSize.sm,
+  },
+  modalDetailGrid: {
+    gap: spacing.sm,
+  },
+  modalDetailGridWide: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  modalDetailField: {
+    gap: spacing.xs,
+  },
+  modalDetailFieldWide: {
+    width: '48%',
+    minWidth: 160,
+  },
+  modalDetailFieldLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  modalDetailFieldLabelCompact: {
+    fontSize: fontSize.xs,
+  },
+  modalDetailFieldValue: {
+    fontSize: fontSize.base,
+    lineHeight: 20,
+    color: colors.text.primary,
+    fontWeight: fontWeight.semibold,
+  },
+  modalDetailFieldValueCompact: {
+    fontSize: fontSize.sm,
+    lineHeight: 18,
+  },
+  modalDetailEvidenceItem: {
+    padding: spacing.md,
+    backgroundColor: colors.background.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+  },
+  modalDetailEvidenceText: {
+    fontWeight: fontWeight.bold,
+    color: colors.text.primary,
+    fontSize: fontSize.sm,
+  },
+  modalDetailTimelineItem: {
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+    gap: 2,
+  },
+  modalDetailTimelineAction: {
+    fontWeight: fontWeight.bold,
+    color: colors.text.primary,
+    fontSize: fontSize.sm,
+    textTransform: 'uppercase',
+  },
+  modalDetailTimelineText: {
+    color: colors.text.secondary,
+    fontSize: fontSize.sm,
+    lineHeight: 18,
+  },
+  modalDetailTimelineMeta: {
+    color: colors.text.muted,
+    fontSize: fontSize.xs,
+  },
+  modalDetailPickerWrap: {
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.background.surface,
+  },
+  modalDetailBtn: {
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+  },
+  modalDetailBtnCompact: {
+    paddingVertical: spacing.sm + 2,
+  },
+  modalDetailBtnText: {
+    color: colors.text.inverse,
+    fontWeight: fontWeight.bold,
+    fontSize: fontSize.base,
+  },
+  modalDetailBtnTextCompact: {
+    fontSize: fontSize.sm,
+  },
+  modalDetailAssignBtn: {
+    backgroundColor: colors.success,
+  },
+  modalDetailRejectBtn: {
+    backgroundColor: colors.danger,
+  },
+  modalDetailPriorityBtn: {
+    backgroundColor: colors.warning,
+  },
+  modalDetailBtnDisabled: {
+    backgroundColor: colors.text.placeholder,
+    opacity: 0.7,
+  },
+  modalDetailEmptyHint: {
+    color: colors.text.muted,
+    fontSize: fontSize.sm,
+    fontStyle: 'italic',
+  },
+  modalMobileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderColor: colors.border.default,
+    backgroundColor: colors.background.surface,
+  },
+  modalMobileBody: {
+    flex: 1,
+  },
+  modalMobileScrollContent: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
+  modalRejectInput: {
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    fontSize: fontSize.base,
+    color: colors.text.primary,
+  },
+  modalRejectCancel: {
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+  },
+  modalRejectCancelText: {
+    textAlign: 'center',
+    color: colors.text.secondary,
+    fontWeight: fontWeight.semibold,
+  },
+  modalViewerSafe: {
+    flex: 1,
+    backgroundColor: colors.black,
+  },
+  modalViewerClose: {
+    padding: spacing.lg,
+  },
+  modalViewerCloseText: {
+    color: colors.text.inverse,
+    fontWeight: fontWeight.bold,
+    fontSize: fontSize.base,
+  },
+  modalViewerMedia: {
+    width: '100%',
+    flex: 1,
+    minHeight: 240,
+  },
 });

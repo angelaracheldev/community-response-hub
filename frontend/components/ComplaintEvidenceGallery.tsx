@@ -6,9 +6,10 @@ import { complaintEvidenceGalleryStyles as styles } from '../styles/complaint/ev
 type Props = {
   media: ComplaintMedia[];
   emptyMessage?: string;
+  onItemPress?: (item: ComplaintMedia) => void;
 };
 
-export default function ComplaintEvidenceGallery({ media, emptyMessage }: Props) {
+export default function ComplaintEvidenceGallery({ media, emptyMessage, onItemPress }: Props) {
   if (media.length === 0) {
     return emptyMessage ? <Text style={styles.empty}>{emptyMessage}</Text> : null;
   }
@@ -19,7 +20,9 @@ export default function ComplaintEvidenceGallery({ media, emptyMessage }: Props)
         <TouchableOpacity
           key={item.media_id}
           style={styles.item}
-          onPress={() => Linking.openURL(item.media_url)}
+          onPress={() =>
+            onItemPress ? onItemPress(item) : Linking.openURL(item.media_url)
+          }
         >
           {item.media_type === 'image' ? (
             <Image source={{ uri: item.media_url }} style={styles.thumbnail} resizeMode="cover" />

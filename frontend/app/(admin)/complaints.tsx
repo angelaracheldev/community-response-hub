@@ -1,7 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Picker } from '@react-native-picker/picker';
+import { ResizeMode, Video } from 'expo-av';
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
+import ComplaintEvidenceGallery from '../../components/ComplaintEvidenceGallery';
 import { AdminListCard } from '../../components/admin/AdminListCard';
 import { AdminPagination } from '../../components/admin/AdminPagination';
 import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
@@ -11,9 +26,6 @@ import { useAppLayout } from '../../hooks/useAppLayout';
 import { fetchAdminComplaintDetails, fetchAdminComplaints } from '../../utils/adminApi';
 import { formatComplaintStatus } from '../../utils/complaintApi';
 import { adminComplaintsStyles as styles } from '../../styles/app/adminComplaints';
-import { Picker } from '@react-native-picker/picker';
-import { Image } from 'react-native';
-import { ResizeMode, Video } from 'expo-av';
 import { authFetch } from '../../utils/authFetch';
 
 
@@ -21,6 +33,7 @@ import { authFetch } from '../../utils/authFetch';
 // const API_BASE = 'http://YOUR_BACKEND_URL/api'; // replace with your env later
 // const API_BASE = 'http://localhost:5000/api';
 import { API_BASE } from '../../utils/apiConfig';
+import { colors } from '../../styles/theme';
 
 const COMPLAINT_TABS = [
   { id: 'active', label: 'Active' },
@@ -28,9 +41,32 @@ const COMPLAINT_TABS = [
   { id: 'resolved', label: 'Resolved' },
 ];
 
+function DetailField({
+  label,
+  value,
+  wide,
+  compact,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <View style={[s.modalDetailField, wide && s.modalDetailFieldWide]}>
+      <Text style={[s.modalDetailFieldLabel, compact && s.modalDetailFieldLabelCompact]}>{label}</Text>
+      <Text style={[s.modalDetailFieldValue, compact && s.modalDetailFieldValueCompact]}>{value}</Text>
+    </View>
+  );
+}
 
 export default function AdminComplaints() {
   const layout = useAppLayout();
+  const useOverlayDialog = layout.isDesktop || layout.isTablet;
+  const compact = layout.isMobile;
+  const { height: windowHeight } = useWindowDimensions();
+  const desktopScrollMaxHeight = Math.max(windowHeight * 0.92 - 96, 320);
+
   const [tab, setTab] = useState<'active' | 'closed' | 'resolved'>('active');
   const [complaints, setComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,7 +75,7 @@ export default function AdminComplaints() {
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedResponder, setSelectedResponder] = useState<string>('');
+  const [selectedResponder, setSelectedResponder] = useState('');
   const [responders, setResponders] = useState<any[]>([]);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -48,6 +84,7 @@ export default function AdminComplaints() {
 );
   const lastAssignment =
     selected?.assignments?.[selected.assignments.length - 1];
+
   const loadResponders = async () => {
     try {
       const res = await authFetch(`${API_BASE}/users/responders`);
@@ -94,29 +131,6 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
   
 // };
 
-
-const openEvidenceViewer = async (media: any) => {
-  setActiveMedia(media);
-  setViewerVisible(true);
-
-  try {
-    await authFetch(`${API_BASE}/activity-logs`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        complaintId: selected.complaint.complaint_id,
-        actionType: 'evidence_viewed',
-        description: `Viewed evidence (${media.media_type})`,
-        metadata: {
-          media_id: media.media_id,
-          media_type: media.media_type,
-        },
-      }),
-    });
-  } catch (err) {
-    console.error('Failed to log evidence view:', err);
-  }
-};
 
   const loadComplaints = async (p = 1, ps = pageSize, currentTab: typeof tab = 'active') => {
     setLoading(true);
@@ -180,6 +194,28 @@ const openEvidenceViewer = async (media: any) => {
 
   const [selectedPriority, setSelectedPriority] =
     useState('normal');
+
+  const openEvidenceViewer = async (media: any) => {
+    setActiveMedia(media);
+    setViewerVisible(true);
+    try {
+      await authFetch(`${API_BASE}/activity-logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          complaintId: selected.complaint.complaint_id,
+          actionType: 'evidence_viewed',
+          description: `Viewed evidence (${media.media_type})`,
+          metadata: {
+            media_id: media.media_id,
+            media_type: media.media_type,
+          },
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to log evidence view:', err);
+    }
+  };
 
   const handleUpdatePriority = async (
     complaintId: string
@@ -320,6 +356,20 @@ const openEvidenceViewer = async (media: any) => {
   };
 
 
+  const assignedLabel = selected
+    ? ['rejected', 'cancelled', 'resolved'].includes(selected.complaint.status)
+      ? 'N/A'
+      : lastAssignment
+        ? lastAssignment.assigned_to_first_name
+          ? `${lastAssignment.assigned_to_first_name} ${lastAssignment.assigned_to_last_name}`
+          : 'Responder Assigned'
+        : 'Not Assigned'
+    : '-';
+
+  const headerSubtitle = selected
+    ? `${selected.complaint.reference_id} · ${formatComplaintStatus(selected.complaint.status)}`
+    : undefined;
+
   const renderComplaintItem = ({ item }: { item: any }) => {
     if (layout.useCompactList) {
       return (
@@ -361,6 +411,215 @@ const openEvidenceViewer = async (media: any) => {
       </View>
     );
   };
+
+  const renderModalContent = () => {
+    if (!selected) {
+      return <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} />;
+    }
+
+    const useWideGrid = layout.isDesktop || layout.isTablet;
+
+    return (
+      <View style={[s.modalDetailBody, layout.isDesktop && s.modalDetailBodyDesktop]}>
+        <View style={s.modalDetailMain}>
+          {/* ===================== */}
+          {/* 1. COMPLAINT DETAILS */}
+          {/* ===================== */}
+          <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
+            <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>
+              Complaint Details
+            </Text>
+            <View style={[s.modalDetailGrid, useWideGrid && s.modalDetailGridWide]}>
+              <DetailField compact={compact} wide={useWideGrid} label="Reference" value={selected.complaint.reference_id} />
+              <DetailField compact={compact} wide={useWideGrid} label="Status" value={formatComplaintStatus(selected.complaint.status)} />
+              <DetailField compact={compact} wide={useWideGrid} label="Priority" value={selected.complaint.priority_level} />
+              <DetailField compact={compact} wide={useWideGrid} label="Category" value={selected.category.category_name} />
+              <DetailField compact={compact} wide={useWideGrid} label="Assigned" value={assignedLabel} />
+              <DetailField compact={compact} wide={useWideGrid} label="Date" value={selected.complaint.created_at} />
+            </View>
+            <DetailField compact={compact} label="Title" value={selected.complaint.title} />
+          </View>
+
+          {/* ===================== */}
+          {/* 2. EVIDENCE SECTION */}
+          {/* ===================== */}
+          <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
+            <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>Evidence</Text>
+            <ComplaintEvidenceGallery
+              media={selected.media ?? []}
+              emptyMessage="No evidence uploaded"
+              onItemPress={openEvidenceViewer}
+            />
+          </View>
+
+          {/* ===================== */}
+          {/* 3. ASSIGNMENT SECTION */}
+          {/* ===================== */}
+          <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
+            <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>
+              Assignment History
+            </Text>
+            {selected.assignments.length === 0 ? (
+              <Text style={s.modalDetailEmptyHint}>Not Assigned</Text>
+            ) : (
+              selected.assignments.map((a: any) => (
+                <Text key={a.assignment_id} style={s.modalDetailTimelineText}>
+                  {a.assigned_at} →{' '}
+                  {a.assigned_to_first_name
+                    ? `${a.assigned_to_first_name} ${a.assigned_to_last_name}`
+                    : a.assigned_to}
+                </Text>
+              ))
+            )}
+          </View>
+
+          {/* ===================== */}
+          {/* 4. TIMELINE SECTION */}
+          {/* ===================== */}
+          <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
+            <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>Timeline</Text>
+            {(selected.activityLogs?.length ?? 0) === 0 ? (
+              <Text style={s.modalDetailEmptyHint}>No activity yet</Text>
+            ) : (
+              selected.activityLogs.map((l: any) => (
+                <View key={l.activity_log_id} style={s.modalDetailTimelineItem}>
+                  <Text style={s.modalDetailTimelineAction}>{l.action_type}</Text>
+                  <Text style={s.modalDetailTimelineText}>{l.description}</Text>
+                  <Text style={s.modalDetailTimelineMeta}>
+                    {l.first_name ? `${l.first_name} ${l.last_name}` : 'System'} • {l.created_at}
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
+        </View>
+
+        <View
+          style={[
+            s.modalDetailActions,
+            layout.isDesktop && s.modalDetailActionsDesktop,
+            layout.isTablet && s.modalDetailActionsTablet,
+          ]}
+        >
+          <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
+            <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>
+              Assign / Reassign Responder
+            </Text>
+            <View style={s.modalDetailPickerWrap}>
+              <Picker
+                selectedValue={selectedResponder}
+                onValueChange={(value) => setSelectedResponder(value)}
+                enabled={!isLocked}
+              >
+                <Picker.Item label="Select Responder" value="" />
+                {responders.map((r) => (
+                  <Picker.Item
+                    key={r.user_id}
+                    label={`${r.first_name} ${r.last_name}`}
+                    value={r.user_id}
+                  />
+                ))}
+              </Picker>
+            </View>
+            <TouchableOpacity
+              style={[
+                s.modalDetailBtn,
+                s.modalDetailAssignBtn,
+                compact && s.modalDetailBtnCompact,
+                (isLocked || !selectedResponder) && s.modalDetailBtnDisabled,
+              ]}
+              disabled={isLocked || !selectedResponder}
+              onPress={() => handleAssign(selected.complaint.complaint_id)}
+            >
+              <Text style={[s.modalDetailBtnText, compact && s.modalDetailBtnTextCompact]}>
+                {selected.assignments?.length ? 'Reassign Responder' : 'Assign Responder'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* {REJECT COMPLAINT BUTTON} */}
+
+          {!isLocked ? (
+            <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
+              <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>
+                Reject Complaint
+              </Text>
+              <TouchableOpacity
+                style={[s.modalDetailBtn, s.modalDetailRejectBtn, compact && s.modalDetailBtnCompact]}
+                onPress={() => setRejectModalVisible(true)}
+              >
+                <Text style={[s.modalDetailBtnText, compact && s.modalDetailBtnTextCompact]}>
+                  Reject Complaint
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
+            <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>
+              Priority Management
+            </Text>
+            <View style={s.modalDetailPickerWrap}>
+              <Picker
+                selectedValue={selectedPriority}
+                onValueChange={(value) => setSelectedPriority(value)}
+                enabled={!isLocked}
+              >
+                <Picker.Item label="Low" value="low" />
+                <Picker.Item label="Normal" value="normal" />
+                <Picker.Item label="High" value="high" />
+                <Picker.Item label="Urgent" value="urgent" />
+              </Picker>
+            </View>
+            <TouchableOpacity
+              style={[
+                s.modalDetailBtn,
+                s.modalDetailPriorityBtn,
+                compact && s.modalDetailBtnCompact,
+                isLocked && s.modalDetailBtnDisabled,
+              ]}
+              disabled={isLocked}
+              onPress={() => handleUpdatePriority(selected.complaint.complaint_id)}
+            >
+              <Text style={[s.modalDetailBtnText, compact && s.modalDetailBtnTextCompact]}>
+                Update Priority
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {!useOverlayDialog ? (
+            <>
+              {/* ===================== */}
+              {/* CLOSE BUTTON */}
+              {/* ===================== */}
+              <TouchableOpacity style={s.closeBtn} onPress={() => setModalOpen(false)}>
+                <Text style={s.closeText}>Close</Text>
+              </TouchableOpacity>
+            </>
+          ) : null}
+        </View>
+      </View>
+    );
+  };
+
+  const renderModalHeader = (onClose: () => void) => (
+    <View style={[s.modalDetailHeader, compact && s.modalDetailHeaderCompact]}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[s.modalDetailTitle, compact && s.modalDetailTitleCompact]}>Complaint Details</Text>
+        {headerSubtitle ? (
+          <Text
+            style={[s.modalDetailSubtitle, compact && s.modalDetailSubtitleCompact]}
+            numberOfLines={2}
+          >
+            {headerSubtitle}
+          </Text>
+        ) : null}
+      </View>
+      <TouchableOpacity style={s.modalHeaderCloseBtn} onPress={onClose} accessibilityLabel="Close">
+        <Text style={s.modalHeaderCloseText}>✕</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <PageShell
@@ -425,338 +684,87 @@ const openEvidenceViewer = async (media: any) => {
         />
       ) : null}
 
-      <Modal visible={modalOpen} animationType="slide" onRequestClose={() => setModalOpen(false)}>
-        <SafeAreaView style={s.modalSafe}>
-          <View style={s.modalHeader}>
-            <Text style={s.modalTitle}>Complaint Details</Text>
-          </View>
-          <ScrollView style={s.modalScroll} contentContainerStyle={s.modalContent}>
-            {!selected ? (
-              <ActivityIndicator color="#6366F1" />
-            ) : (
-              <>
-                {/* ===================== */}
-                {/* 1. COMPLAINT DETAILS */}
-                {/* ===================== */}
-                <Text style={s.sectionTitle}>Complaint Details</Text>
-
-                <Text style={s.detail}>Ref: {selected.complaint.reference_id}</Text>
-                <Text style={s.detail}>Title: {selected.complaint.title}</Text>
-                <Text style={s.detail}>Status: {formatComplaintStatus(selected.complaint.status)}</Text>
-                <Text style={s.detail}>Priority: {selected.complaint.priority_level}</Text>
-                <Text style={s.detail}>Category: {selected.category.category_name}</Text>
-
-                <Text style={s.detail}>
-                  Assigned:{' '}
-                  {['rejected', 'cancelled', 'resolved'].includes(selected.complaint.status)
-                    ? 'N/A'
-                    : lastAssignment
-                      ? lastAssignment.assigned_to_first_name
-                        ? `${lastAssignment.assigned_to_first_name} ${lastAssignment.assigned_to_last_name}`
-                        : 'Responder Assigned'
-                      : 'Not Assigned'}
-                </Text>
-
-                <Text style={s.detail}>Date: {selected.complaint.created_at}</Text>
-
-                {/* ===================== */}
-                {/* 2. EVIDENCE SECTION */}
-                {/* ===================== */}
-                <Text style={s.sectionTitle}>Evidence</Text>
-
-{!selected.media || selected.media.length === 0 ? (
-  <Text style={s.detail}>No evidence uploaded</Text>
-) : (
-  selected.media.map((m: any, index: number) => {
-    const isImage = m.media_type === 'image';
-    const isVideo = m.media_type === 'video';
-
-    return (
-      <TouchableOpacity
-        key={m.media_id}
-        style={{
-          padding: 10,
-          backgroundColor: '#f3f4f6',
-          borderRadius: 8,
-          marginBottom: 8,
-        }}
-        onPress={() => openEvidenceViewer(m)}
+      <Modal
+        visible={modalOpen}
+        transparent={useOverlayDialog}
+        animationType={useOverlayDialog ? 'fade' : 'slide'}
+        onRequestClose={() => setModalOpen(false)}
       >
-        <Text style={{ fontWeight: '600' }}>
-          Evidence {index + 1} ({isImage ? 'Image' : 'Video'})
-        </Text>
-      </TouchableOpacity>
-    );
-  })
-)}
+        {useOverlayDialog ? (
+          <View style={[s.modalBackdrop, layout.isTablet && !layout.isDesktop && s.modalBackdropTablet]}>
+            <View
+              style={[
+                s.modalDialog,
+                layout.isTablet && !layout.isDesktop && s.modalDialogTablet,
+              ]}
+            >
+              {renderModalHeader(() => setModalOpen(false))}
+              <ScrollView
+                style={[s.modalDetailScroll, { maxHeight: desktopScrollMaxHeight }]}
+                contentContainerStyle={[s.modalDetailContent, compact && s.modalDetailContentCompact]}
+                showsVerticalScrollIndicator={false}
+              >
+                {renderModalContent()}
+              </ScrollView>
+            </View>
+          </View>
+        ) : (
+          <SafeAreaView style={s.modalSafe}>
+            {renderModalHeader(() => setModalOpen(false))}
+            <ScrollView style={s.modalMobileBody} contentContainerStyle={s.modalMobileScrollContent}>
+              {renderModalContent()}
+            </ScrollView>
+          </SafeAreaView>
+        )}
+      </Modal>
 
-                {/* ===================== */}
-                {/* 3. ASSIGNMENT SECTION */}
-                {/* ===================== */}
-                <Text style={s.sectionTitle}>Assignment History</Text>
+      <Modal
+        visible={rejectModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRejectModalVisible(false)}
+      >
+        <View style={s.confirmOverlay}>
+          <View style={s.confirmBox}>
+            <Text style={s.confirmTitle}>Reject Complaint</Text>
+            <TextInput
+              placeholder="Enter rejection reason..."
+              value={rejectionReason}
+              onChangeText={setRejectionReason}
+              style={s.modalRejectInput}
+              multiline
+            />
+            <TouchableOpacity
+              style={[s.modalDetailBtn, s.modalDetailRejectBtn, { marginTop: 12 }]}
+              onPress={handleRejectComplaint}
+            >
+              <Text style={s.modalDetailBtnText}>Confirm Reject</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.modalRejectCancel} onPress={() => setRejectModalVisible(false)}>
+              <Text style={s.modalRejectCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
-                {selected.assignments.length === 0 ? (
-                  <Text style={s.detail}>Not Assigned</Text>
-                ) : (
-                  selected.assignments.map((a: any) => (
-                    <Text key={a.assignment_id} style={s.detail}>
-                      {a.assigned_at} →{' '}
-                      {a.assigned_to_first_name
-                        ? `${a.assigned_to_first_name} ${a.assigned_to_last_name}`
-                        : a.assigned_to}
-                    </Text>
-                  ))
-                )}
-
-
-
-                <Text style={s.sectionTitle}>Assign / Reassign Responder</Text>
-
-                <View
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#ddd',
-                    borderRadius: 8,
-                    marginTop: 10,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Picker
-                    selectedValue={selectedResponder}
-                    onValueChange={(value) => setSelectedResponder(value)}
-                  >
-                    <Picker.Item label="Select Responder" value="" />
-
-                    {responders.map((r) => (
-                      <Picker.Item
-                        key={r.user_id}
-                        label={`${r.first_name} ${r.last_name}`}
-                        value={r.user_id}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-
-                <TouchableOpacity
-  
-  style={{
-    backgroundColor: isLocked || !selectedResponder ? '#9ca3af' : '#22c55e',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-    opacity: isLocked ? 0.6 : 1,
-  }}
-  disabled={isLocked || !selectedResponder}
-  onPress={() => handleAssign(selected.complaint.complaint_id)}
-
-                >
-                  <Text style={{ color: '#fff', fontWeight: '700' }}>
-                    {selected.assignments?.length
-                      ? 'Reassign Responder'
-                      : 'Assign Responder'}
-                  </Text>
-                </TouchableOpacity>
-              
-               {/* {REJECT COMPLAINT BUTTON} */}
-
-                {!isLocked &&
-                  (
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: '#ef4444',
-                        padding: 12,
-                        borderRadius: 8,
-                        alignItems: 'center',
-                        marginTop: 10,
-                      }}
-                      onPress={() => setRejectModalVisible(true)
-                      }                                >
-                      <Text
-                        style={{
-                          color: '#fff',
-                          fontWeight: '700',
-                        }}
-                      >
-                        Reject Complaint
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-
-
-                <Text style={s.sectionTitle}>Priority Management</Text>
-
-                <View
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#ddd',
-                    borderRadius: 8,
-                    marginTop: 10,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Picker
-                    selectedValue={selectedPriority}
-                    onValueChange={(value) => setSelectedPriority(value)}
-                  >
-                    <Picker.Item label="Low" value="low" />
-                    <Picker.Item label="Normal" value="normal" />
-                    <Picker.Item label="High" value="high" />
-                    <Picker.Item label="Urgent" value="urgent" />
-                  </Picker>
-                </View>
-
-                <TouchableOpacity
-                  disabled={isLocked} 
-                  style={{
-                    backgroundColor: '#ef4444',
-                    padding: 12,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    marginTop: 10,
-                  }}
-                  onPress={() =>
-                    handleUpdatePriority(selected.complaint.complaint_id)
-                  }
-                >
-                  <Text style={{ color: '#fff', fontWeight: '700' }}>
-                    Update Priority
-                  </Text>
-                </TouchableOpacity>
-
-
-
-                {/* ===================== */}
-                {/* 4. TIMELINE SECTION */}
-                {/* ===================== */}
-                <Text style={s.sectionTitle}>Timeline</Text>
-
-                {(selected.activityLogs?.length ?? 0) === 0 ? (
-                  <Text style={s.detail}>No activity yet</Text>
-                ) : (
-                  selected.activityLogs.map((l: any) => (
-                    <View key={l.activity_log_id} style={{ marginBottom: 10 }}>
-                      <Text style={s.detail}>
-                        {l.action_type.toUpperCase()}
-                      </Text>
-
-                      <Text style={s.detail}>{l.description}</Text>
-
-                      <Text style={s.detail}>
-                        {l.first_name ? `${l.first_name} ${l.last_name}` : 'System'} • {l.created_at}
-                      </Text>
-                    </View>
-                  ))
-                )}
-
-                {/* ===================== */}
-                {/* CLOSE BUTTON */}
-                {/* ===================== */}
-                <TouchableOpacity style={s.closeBtn} onPress={() => setModalOpen(false)}>
-                  <Text style={s.closeText}>Close</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </ScrollView>
+      <Modal visible={viewerVisible} animationType="slide" onRequestClose={() => setViewerVisible(false)}>
+        <SafeAreaView style={s.modalViewerSafe}>
+          <TouchableOpacity onPress={() => setViewerVisible(false)} style={s.modalViewerClose}>
+            <Text style={s.modalViewerCloseText}>Close</Text>
+          </TouchableOpacity>
+          {activeMedia?.media_type === 'image' ? (
+            <Image source={{ uri: activeMedia.media_url }} style={s.modalViewerMedia} resizeMode="contain" />
+          ) : null}
+          {activeMedia?.media_type === 'video' ? (
+            <Video
+              source={{ uri: activeMedia.media_url }}
+              style={s.modalViewerMedia}
+              useNativeControls
+              resizeMode={ResizeMode.CONTAIN}
+            />
+          ) : null}
         </SafeAreaView>
       </Modal>
-      <Modal
-  visible={rejectModalVisible}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setRejectModalVisible(false)}
->
-  <View style={{
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 20,
-  }}>
-    <View style={{
-      backgroundColor: '#fff',
-      padding: 16,
-      borderRadius: 10,
-    }}>
-      
-      <Text style={{ fontWeight: '700', marginBottom: 10 }}>
-        Reject Complaint
-      </Text>
-
-      <TextInput
-        placeholder="Enter rejection reason..."
-        value={rejectionReason}
-        onChangeText={setRejectionReason}
-        style={{
-          borderWidth: 1,
-          borderColor: '#ddd',
-          padding: 10,
-          borderRadius: 8,
-          minHeight: 80,
-          textAlignVertical: 'top',
-        }}
-        multiline
-      />
-
-      <TouchableOpacity
-        style={{
-          backgroundColor: '#ef4444',
-          padding: 12,
-          borderRadius: 8,
-          marginTop: 10,
-        }}
-        onPress={handleRejectComplaint}
-      >
-        <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '700' }}>
-          Confirm Reject
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={{ marginTop: 10 }}
-        onPress={() => setRejectModalVisible(false)}
-      >
-        <Text style={{ textAlign: 'center' }}>Cancel</Text>
-      </TouchableOpacity>
-
-    </View>
-  </View>
-</Modal>
-
-<Modal visible={viewerVisible} animationType="slide">
-  <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
-
-    <TouchableOpacity
-      onPress={() => setViewerVisible(false)}
-      style={{ padding: 15 }}
-    >
-      <Text style={{ color: '#fff' }}>Close</Text>
-    </TouchableOpacity>
-
-    {activeMedia?.media_type === 'image' && (
-      <Image
-        source={{ uri: activeMedia.media_url }}
-        style={{ width: '100%', height: '90%' }}
-        resizeMode="contain"
-      />
-    )}
-
-    {activeMedia?.media_type === 'video' && (
-      <Video
-        source={{ uri: activeMedia.media_url }}
-        style={{ width: '100%', height: '90%' }}
-        useNativeControls
-        resizeMode={ResizeMode.CONTAIN}
-      />
-    )}
-  </SafeAreaView>
-</Modal>
     </PageShell>
   );
-
-
-
 }
-
-
-
