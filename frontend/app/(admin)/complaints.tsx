@@ -13,7 +13,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Picker } from '@react-native-picker/picker';
 import { ResizeMode, Video } from 'expo-av';
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
 import ComplaintEvidenceGallery from '../../components/ComplaintEvidenceGallery';
@@ -24,7 +23,7 @@ import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { fetchAdminComplaintDetails, fetchAdminComplaints } from '../../utils/adminApi';
-import { formatComplaintStatus } from '../../utils/complaintApi';
+import { formatComplaintStatus, formatDateTime } from '../../utils/complaintApi';
 import { adminComplaintsStyles as styles } from '../../styles/app/adminComplaints';
 import { authFetch } from '../../utils/authFetch';
 
@@ -46,16 +45,96 @@ function DetailField({
   value,
   wide,
   compact,
+  multiline,
 }: {
   label: string;
   value: string;
   wide?: boolean;
   compact?: boolean;
+  multiline?: boolean;
 }) {
   return (
-    <View style={[s.modalDetailField, wide && s.modalDetailFieldWide]}>
+    <View
+      style={[
+        s.modalDetailField,
+        wide && (compact ? s.modalDetailFieldWideCompact : s.modalDetailFieldWide),
+      ]}
+    >
       <Text style={[s.modalDetailFieldLabel, compact && s.modalDetailFieldLabelCompact]}>{label}</Text>
-      <Text style={[s.modalDetailFieldValue, compact && s.modalDetailFieldValueCompact]}>{value}</Text>
+      <Text
+        style={[
+          s.modalDetailFieldValue,
+          compact && s.modalDetailFieldValueCompact,
+          multiline && s.modalDetailFieldValueMultiline,
+        ]}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function AdminSelect({
+  value,
+  onValueChange,
+  options,
+  placeholder = 'Select...',
+  disabled = false,
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  options: { label: string; value: string }[];
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value);
+  const display = value && selected ? selected.label : placeholder;
+  const showPlaceholder = !value;
+
+  return (
+    <View style={s.modalDetailSelectWrap}>
+      <TouchableOpacity
+        style={[s.modalDetailSelectTrigger, disabled && s.modalDetailSelectTriggerDisabled]}
+        onPress={() => !disabled && setOpen((current) => !current)}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open, disabled }}
+      >
+        <Text
+          style={[s.modalDetailSelectText, showPlaceholder && s.modalDetailSelectPlaceholder]}
+          numberOfLines={1}
+        >
+          {display}
+        </Text>
+        <Text style={s.modalDetailSelectChevron}>{open ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+      {open && !disabled ? (
+        <View style={s.modalDetailSelectOptions}>
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <TouchableOpacity
+                key={option.value || '__placeholder__'}
+                style={[s.modalDetailSelectOption, isSelected && s.modalDetailSelectOptionSelected]}
+                onPress={() => {
+                  onValueChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                <Text
+                  style={[
+                    s.modalDetailSelectOptionText,
+                    isSelected && s.modalDetailSelectOptionTextSelected,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -417,7 +496,44 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
       return <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} />;
     }
 
-    const useWideGrid = layout.isDesktop || layout.isTablet;
+    const assignmentHistorySection = (
+      <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
+        <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>
+          Assignment History
+        </Text>
+        {selected.assignments.length === 0 ? (
+          <Text style={s.modalDetailEmptyHint}>Not Assigned</Text>
+        ) : (
+          selected.assignments.map((a: any) => (
+            <Text key={a.assignment_id} style={s.modalDetailTimelineText}>
+              {formatDateTime(a.assigned_at)} →{' '}
+              {a.assigned_to_first_name
+                ? `${a.assigned_to_first_name} ${a.assigned_to_last_name}`
+                : a.assigned_to}
+            </Text>
+          ))
+        )}
+      </View>
+    );
+
+    const timelineSection = (
+      <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
+        <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>Timeline</Text>
+        {(selected.activityLogs?.length ?? 0) === 0 ? (
+          <Text style={s.modalDetailEmptyHint}>No activity yet</Text>
+        ) : (
+          selected.activityLogs.map((l: any) => (
+            <View key={l.activity_log_id} style={s.modalDetailTimelineItem}>
+              <Text style={s.modalDetailTimelineAction}>{l.action_type}</Text>
+              <Text style={s.modalDetailTimelineText}>{l.description}</Text>
+              <Text style={s.modalDetailTimelineMeta}>
+                {l.first_name ? `${l.first_name} ${l.last_name}` : 'System'} • {formatDateTime(l.created_at)}
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
+    );
 
     return (
       <View style={[s.modalDetailBody, layout.isDesktop && s.modalDetailBodyDesktop]}>
@@ -429,15 +545,21 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
             <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>
               Complaint Details
             </Text>
-            <View style={[s.modalDetailGrid, useWideGrid && s.modalDetailGridWide]}>
-              <DetailField compact={compact} wide={useWideGrid} label="Reference" value={selected.complaint.reference_id} />
-              <DetailField compact={compact} wide={useWideGrid} label="Status" value={formatComplaintStatus(selected.complaint.status)} />
-              <DetailField compact={compact} wide={useWideGrid} label="Priority" value={selected.complaint.priority_level} />
-              <DetailField compact={compact} wide={useWideGrid} label="Category" value={selected.category.category_name} />
-              <DetailField compact={compact} wide={useWideGrid} label="Assigned" value={assignedLabel} />
-              <DetailField compact={compact} wide={useWideGrid} label="Date" value={selected.complaint.created_at} />
-            </View>
             <DetailField compact={compact} label="Title" value={selected.complaint.title} />
+            <DetailField
+              compact={compact}
+              label="Description"
+              value={selected.complaint.description || '-'}
+              multiline
+            />
+            <View style={[s.modalDetailGrid, s.modalDetailGridWide]}>
+              <DetailField compact={compact} wide label="Reference" value={selected.complaint.reference_id} />
+              <DetailField compact={compact} wide label="Status" value={formatComplaintStatus(selected.complaint.status)} />
+              <DetailField compact={compact} wide label="Priority" value={selected.complaint.priority_level} />
+              <DetailField compact={compact} wide label="Category" value={selected.category.category_name} />
+              <DetailField compact={compact} wide label="Assigned" value={assignedLabel} />
+              <DetailField compact={compact} wide label="Date" value={formatDateTime(selected.complaint.created_at)} />
+            </View>
           </View>
 
           {/* ===================== */}
@@ -452,46 +574,19 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
             />
           </View>
 
-          {/* ===================== */}
-          {/* 3. ASSIGNMENT SECTION */}
-          {/* ===================== */}
-          <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
-            <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>
-              Assignment History
-            </Text>
-            {selected.assignments.length === 0 ? (
-              <Text style={s.modalDetailEmptyHint}>Not Assigned</Text>
-            ) : (
-              selected.assignments.map((a: any) => (
-                <Text key={a.assignment_id} style={s.modalDetailTimelineText}>
-                  {a.assigned_at} →{' '}
-                  {a.assigned_to_first_name
-                    ? `${a.assigned_to_first_name} ${a.assigned_to_last_name}`
-                    : a.assigned_to}
-                </Text>
-              ))
-            )}
-          </View>
+          {!compact ? (
+            <>
+              {/* ===================== */}
+              {/* 3. ASSIGNMENT SECTION */}
+              {/* ===================== */}
+              {assignmentHistorySection}
 
-          {/* ===================== */}
-          {/* 4. TIMELINE SECTION */}
-          {/* ===================== */}
-          <View style={[s.modalDetailCard, compact && s.modalDetailCardCompact]}>
-            <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>Timeline</Text>
-            {(selected.activityLogs?.length ?? 0) === 0 ? (
-              <Text style={s.modalDetailEmptyHint}>No activity yet</Text>
-            ) : (
-              selected.activityLogs.map((l: any) => (
-                <View key={l.activity_log_id} style={s.modalDetailTimelineItem}>
-                  <Text style={s.modalDetailTimelineAction}>{l.action_type}</Text>
-                  <Text style={s.modalDetailTimelineText}>{l.description}</Text>
-                  <Text style={s.modalDetailTimelineMeta}>
-                    {l.first_name ? `${l.first_name} ${l.last_name}` : 'System'} • {l.created_at}
-                  </Text>
-                </View>
-              ))
-            )}
-          </View>
+              {/* ===================== */}
+              {/* 4. TIMELINE SECTION */}
+              {/* ===================== */}
+              {timelineSection}
+            </>
+          ) : null}
         </View>
 
         <View
@@ -505,22 +600,19 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
             <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>
               Assign / Reassign Responder
             </Text>
-            <View style={s.modalDetailPickerWrap}>
-              <Picker
-                selectedValue={selectedResponder}
-                onValueChange={(value) => setSelectedResponder(value)}
-                enabled={!isLocked}
-              >
-                <Picker.Item label="Select Responder" value="" />
-                {responders.map((r) => (
-                  <Picker.Item
-                    key={r.user_id}
-                    label={`${r.first_name} ${r.last_name}`}
-                    value={r.user_id}
-                  />
-                ))}
-              </Picker>
-            </View>
+            <AdminSelect
+              value={selectedResponder}
+              onValueChange={setSelectedResponder}
+              placeholder="Select Responder"
+              disabled={isLocked}
+              options={[
+                { label: 'Select Responder', value: '' },
+                ...responders.map((r) => ({
+                  label: `${r.first_name} ${r.last_name}`,
+                  value: r.user_id,
+                })),
+              ]}
+            />
             <TouchableOpacity
               style={[
                 s.modalDetailBtn,
@@ -559,18 +651,17 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
             <Text style={[s.modalDetailCardTitle, compact && s.modalDetailCardTitleCompact]}>
               Priority Management
             </Text>
-            <View style={s.modalDetailPickerWrap}>
-              <Picker
-                selectedValue={selectedPriority}
-                onValueChange={(value) => setSelectedPriority(value)}
-                enabled={!isLocked}
-              >
-                <Picker.Item label="Low" value="low" />
-                <Picker.Item label="Normal" value="normal" />
-                <Picker.Item label="High" value="high" />
-                <Picker.Item label="Urgent" value="urgent" />
-              </Picker>
-            </View>
+            <AdminSelect
+              value={selectedPriority}
+              onValueChange={setSelectedPriority}
+              disabled={isLocked}
+              options={[
+                { label: 'Low', value: 'low' },
+                { label: 'Normal', value: 'normal' },
+                { label: 'High', value: 'high' },
+                { label: 'Urgent', value: 'urgent' },
+              ]}
+            />
             <TouchableOpacity
               style={[
                 s.modalDetailBtn,
@@ -586,6 +677,13 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
               </Text>
             </TouchableOpacity>
           </View>
+
+          {compact ? (
+            <>
+              {assignmentHistorySection}
+              {timelineSection}
+            </>
+          ) : null}
 
           {!useOverlayDialog ? (
             <>

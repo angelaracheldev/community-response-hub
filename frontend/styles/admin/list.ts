@@ -425,6 +425,9 @@ export const adminListStyles = StyleSheet.create({
     width: '48%',
     minWidth: 160,
   },
+  modalDetailFieldWideCompact: {
+    width: '48%',
+  },
   modalDetailFieldLabel: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.bold,
@@ -444,6 +447,9 @@ export const adminListStyles = StyleSheet.create({
   modalDetailFieldValueCompact: {
     fontSize: fontSize.sm,
     lineHeight: 18,
+  },
+  modalDetailFieldValueMultiline: {
+    lineHeight: 20,
   },
   modalDetailEvidenceItem: {
     padding: spacing.md,
@@ -478,12 +484,61 @@ export const adminListStyles = StyleSheet.create({
     color: colors.text.muted,
     fontSize: fontSize.xs,
   },
-  modalDetailPickerWrap: {
+  modalDetailSelectWrap: {
     borderWidth: 1,
     borderColor: colors.border.default,
     borderRadius: radius.md,
-    overflow: 'hidden',
     backgroundColor: colors.background.surface,
+    overflow: 'visible',
+  },
+  modalDetailSelectTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md + 2,
+    minHeight: 48,
+  },
+  modalDetailSelectTriggerDisabled: {
+    opacity: 0.6,
+  },
+  modalDetailSelectText: {
+    flex: 1,
+    fontSize: fontSize.base,
+    color: colors.text.primary,
+    lineHeight: 20,
+  },
+  modalDetailSelectPlaceholder: {
+    color: colors.text.muted,
+  },
+  modalDetailSelectChevron: {
+    fontSize: fontSize.sm,
+    color: colors.text.muted,
+  },
+  modalDetailSelectOptions: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border.default,
+    backgroundColor: colors.background.subtle,
+    maxHeight: 200,
+  },
+  modalDetailSelectOption: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md + 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  modalDetailSelectOptionSelected: {
+    backgroundColor: colors.primaryLight,
+  },
+  modalDetailSelectOptionText: {
+    fontSize: fontSize.base,
+    color: colors.text.secondary,
+    lineHeight: 20,
+  },
+  modalDetailSelectOptionTextSelected: {
+    color: colors.primaryDark,
+    fontWeight: fontWeight.bold,
   },
   modalDetailBtn: {
     paddingVertical: spacing.md,
