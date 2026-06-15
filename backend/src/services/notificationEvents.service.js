@@ -110,6 +110,17 @@ async function onComplaintAssigned({
       ? `Complaint "${title}" was reassigned.`
       : `Complaint "${title}" was assigned.`,
   });
+
+  // 4. Notify previous responder on reassignment
+  if (isReassignment && previousResponder && previousResponder !== assignedToUserId) {
+    await notificationsService.createNotification({
+      userId: previousResponder,
+      type: 'complaint_unassigned',
+      entityType: ENTITY.COMPLAINT,
+      entityId: complaint_id,
+      message: `Complaint "${title}" has been unassigned from you.`,
+    });
+  }
 }
 
 module.exports = {
