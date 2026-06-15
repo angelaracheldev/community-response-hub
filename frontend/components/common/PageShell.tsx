@@ -5,7 +5,7 @@ import { SideNav } from './SideNav';
 import { TopNav } from './TopNav';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { useAppSession } from '../../hooks/useAppSession';
-import { AppPortal } from '../../utils/appPortal.config';
+import { AppPortal, getContextualQuickActions } from '../../utils/appPortal.config';
 import { pageShellStyles as styles } from '../../styles/common/pageShell';
 
 type Props = {
@@ -26,6 +26,7 @@ export function PageShell({
   const layout = useAppLayout();
   const { userName, roleLabel, navItems, quickActions, getToken, logout } =
     useAppSession(portal);
+  const contextualQuickActions = getContextualQuickActions(quickActions, activeNavId);
 
   return (
     <AppShell
@@ -33,7 +34,7 @@ export function PageShell({
       showMobileMenu={layout.showMobileMenu}
       contentPadding={layout.contentPadding}
       scrollEnabled={scrollEnabled}
-      floatingQuickActions={layout.showMobileMenu ? quickActions : undefined}
+      floatingQuickActions={layout.showMobileMenu ? contextualQuickActions : undefined}
       sidebar={<SideNav activeId={activeNavId} navItems={navItems} />}
       header={
         <TopNav

@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 
 export const respondentAssignmentsStyles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  scroll: { flex: 1 },
   container: {
     width: '100%',
   },

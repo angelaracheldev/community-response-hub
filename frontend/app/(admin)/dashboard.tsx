@@ -10,7 +10,7 @@ import { TrendChartCard } from '../../components/dashboard/TrendChartCard';
 import { WelcomeBanner } from '../../components/dashboard/WelcomeBanner';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { useAppSession } from '../../hooks/useAppSession';
-import { ADMIN_DASHBOARD_MOCK } from '../../utils/adminDashboard.mock';
+import { ADMIN_DASHBOARD_MOCK, DEFAULT_STATUS_BREAKDOWN } from '../../utils/adminDashboard.mock';
 import { adminDashboardStyles as styles } from '../../styles/app/adminDashboard';
 
 export default function AdminDashboard() {
@@ -26,7 +26,10 @@ export default function AdminDashboard() {
       <StatCardGrid stats={mock.stats} columns={layout.statColumns} />
 
       <View style={[styles.row, layout.chartColumns === 1 && styles.rowStack]}>
-        <DonutChartCard title="Complaints Overview" segments={mock.statusBreakdown} />
+        <DonutChartCard
+          title="Complaints Overview"
+          segments={mock.statusBreakdown ?? DEFAULT_STATUS_BREAKDOWN}
+        />
         <TrendChartCard title="Complaint Trends" points={mock.trendPoints} />
       </View>
 

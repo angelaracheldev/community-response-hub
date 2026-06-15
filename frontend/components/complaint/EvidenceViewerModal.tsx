@@ -1,7 +1,6 @@
 import React from 'react';
-import { Image, Modal, Text, TouchableOpacity } from 'react-native';
+import { Image, Linking, Modal, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ResizeMode, Video } from 'expo-av';
 import { ComplaintMedia } from '../../utils/complaintApi';
 import { evidenceViewerModalStyles as styles } from '../../styles/complaint/evidenceViewerModal';
 
@@ -22,12 +21,16 @@ export default function EvidenceViewerModal({ visible, media, onClose }: Props) 
           <Image source={{ uri: media.media_url }} style={styles.media} resizeMode="contain" />
         ) : null}
         {media?.media_type === 'video' ? (
-          <Video
-            source={{ uri: media.media_url }}
-            style={styles.media}
-            useNativeControls
-            resizeMode={ResizeMode.CONTAIN}
-          />
+          <View style={styles.videoFallback}>
+            <Text style={styles.videoFallbackTitle}>Video evidence</Text>
+            <Text style={styles.videoFallbackHint}>Open this file in your browser to play it.</Text>
+            <TouchableOpacity
+              onPress={() => void Linking.openURL(media.media_url)}
+              style={styles.openLinkButton}
+            >
+              <Text style={styles.openLinkText}>Open video</Text>
+            </TouchableOpacity>
+          </View>
         ) : null}
       </SafeAreaView>
     </Modal>

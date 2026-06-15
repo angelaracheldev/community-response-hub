@@ -16,11 +16,20 @@ export const appShellStyles = StyleSheet.create({
   },
   main: {
     flex: 1,
-    position: 'relative',
+    minHeight: 0,
   },
-  content: {},
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    flexGrow: 1,
+  },
   contentFlex: {
     flex: 1,
+    minHeight: 0,
+  },
+  footer: {
+    flexShrink: 0,
   },
   overlay: {
     flex: 1,

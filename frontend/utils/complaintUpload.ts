@@ -1,5 +1,5 @@
-import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { appendLocalFileToFormData } from './formDataUpload';
 
 export const ALLOWED_MEDIA_TYPES = [
   'image/jpeg',
@@ -27,13 +27,11 @@ export async function buildComplaintMediaFormData(
     const name = asset.fileName ?? (isVideo ? 'evidence.mp4' : 'evidence.jpg');
     const type = asset.mimeType ?? (isVideo ? 'video/mp4' : 'image/jpeg');
 
-    if (Platform.OS === 'web') {
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
-      formData.append('files', blob, name);
-    } else {
-      formData.append('files', { uri: asset.uri, name, type } as unknown as Blob);
-    }
+    await appendLocalFileToFormData(formData, 'files', {
+      uri: asset.uri,
+      name,
+      type,
+    });
   }
 
   return formData;

@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { appendLocalFileToFormData } from './formDataUpload';
 
 type VerificationFile = {
   uri: string;
@@ -19,13 +19,10 @@ export async function buildVerificationFormData(
   const name = idFile.name ?? 'id.jpg';
   const type = idFile.type ?? 'image/jpeg';
 
-  if (Platform.OS === 'web') {
-    const response = await fetch(idFile.uri);
-    const blob = await response.blob();
-    formData.append('file', blob, name);
-    return formData;
-  }
-
-  formData.append('file', { uri: idFile.uri, name, type } as unknown as Blob);
+  await appendLocalFileToFormData(formData, 'file', {
+    uri: idFile.uri,
+    name,
+    type,
+  });
   return formData;
 }

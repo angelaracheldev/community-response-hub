@@ -48,6 +48,13 @@ export const RESPONDENT_NAV_ITEMS: AdminNavItem[] = [
 
 export const RESPONDENT_QUICK_ACTIONS: QuickAction[] = [
   {
+    id: 'home',
+    label: 'Home',
+    icon: '🏠',
+    route: '/(respondent)/dashboard',
+    color: '#3B82F6',
+  },
+  {
     id: 'assignments',
     label: 'My Assignments',
     icon: '📋',
@@ -55,6 +62,13 @@ export const RESPONDENT_QUICK_ACTIONS: QuickAction[] = [
     color: '#6366F1',
   },
 ];
+
+export function getContextualQuickActions(
+  quickActions: QuickAction[],
+  activeNavId: string
+): QuickAction[] {
+  return quickActions.filter((action) => action.id !== activeNavId);
+}
 
 export const APP_PORTALS: Record<AppPortal, AppPortalConfig> = {
   admin: {

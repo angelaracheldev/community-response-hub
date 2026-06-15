@@ -1,11 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
 import { PageShell } from '../../components/common/PageShell';
-import { getFloatingQuickActionsPadding } from '../../components/dashboard/FloatingQuickActionsBar';
-import { useAppLayout } from '../../hooks/useAppLayout';
 import { respondentAssignmentsStyles as styles } from '../../styles/app/respondentAssignments';
 import {
   ComplaintRecord,
@@ -17,12 +14,7 @@ import {
 
 export default function MyAssignmentsScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const layout = useAppLayout();
-  const scrollPaddingBottom = layout.showMobileMenu
-    ? getFloatingQuickActionsPadding(width, insets.bottom)
-    : 32;
+  const scrollPaddingBottom = 32;
   const [assignments, setAssignments] = useState<ComplaintRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -66,6 +58,7 @@ export default function MyAssignmentsScreen() {
   return (
     <PageShell portal="respondent" activeNavId="assignments" pageTitle="My Assignments" scrollEnabled={false}>
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={[styles.container, { paddingBottom: scrollPaddingBottom }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => loadAssignments(true)} />

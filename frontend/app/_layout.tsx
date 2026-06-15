@@ -17,5 +17,5 @@ export default function RootLayout() {
     return () => subscription.remove();
   }, []);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { flex: 1 } }} />;
 }

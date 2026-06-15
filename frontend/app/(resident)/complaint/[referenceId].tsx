@@ -1,12 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import CancelComplaintModal from '../../../components/CancelComplaintModal';
 import ComplaintDetailContent from '../../../components/complaint/ComplaintDetailContent';
 import { PageShell } from '../../../components/common/PageShell';
-import { getFloatingQuickActionsPadding } from '../../../components/dashboard/FloatingQuickActionsBar';
-import { useAppLayout } from '../../../hooks/useAppLayout';
 import { residentComplaintDetailStyles as styles } from '../../../styles/app/residentComplaintDetail';
 import {
   cancelComplaint,
@@ -19,13 +16,8 @@ import {
 
 export default function ResidentComplaintDetailScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const layout = useAppLayout();
   const { referenceId } = useLocalSearchParams<{ referenceId: string }>();
-  const scrollPaddingBottom = layout.showMobileMenu
-    ? getFloatingQuickActionsPadding(width, insets.bottom)
-    : 32;
+  const scrollPaddingBottom = 32;
   const [complaint, setComplaint] = useState<ComplaintRecord | null>(null);
   const [media, setMedia] = useState<ComplaintMedia[]>([]);
   const [loading, setLoading] = useState(true);
