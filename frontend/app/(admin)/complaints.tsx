@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { ResizeMode, Video } from 'expo-av';
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
 import ComplaintEvidenceGallery from '../../components/ComplaintEvidenceGallery';
@@ -200,6 +201,7 @@ function AdminSelect({
 }
 
 export default function AdminComplaints() {
+  const router = useRouter();
   const layout = useAppLayout();
   const useOverlayDialog = layout.isDesktop || layout.isTablet;
   const compact = layout.isMobile;
@@ -867,7 +869,10 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
                 <TouchableOpacity style={s.textBtn} onPress={onSearch}>
                   <Text style={s.textBtnLabel}>Search</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={s.textBtn}>
+                <TouchableOpacity
+                  style={s.textBtn}
+                  onPress={() => router.push('/(admin)/submit-complaint')}
+                >
                   <Text style={s.textBtnLabel}>+ Add Complaint</Text>
                 </TouchableOpacity>
               </View>
@@ -876,7 +881,10 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
                 <TouchableOpacity style={s.linkBtn} onPress={onSearch}>
                   <Text style={s.linkBtnText}>Search</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.addComplaintBtn}>
+                <TouchableOpacity
+                  style={styles.addComplaintBtn}
+                  onPress={() => router.push('/(admin)/submit-complaint')}
+                >
                   <Text style={styles.addComplaintBtnText}>+ Add Complaint</Text>
                 </TouchableOpacity>
               </>

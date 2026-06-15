@@ -1,5 +1,5 @@
   const router = require('express').Router();
-  const { authMiddleware, requireAnyRole, requireVerified } = require('../middleware/auth');
+  const { authMiddleware, requireAnyRole, requireVerified, requireVerifiedOrRole } = require('../middleware/auth');
   const complaintsController = require('../controllers/complaints.controller');
   const {
     createComplaintValidation,
@@ -10,7 +10,7 @@
   console.log(complaintsController);
   console.log('CONTROLLER KEYS:', Object.keys(complaintsController));
 
-   router.post('/', authMiddleware, requireVerified, createComplaintValidation, complaintsController.createComplaint);
+   router.post('/', authMiddleware, requireVerifiedOrRole(['admin']), createComplaintValidation, complaintsController.createComplaint);
   router.get('/', authMiddleware, complaintsController.listComplaints);
   router.get('/my', authMiddleware, complaintsController.listMyComplaints);
   router.get('/:id', authMiddleware, complaintsController.getComplaintById);
@@ -61,11 +61,11 @@
   router.post(
     '/:id/media',
     authMiddleware,
-    requireVerified,
+    requireVerifiedOrRole(['admin']),
     upload.array('files', 5),
     mediaController.uploadMedia
   );
-  router.delete('/:id', authMiddleware, requireVerified, complaintsController.deleteFailedComplaint);
+  router.delete('/:id', authMiddleware, requireVerifiedOrRole(['admin']), complaintsController.deleteFailedComplaint);
   router.get('/:id/media', authMiddleware, mediaController.listMedia);
   router.delete('/:id/media/:mediaId', authMiddleware, mediaController.deleteMedia);
 

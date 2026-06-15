@@ -35,7 +35,8 @@ async function createComplaint(requestUser, body) {
       complaintId: complaint.complaint_id,
       performedBy: requestUser.user_id,
       actionType: 'complaint_created',
-      description: 'Complaint created by resident',
+      description:
+        requestUser.role_name === 'admin' ? 'Complaint created by admin' : 'Complaint created by resident',
     });
   } catch (err) {
     console.error('Failed to insert activity log for complaint creation:', err.message);
