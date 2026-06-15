@@ -23,6 +23,7 @@ export type ComplaintRecord = {
   location_text: string;
   category_id: number;
   category_name?: string;
+  priority_level?: string;
   remarks?: string | null;
   created_at: string;
   updated_at?: string;
@@ -38,6 +39,7 @@ export type ComplaintMedia = {
   media_url: string;
   media_type: 'image' | 'video';
   uploaded_at: string;
+  is_resident_evidence?: boolean;
 };
 
 function apiErrorMessage(
@@ -60,6 +62,16 @@ export function formatComplaintStatus(status: string): string {
     rejected: 'Rejected',
   };
   return labels[status] ?? status;
+}
+
+export function formatPriorityLevel(priority: string): string {
+  const labels: Record<string, string> = {
+    low: 'Low',
+    normal: 'Normal',
+    high: 'High',
+    urgent: 'Urgent',
+  };
+  return labels[priority.toLowerCase()] ?? priority;
 }
 
 export function formatAssigneeName(complaint: ComplaintRecord): string {
@@ -207,10 +219,58 @@ export function canCancelComplaint(status: string): boolean {
   return status === 'pending' || status === 'assigned';
 }
 
+export function canStartWork(status: string): boolean {
+  return status === 'assigned';
+}
+
+export function canResolveComplaint(status: string): boolean {
+  return status === 'assigned' || status === 'in_progress';
+}
+
+export async function updateComplaintStatus(
+  referenceId: string,
+  complaintStatus: 'in_progress' | 'resolved',
+  remarks?: string
+): Promise<ComplaintRecord> {
+  const response = await authFetch(`${API_BASE}/complaints/${encodeURIComponent(referenceId)}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      complaintStatus,
+      remarks,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(apiErrorMessage(data, 'Unable to update complaint status'));
+  }
+
+  return data.data as ComplaintRecord;
+}
+
+export async function resolveComplaint(
+  referenceId: string,
+  remarks: string,
+  assets: ImagePicker.ImagePickerAsset[]
+): Promise<ComplaintRecord> {
+  await uploadComplaintMedia(referenceId, assets);
+  return updateComplaintStatus(referenceId, 'resolved', remarks);
+}
+
 export function splitComplaintMedia(
   media: ComplaintMedia[],
   reportedBy: string
 ): { residentEvidence: ComplaintMedia[]; resolutionEvidence: ComplaintMedia[] } {
+  if (media.some((item) => item.is_resident_evidence !== undefined)) {
+    return {
+      residentEvidence: media.filter((item) => item.is_resident_evidence),
+      resolutionEvidence: media.filter((item) => !item.is_resident_evidence),
+    };
+  }
+
   const residentEvidence = media.filter((item) => item.uploaded_by === reportedBy);
   const resolutionEvidence = media.filter((item) => item.uploaded_by !== reportedBy);
   return { residentEvidence, resolutionEvidence };

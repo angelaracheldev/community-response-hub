@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
 import { PageShell } from '../../components/common/PageShell';
 import { getFloatingQuickActionsPadding } from '../../components/dashboard/FloatingQuickActionsBar';
@@ -12,9 +12,11 @@ import {
   fetchAssignedComplaints,
   formatDate,
   formatDateTime,
+  formatPriorityLevel,
 } from '../../utils/complaintApi';
 
 export default function MyAssignmentsScreen() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const layout = useAppLayout();
@@ -82,33 +84,43 @@ export default function MyAssignmentsScreen() {
           </View>
         ) : (
           assignments.map((item) => (
-            <View key={item.reference_id} style={styles.card}>
+            <TouchableOpacity
+              key={item.reference_id}
+              style={styles.card}
+              onPress={() => router.push(`/(respondent)/complaint/${item.reference_id}`)}
+              activeOpacity={0.85}
+            >
               <View style={styles.row}>
                 <Text style={styles.cardTitle} numberOfLines={2}>
                   {item.title}
                 </Text>
                 <ComplaintStatusBadge status={item.status} compact />
               </View>
+              <Text style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Reference: </Text>
+                {item.reference_id}
+              </Text>
               {item.category_name ? (
                 <Text style={styles.metaRow}>
                   <Text style={styles.metaLabel}>Category: </Text>
                   {item.category_name}
                 </Text>
               ) : null}
+              {item.priority_level ? (
+                <Text style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Priority: </Text>
+                  {formatPriorityLevel(item.priority_level)}
+                </Text>
+              ) : null}
               <Text style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Location: </Text>
-                {item.location_text || 'Not specified'}
-              </Text>
-              <Text style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Assigned: </Text>
+                <Text style={styles.metaLabel}>Date Submitted: </Text>
                 {formatDate(item.created_at)}
               </Text>
               <Text style={styles.metaRow}>
                 <Text style={styles.metaLabel}>Last Updated: </Text>
                 {formatDateTime(item.updated_at ?? item.created_at)}
               </Text>
-              <Text style={styles.refRow}>Ref: {item.reference_id}</Text>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>

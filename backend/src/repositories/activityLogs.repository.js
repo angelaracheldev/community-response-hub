@@ -21,14 +21,6 @@ async function findByComplaintId(complaintId) {
 //   );
 // }
 
-async function insertLog({ complaintId, performedBy, actionType, oldValue = null, newValue = null, description }) {
-  return db.query(
-    `INSERT INTO activity_logs (complaint_id, performed_by, action_type, old_value, new_value, description)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [complaintId, performedBy, actionType, oldValue, newValue, description]
-  );
-}
-
 async function insertLog({
   complaintId,
   performedBy,
@@ -44,11 +36,6 @@ async function insertLog({
     [complaintId, performedBy, actionType, oldValue, newValue, description]
   );
 }
-
-module.exports = {
-  findByComplaintId,
-  insertLog,
-};
 
 module.exports = {
   findByComplaintId,

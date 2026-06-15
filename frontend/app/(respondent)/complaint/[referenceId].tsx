@@ -1,23 +1,32 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import CancelComplaintModal from '../../../components/CancelComplaintModal';
 import ComplaintDetailContent from '../../../components/complaint/ComplaintDetailContent';
+import ResolveComplaintModal from '../../../components/complaint/ResolveComplaintModal';
 import { PageShell } from '../../../components/common/PageShell';
 import { getFloatingQuickActionsPadding } from '../../../components/dashboard/FloatingQuickActionsBar';
 import { useAppLayout } from '../../../hooks/useAppLayout';
 import { residentComplaintDetailStyles as styles } from '../../../styles/app/residentComplaintDetail';
 import {
-  cancelComplaint,
-  canCancelComplaint,
+  canResolveComplaint,
+  canStartWork,
   fetchComplaintByReferenceId,
   fetchComplaintMedia,
+  resolveComplaint,
+  updateComplaintStatus,
   ComplaintMedia,
   ComplaintRecord,
 } from '../../../utils/complaintApi';
 
-export default function ResidentComplaintDetailScreen() {
+export default function RespondentComplaintDetailScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -30,7 +39,8 @@ export default function ResidentComplaintDetailScreen() {
   const [media, setMedia] = useState<ComplaintMedia[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cancelVisible, setCancelVisible] = useState(false);
+  const [resolveVisible, setResolveVisible] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const loadDetails = useCallback(async () => {
     if (!referenceId) return;
@@ -59,16 +69,33 @@ export default function ResidentComplaintDetailScreen() {
     }, [loadDetails])
   );
 
-  const handleCancel = async (reason: string) => {
+  const handleStartWork = async () => {
+    if (!referenceId || !complaint) return;
+
+    setUpdatingStatus(true);
+    try {
+      await updateComplaintStatus(referenceId, 'in_progress');
+      await loadDetails();
+    } catch (err) {
+      Alert.alert(
+        'Unable to start work',
+        err instanceof Error ? err.message : 'Please try again.'
+      );
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleResolve = async (remarks: string, assets: Parameters<typeof resolveComplaint>[2]) => {
     if (!referenceId) return;
-    const updated = await cancelComplaint(referenceId, reason);
-    setComplaint(updated);
-    setCancelVisible(false);
+
+    await resolveComplaint(referenceId, remarks, assets);
+    await loadDetails();
   };
 
   if (loading) {
     return (
-      <PageShell portal="resident" activeNavId="tracking" pageTitle="Complaint Details" scrollEnabled={false}>
+      <PageShell portal="respondent" activeNavId="assignments" pageTitle="Complaint Details" scrollEnabled={false}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4f46e5" />
         </View>
@@ -78,7 +105,7 @@ export default function ResidentComplaintDetailScreen() {
 
   if (error || !complaint) {
     return (
-      <PageShell portal="resident" activeNavId="tracking" pageTitle="Complaint Details" scrollEnabled={false}>
+      <PageShell portal="respondent" activeNavId="assignments" pageTitle="Complaint Details" scrollEnabled={false}>
         <View style={[styles.container, { paddingHorizontal: 0 }]}>
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={styles.backLink}>← Back</Text>
@@ -92,29 +119,51 @@ export default function ResidentComplaintDetailScreen() {
     );
   }
 
+  const showStartWork = canStartWork(complaint.status);
+  const showResolve = canResolveComplaint(complaint.status);
+
   return (
-    <PageShell portal="resident" activeNavId="tracking" pageTitle="Complaint Details" scrollEnabled={false}>
+    <PageShell portal="respondent" activeNavId="assignments" pageTitle="Complaint Details" scrollEnabled={false}>
       <ComplaintDetailContent
         complaint={complaint}
         media={media}
-        viewer="resident"
+        viewer="responder"
         scrollPaddingBottom={scrollPaddingBottom}
         onBack={() => router.back()}
         actionSection={
-          canCancelComplaint(complaint.status) ? (
-            <View style={styles.cancelSection}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setCancelVisible(true)}>
-                <Text style={styles.cancelButtonText}>Cancel Complaint</Text>
-              </TouchableOpacity>
-            </View>
+          showStartWork || showResolve ? (
+            <>
+              {showStartWork ? (
+                <TouchableOpacity
+                  style={styles.primaryActionButton}
+                  onPress={handleStartWork}
+                  disabled={updatingStatus}
+                >
+                  {updatingStatus ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.primaryActionButtonText}>Start Work</Text>
+                  )}
+                </TouchableOpacity>
+              ) : null}
+              {showResolve ? (
+                <TouchableOpacity
+                  style={styles.resolveActionButton}
+                  onPress={() => setResolveVisible(true)}
+                  disabled={updatingStatus}
+                >
+                  <Text style={styles.resolveActionButtonText}>Mark as Resolved</Text>
+                </TouchableOpacity>
+              ) : null}
+            </>
           ) : null
         }
       />
 
-      <CancelComplaintModal
-        visible={cancelVisible}
-        onClose={() => setCancelVisible(false)}
-        onConfirm={handleCancel}
+      <ResolveComplaintModal
+        visible={resolveVisible}
+        onClose={() => setResolveVisible(false)}
+        onConfirm={handleResolve}
       />
     </PageShell>
   );

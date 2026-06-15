@@ -27,6 +27,33 @@ export const residentComplaintDetailStyles = StyleSheet.create({
     fontWeight: '800',
     color: '#111827',
   },
+  referenceNumber: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+    letterSpacing: 0.2,
+    flex: 1,
+  },
+  headerMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  detailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  detailGridItem: {
+    width: '48%',
+    minWidth: 140,
+    flexGrow: 1,
+  },
+  detailFullWidth: {
+    width: '100%',
+    marginBottom: 4,
+  },
   section: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -92,5 +119,36 @@ export const residentComplaintDetailStyles = StyleSheet.create({
     color: '#4f46e5',
     fontWeight: '600',
     fontSize: 14,
+  },
+  actionSection: {
+    marginTop: 8,
+    marginBottom: 24,
+    gap: 12,
+  },
+  actionSectionTop: {
+    marginBottom: 16,
+    gap: 12,
+  },
+  primaryActionButton: {
+    backgroundColor: '#4f46e5',
+    borderRadius: 10,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  primaryActionButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  resolveActionButton: {
+    backgroundColor: '#10b981',
+    borderRadius: 10,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  resolveActionButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });

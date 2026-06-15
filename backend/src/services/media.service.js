@@ -1,6 +1,7 @@
 const cloudinary = require('../config/cloudinary');
 const mediaRepository = require('../repositories/media.repository');
 const complaintsRepository = require('../repositories/complaints.repository');
+const activityLogsRepository = require('../repositories/activityLogs.repository');
 
 function mediaTypeFromMime(mimetype) {
   return mimetype.startsWith('video/') ? 'video' : 'image';
@@ -28,14 +29,25 @@ async function assertCanAccessComplaint(complaintIdentifier, user) {
   if (user.role_name === 'resident' && complaint.reported_by !== user.user_id) {
     return { error: { status: 403, body: { status: 'error', message: 'Forbidden' } } };
   }
+  if (user.role_name === 'responder' && complaint.assigned_to !== user.user_id) {
+    return { error: { status: 403, body: { status: 'error', message: 'Forbidden' } } };
+  }
   return { complaint };
+}
+
+function mapMediaRows(rows, complaint) {
+  return rows.map((row) => ({
+    ...row,
+    is_resident_evidence: row.uploaded_by === complaint.reported_by,
+  }));
 }
 
 async function uploadComplaintMedia(complaintIdentifier, user, files) {
   const access = await assertCanAccessComplaint(complaintIdentifier, user);
   if (access.error) return access;
 
-  const complaintId = access.complaint.complaint_id;
+  const complaint = access.complaint;
+  const complaintId = complaint.complaint_id;
 
   if (!files?.length) {
     return { error: { status: 400, body: { status: 'error', message: 'No files provided' } } };
@@ -54,12 +66,27 @@ async function uploadComplaintMedia(complaintIdentifier, user, files) {
     uploaded.push(row.rows[0]);
   }
 
+  const isResolutionEvidence =
+    user.role_name === 'responder' && user.user_id !== complaint.reported_by;
+  if (isResolutionEvidence) {
+    try {
+      await activityLogsRepository.insertLog({
+        complaintId,
+        performedBy: user.user_id,
+        actionType: 'resolution_evidence_uploaded',
+        description: `Uploaded ${uploaded.length} resolution evidence file(s)`,
+      });
+    } catch (err) {
+      console.error('Failed to insert resolution evidence activity log:', err.message);
+    }
+  }
+
   return {
     status: 201,
     body: {
       status: 'ok',
       message: 'Media uploaded successfully',
-      data: uploaded,
+      data: mapMediaRows(uploaded, complaint),
       timestamp: new Date().toISOString(),
     },
   };
@@ -73,7 +100,7 @@ async function listComplaintMedia(complaintIdentifier, user) {
   return {
     body: {
       status: 'ok',
-      data: result.rows,
+      data: mapMediaRows(result.rows, access.complaint),
       timestamp: new Date().toISOString(),
     },
   };

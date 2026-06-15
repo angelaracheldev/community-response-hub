@@ -3,7 +3,39 @@ const { PRIORITY_VALUES } = require('../constants/complaintPriority');
 const complaintsRepository = require('../repositories/complaints.repository');
 const assignmentsRepository = require('../repositories/assignments.repository');
 const activityLogsRepository = require('../repositories/activityLogs.repository');
+const mediaRepository = require('../repositories/media.repository');
 const notificationEvents = require('./notificationEvents.service');
+
+const RESPONDER_ALLOWED_STATUSES = ['in_progress', 'resolved'];
+
+function sanitizeComplaintForResponder(complaint) {
+  const { reported_by: _reportedBy, ...rest } = complaint;
+  return rest;
+}
+
+async function assertResponderAssigned(complaint, requestUser) {
+  if (requestUser.role_name !== 'responder') {
+    return null;
+  }
+
+  if (complaint.assigned_to !== requestUser.user_id) {
+    return {
+      error: {
+        status: 403,
+        body: { status: 'error', message: 'Forbidden' },
+      },
+    };
+  }
+
+  return null;
+}
+
+function mapComplaintsForUser(complaints, requestUser) {
+  if (requestUser.role_name !== 'responder') {
+    return complaints;
+  }
+  return complaints.map(sanitizeComplaintForResponder);
+}
 
 
 async function createComplaint(requestUser, body) {
@@ -146,6 +178,11 @@ async function listComplaints(requestUser, query) {
     filters.push(`c.reported_by = $${params.length}`);
   }
 
+  if (requestUser.role_name === 'responder') {
+    params.push(requestUser.user_id);
+    filters.push(`ca.assigned_to = $${params.length}`);
+  }
+
   const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
   const { page, pageSize, offset } = parseComplaintPagination(query);
 
@@ -161,7 +198,7 @@ async function listComplaints(requestUser, query) {
       total: countResult.rows[0]?.total ?? 0,
       page,
       pageSize,
-      complaints: result.rows,
+      complaints: mapComplaintsForUser(result.rows, requestUser),
       timestamp: new Date().toISOString(),
     },
   };
@@ -185,23 +222,88 @@ async function getComplaintById(id, requestUser) {
     return { error: { status: 403, body: { status: 'error', message: 'Forbidden' } } };
   }
 
+  const assignmentError = await assertResponderAssigned(complaint, requestUser);
+  if (assignmentError) {
+    return assignmentError;
+  }
+
+  const data =
+    requestUser.role_name === 'responder'
+      ? sanitizeComplaintForResponder(complaint)
+      : complaint;
+
   return {
-    body: { status: 'ok', data: complaint, timestamp: new Date().toISOString() },
+    body: { status: 'ok', data, timestamp: new Date().toISOString() },
   };
 }
 
-async function updateComplaintStatus(id, { complaintStatus, remarks }) {
+async function updateComplaintStatus(id, { complaintStatus, remarks }, requestUser) {
   const status = complaintStatus.toLowerCase();
   if (!STATUS_VALUES.includes(status)) {
     return { error: { status: 400, body: { status: 'error', message: 'Invalid complaint status' } } };
   }
 
-  const existing = await complaintsRepository.findComplaintById(id);
+  const existing = await complaintsRepository.findComplaintByIdentifier(id);
   if (!existing.rowCount) {
     return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
   }
 
-  const result = await complaintsRepository.updateComplaintStatus({ status, remarks: remarks || null, id });
+  const complaint = existing.rows[0];
+  const complaintId = complaint.complaint_id;
+  const oldStatus = complaint.status;
+
+  if (requestUser.role_name === 'responder') {
+    const assignmentError = await assertResponderAssigned(complaint, requestUser);
+    if (assignmentError) {
+      return assignmentError;
+    }
+
+    if (!RESPONDER_ALLOWED_STATUSES.includes(status)) {
+      return {
+        error: {
+          status: 403,
+          body: { status: 'error', message: 'Responders can only set status to in_progress or resolved' },
+        },
+      };
+    }
+
+    if (status === 'in_progress' && !['assigned', 'in_progress'].includes(oldStatus)) {
+      return {
+        error: {
+          status: 400,
+          body: { status: 'error', message: 'Only assigned complaints can be marked in progress' },
+        },
+      };
+    }
+
+    if (status === 'resolved') {
+      const trimmedRemarks = (remarks || '').trim();
+      if (trimmedRemarks.length < 10) {
+        return {
+          error: {
+            status: 400,
+            body: { status: 'error', message: 'Resolution remarks must be at least 10 characters' },
+          },
+        };
+      }
+
+      const mediaCount = await mediaRepository.countMediaUploadedBy(complaintId, requestUser.user_id);
+      if ((mediaCount.rows[0]?.count ?? 0) < 1) {
+        return {
+          error: {
+            status: 400,
+            body: { status: 'error', message: 'At least one resolution evidence file is required' },
+          },
+        };
+      }
+    }
+  }
+
+  const result = await complaintsRepository.updateComplaintStatus({
+    status,
+    remarks: remarks || null,
+    id,
+  });
   if (!result.rowCount) {
     return { error: { status: 404, body: { status: 'error', message: 'Complaint not found' } } };
   }
@@ -209,24 +311,50 @@ async function updateComplaintStatus(id, { complaintStatus, remarks }) {
   const notifiableStatuses = ['in_progress', 'resolved', 'rejected', 'cancelled'];
   if (notifiableStatuses.includes(status)) {
     try {
-      await notificationEvents.onComplaintStatusUpdated(existing.rows[0], status);
+      await notificationEvents.onComplaintStatusUpdated(complaint, status);
     } catch (err) {
       console.error('Failed to create status notifications:', err.message);
     }
   }
 
-  await activityLogsRepository.insertLog({
-  complaintId: id,
-  performedBy: requestUser.user_id,
-  actionType: 'complaint_rejected',
-  description: remarks || 'Complaint rejected',
-});
+  try {
+    await activityLogsRepository.insertLog({
+      complaintId,
+      performedBy: requestUser.user_id,
+      actionType: status === 'resolved' ? 'status_resolved' : 'status_in_progress',
+      oldValue: oldStatus,
+      newValue: status,
+      description:
+        status === 'resolved'
+          ? 'Complaint status changed to resolved'
+          : 'Complaint status changed to in_progress',
+    });
+
+    if (status === 'resolved' && remarks?.trim()) {
+      await activityLogsRepository.insertLog({
+        complaintId,
+        performedBy: requestUser.user_id,
+        actionType: 'resolution_remarks_added',
+        description: remarks.trim(),
+      });
+    }
+  } catch (err) {
+    console.error('Failed to insert status activity log:', err.message);
+  }
+
+  const updatedComplaint = result.rows[0];
+  const refreshed = await complaintsRepository.findComplaintByIdentifier(id);
+  const complaintData = refreshed.rowCount ? refreshed.rows[0] : updatedComplaint;
+  const data =
+    requestUser.role_name === 'responder'
+      ? sanitizeComplaintForResponder(complaintData)
+      : complaintData;
 
   return {
     body: {
       status: 'ok',
       message: 'Complaint status updated successfully',
-      data: result.rows[0],
+      data,
       timestamp: new Date().toISOString(),
     },
   };
@@ -398,7 +526,16 @@ async function cancelComplaint(id, requestUser, { cancellationReason }) {
 //   };
 // }
 
-async function assignComplaint(id, { assignedToUserId, assignedByUserId }) {
+async function assignComplaint(id, { assignedToUserId, assignedByUserId }, requestUser) {
+  if (requestUser?.role_name === 'responder') {
+    return {
+      error: {
+        status: 403,
+        body: { status: 'error', message: 'Forbidden' },
+      },
+    };
+  }
+
   const complaintRes = await complaintsRepository.findComplaintById(id);
 
   if (!complaintRes.rowCount) {
@@ -414,6 +551,7 @@ async function assignComplaint(id, { assignedToUserId, assignedByUserId }) {
   }
 
   const complaint = complaintRes.rows[0];
+  const complaintId = complaint.complaint_id;
   const currentStatus = complaint.status;
 
   // ==============================
@@ -437,7 +575,7 @@ async function assignComplaint(id, { assignedToUserId, assignedByUserId }) {
   // 🔁 CHECK IF REASSIGNMENT
   // ==============================
   const existingAssignment =
-    await assignmentsRepository.getLatestAssignmentByComplaintId?.(id);
+    await assignmentsRepository.getActiveAssignmentForComplaint(complaintId);
 
   const isReassignment = !!existingAssignment?.rowCount;
 
@@ -448,13 +586,13 @@ async function assignComplaint(id, { assignedToUserId, assignedByUserId }) {
   // ==============================
   // 🧹 DEACTIVATE OLD ASSIGNMENTS
   // ==============================
-  await assignmentsRepository.deactivateAssignmentsForComplaint(id);
+  await assignmentsRepository.deactivateAssignmentsForComplaint(complaintId);
 
   // ==============================
   // ➕ CREATE NEW ASSIGNMENT
   // ==============================
   const assignment = await assignmentsRepository.insertAssignment({
-    complaintId: id,
+    complaintId,
     assignedToUserId,
     assignedByUserId,
   });
@@ -463,7 +601,7 @@ async function assignComplaint(id, { assignedToUserId, assignedByUserId }) {
   // 🔄 UPDATE COMPLAINT STATUS
   // ==============================
   await complaintsRepository.updateComplaintStatus({
-    id,
+    id: complaintId,
     status: 'assigned',
   });
 
@@ -471,7 +609,7 @@ async function assignComplaint(id, { assignedToUserId, assignedByUserId }) {
   // 📊 ACTIVITY LOG (STRUCTURED)
   // ==============================
   await activityLogsRepository.insertLog({
-    complaintId: id,
+    complaintId,
     performedBy: assignedByUserId,
     actionType: isReassignment
       ? 'responder_reassigned'
@@ -513,6 +651,15 @@ async function assignComplaint(id, { assignedToUserId, assignedByUserId }) {
 }
 
 async function updateComplaintPriority(id, { priorityLevel }, requestUser) {
+  if (requestUser?.role_name === 'responder') {
+    return {
+      error: {
+        status: 403,
+        body: { status: 'error', message: 'Forbidden' },
+      },
+    };
+  }
+
   const priority = priorityLevel?.toLowerCase();
 
   // 1. Validate user context (IMPORTANT FIX)

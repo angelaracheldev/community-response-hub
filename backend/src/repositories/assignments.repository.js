@@ -13,7 +13,19 @@ async function insertAssignment({ complaintId, assignedToUserId, assignedByUserI
   );
 }
 
+async function getActiveAssignmentForComplaint(complaintId) {
+  return db.query(
+    `SELECT assignment_id, complaint_id, assigned_to, assigned_by, is_active, assigned_at
+     FROM complaint_assignments
+     WHERE complaint_id = $1 AND is_active = TRUE
+     ORDER BY assigned_at DESC
+     LIMIT 1`,
+    [complaintId]
+  );
+}
+
 module.exports = {
   deactivateAssignmentsForComplaint,
   insertAssignment,
+  getActiveAssignmentForComplaint,
 };
