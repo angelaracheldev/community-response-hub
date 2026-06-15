@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Modal, Pressable, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { NotificationDropdown } from '../NotificationDropdown';
 import { topNavStyles as styles } from '../../styles/common/topNav';
+import type { AppPortal } from '../../utils/appPortal.config';
 
 type Props = {
   pageTitle: string;
   userName: string;
   userRole?: string;
+  portal: AppPortal;
   getToken: () => string | null | Promise<string | null>;
   onLogout: () => void;
   onMenuPress?: () => void;
@@ -17,6 +19,7 @@ export function TopNav({
   pageTitle,
   userName,
   userRole = 'User',
+  portal,
   getToken,
   onLogout,
   onMenuPress,
@@ -39,7 +42,7 @@ export function TopNav({
       </View>
 
       <View style={styles.right}>
-        <NotificationDropdown getToken={getToken} />
+        <NotificationDropdown getToken={getToken} portal={portal} />
 
         <TouchableOpacity style={styles.profileBtn} onPress={() => setMenuOpen(true)}>
           <View style={styles.avatar}>

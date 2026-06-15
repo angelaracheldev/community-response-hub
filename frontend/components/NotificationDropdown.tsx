@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Dimensions, Platform, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useNotifications } from '../hooks/useNotifications';
 import { NotificationBell } from './NotificationBell';
 import { NotificationCenter } from './NotificationCenter';
 import { notificationDropdownStyles as styles } from '../styles/notifications/dropdown';
+import type { AppPortal } from '../utils/appPortal.config';
+import { getNotificationRoute } from '../utils/notificationNavigation';
 
 const DROPDOWN_WIDTH = 380;
 
@@ -18,6 +21,7 @@ type AnchorPosition = {
 
 type Props = {
   getToken: TokenGetter;
+  portal: AppPortal;
 };
 
 function getFallbackAnchor(): AnchorPosition {
@@ -49,7 +53,8 @@ function computeAnchor(x: number, y: number, width: number, height: number): Anc
   };
 }
 
-export function NotificationDropdown({ getToken }: Props) {
+export function NotificationDropdown({ getToken, portal }: Props) {
+  const router = useRouter();
   const notifications = useNotifications(getToken);
   const bellRef = useRef<View>(null);
   const [anchor, setAnchor] = useState<AnchorPosition>(getFallbackAnchor);
@@ -88,6 +93,21 @@ export function NotificationDropdown({ getToken }: Props) {
     }
   }, [measureBell, notifications]);
 
+  const handleItemPress = useCallback(
+    async (notificationId: string) => {
+      const result = await notifications.openNotification(notificationId);
+      notifications.closeCenter();
+
+      if (!result) return;
+
+      const route = getNotificationRoute(portal, result);
+      if (route) {
+        router.push(route as `/${string}`);
+      }
+    },
+    [notifications, portal, router]
+  );
+
   return (
     <View ref={bellRef} style={styles.anchor} collapsable={false}>
       <NotificationBell
@@ -111,7 +131,7 @@ export function NotificationDropdown({ getToken }: Props) {
         caretRight={anchor.caretRight}
         onClose={notifications.closeCenter}
         onRetry={() => notifications.refresh()}
-        onItemPress={notifications.openNotification}
+        onItemPress={handleItemPress}
         onLoadMore={notifications.loadMore}
         onMarkAllRead={notifications.markAllRead}
       />

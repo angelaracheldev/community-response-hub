@@ -35,16 +35,38 @@ async function onComplaintSubmitted(complaint) {
   });
 }
 
+async function notifyAssignedResponder({ assignedTo, type, complaintId, message }) {
+  if (!assignedTo) return;
+
+  await notificationsService.createNotification({
+    userId: assignedTo,
+    type,
+    entityType: ENTITY.COMPLAINT,
+    entityId: complaintId,
+    message,
+  });
+}
+
 // =====================
-// STATUS UPDATES (RESIDENT + ADMIN)
+// STATUS UPDATES (RESIDENT + RESPONDER)
 // =====================
 async function onComplaintStatusUpdated(complaint, newStatus) {
-  const { complaint_id: complaintId, reported_by: reportedBy, title } = complaint;
+  const {
+    complaint_id: complaintId,
+    reported_by: reportedBy,
+    assigned_to: assignedTo,
+    title,
+  } = complaint;
 
   const residentMessages = {
     in_progress: `Your complaint "${title}" is now in progress.`,
     resolved: `Your complaint "${title}" has been resolved.`,
     rejected: `Your complaint "${title}" has been rejected.`,
+  };
+
+  const responderMessages = {
+    cancelled: `Assigned complaint "${title}" has been cancelled by the resident.`,
+    rejected: `Assigned complaint "${title}" has been rejected.`,
   };
 
   // Resident notification
@@ -58,12 +80,13 @@ async function onComplaintStatusUpdated(complaint, newStatus) {
     });
   }
 
-  // Admin notification for cancellation (optional but useful)
-  if (newStatus === 'cancelled') {
-    await notifyAdmins({
-      type: 'complaint_cancelled',
-      entityId: complaintId,
-      message: `Complaint "${title}" has been cancelled.`,
+  // Responder notification when an assigned complaint is cancelled or rejected
+  if (responderMessages[newStatus]) {
+    await notifyAssignedResponder({
+      assignedTo,
+      type: `complaint_${newStatus}`,
+      complaintId,
+      message: responderMessages[newStatus],
     });
   }
 }
@@ -102,14 +125,16 @@ async function onComplaintAssigned({
       : `Your complaint has been assigned to a responder.`,
   });
 
-  // 3. Notify admins
-  await notifyAdmins({
-    type: isReassignment ? 'complaint_reassigned' : 'complaint_assigned',
-    entityId: complaint_id,
-    message: isReassignment
-      ? `Complaint "${title}" was reassigned.`
-      : `Complaint "${title}" was assigned.`,
-  });
+  // 3. Notify previous responder on reassignment
+  if (isReassignment && previousResponder && previousResponder !== assignedToUserId) {
+    await notificationsService.createNotification({
+      userId: previousResponder,
+      type: 'complaint_unassigned',
+      entityType: ENTITY.COMPLAINT,
+      entityId: complaint_id,
+      message: `Complaint "${title}" has been unassigned from you.`,
+    });
+  }
 }
 
 module.exports = {

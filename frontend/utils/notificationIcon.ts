@@ -7,9 +7,12 @@ export type NotificationIconStyle = {
 export function getNotificationIcon(type: string): NotificationIconStyle {
   switch (type) {
     case 'complaint_assigned':
+    case 'complaint_reassigned':
     case 'new_complaint_submitted':
     case 'complaint_submitted':
       return { symbol: '📋', backgroundColor: '#DBEAFE', symbolColor: '#2563EB' };
+    case 'complaint_unassigned':
+      return { symbol: '↩', backgroundColor: '#FEF3C7', symbolColor: '#D97706' };
     case 'complaint_in_progress':
       return { symbol: '↻', backgroundColor: '#FFEDD5', symbolColor: '#EA580C' };
     case 'complaint_resolved':

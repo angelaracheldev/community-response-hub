@@ -1,6 +1,8 @@
 const NOTIFICATION_TYPES = [
   'complaint_submitted',
   'complaint_assigned',
+  'complaint_reassigned',
+  'complaint_unassigned',
   'complaint_in_progress',
   'complaint_resolved',
   'complaint_rejected',

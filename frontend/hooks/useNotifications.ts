@@ -108,14 +108,14 @@ export function useNotifications(getToken: TokenGetter) {
   const openNotification = useCallback(
     async (notificationId: string) => {
       const token = await resolveToken(getTokenRef.current);
-      if (!token) return;
+      if (!token) return null;
 
       const target = notifications.find((n) => n.notification_id === notificationId);
       const wasUnread = target?.is_read === false;
 
       setOpeningId(notificationId);
       try {
-        await openNotificationApi(notificationId);
+        const result = await openNotificationApi(notificationId);
         setNotifications((prev) =>
           prev.map((n) =>
             n.notification_id === notificationId ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
@@ -125,8 +125,10 @@ export function useNotifications(getToken: TokenGetter) {
           setUnreadCount((c) => Math.max(0, c - 1));
         }
         await refreshUnreadCount();
+        return result;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unable to open notification');
+        return null;
       } finally {
         setOpeningId(null);
       }

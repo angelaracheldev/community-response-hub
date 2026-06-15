@@ -631,6 +631,7 @@ async function assignComplaint(id, { assignedToUserId, assignedByUserId }, reque
       complaint,
       assignedToUserId,
       isReassignment,
+      previousResponder,
     });
   } catch (err) {
     console.error('Assignment notification failed:', err.message);
@@ -781,6 +782,12 @@ async function rejectComplaint(complaintId, user, reason) {
     newValue: 'rejected',
     description: `Complaint rejected: ${reason}`
   });
+
+  try {
+    await notificationEvents.onComplaintStatusUpdated(complaint, 'rejected');
+  } catch (err) {
+    console.error('Reject notification failed:', err.message);
+  }
 
   return {
     body: {
