@@ -64,6 +64,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { id: 'activity', label: 'Activity Logs', route: '/(admin)/activity-logs', icon: '📝' },
 ];
 
+export const DEFAULT_STATUS_BREAKDOWN: ChartSegment[] = [
+  { label: 'Pending', value: 15, color: '#F59E0B' },
+  { label: 'In Progress', value: 12, color: '#3B82F6' },
+  { label: 'Resolved', value: 50, color: '#10B981' },
+  { label: 'Rejected', value: 5, color: '#EF4444' },
+];
+
 export const ADMIN_DASHBOARD_MOCK = {
   adminName: 'Admin',
   stats: [
@@ -104,12 +111,7 @@ export const ADMIN_DASHBOARD_MOCK = {
       trend: { direction: 'up' as TrendDirection, label: '15% this month' },
     },
   ] satisfies DashboardStat[],
-  statusBreakdown: [
-    { label: 'Pending', value: 15, color: '#F59E0B' },
-    { label: 'In Progress', value: 12, color: '#3B82F6' },
-    { label: 'Resolved', value: 50, color: '#10B981' },
-    { label: 'Rejected', value: 5, color: '#EF4444' },
-  ] satisfies ChartSegment[],
+  statusBreakdown: DEFAULT_STATUS_BREAKDOWN,
   trendPoints: [
     { label: 'May 1', value: 4 },
     { label: 'May 5', value: 6 },
@@ -167,8 +169,20 @@ export const ADMIN_DASHBOARD_MOCK = {
   ] satisfies QuickAction[],
 };
 
-export function getStatusBreakdownTotal(segments: ChartSegment[]): number {
-  return segments.reduce((sum, segment) => sum + segment.value, 0);
+export function normalizeChartSegments(segments?: ChartSegment[] | null): ChartSegment[] {
+  if (!Array.isArray(segments)) return [];
+
+  return segments
+    .filter((segment): segment is ChartSegment => !!segment && typeof segment === 'object')
+    .map((segment) => ({
+      label: String(segment.label ?? 'Unknown'),
+      value: Math.max(Number(segment.value) || 0, 0),
+      color: typeof segment.color === 'string' && segment.color ? segment.color : '#CBD5E1',
+    }));
+}
+
+export function getStatusBreakdownTotal(segments?: ChartSegment[] | null): number {
+  return normalizeChartSegments(segments).reduce((sum, segment) => sum + segment.value, 0);
 }
 
 export function formatDashboardDate(date: Date = new Date()): string {

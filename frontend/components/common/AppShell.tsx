@@ -1,5 +1,5 @@
 import React, { ReactNode, useState } from 'react';
-import { Modal, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { QuickAction } from '../../utils/adminDashboard.mock';
 import { appShellStyles as styles } from '../../styles/common/appShell';
@@ -35,15 +35,17 @@ export function AppShell({
   const closeMobileNav = () => setMobileNavOpen(false);
 
   const showFloatingBar = showMobileMenu && !!floatingQuickActions?.length;
-  const scrollBottomPadding = showFloatingBar
-    ? getFloatingQuickActionsPadding(width, insets.bottom)
-    : 32;
+  const useWebOverlayBar = Platform.OS === 'web' && width >= 450;
+  const scrollBottomPadding =
+    showFloatingBar && useWebOverlayBar
+      ? getFloatingQuickActionsPadding(width, insets.bottom)
+      : 32;
 
   return (
     <View style={styles.root}>
       {showSidebar ? <View style={styles.sidebarColumn}>{sidebar}</View> : null}
 
-      <SafeAreaView style={styles.mainSafe} edges={['top', 'right', 'bottom']}>
+      <SafeAreaView style={styles.mainSafe} edges={['top', 'right', 'left']}>
         <View style={styles.main}>
           {React.isValidElement(header)
             ? React.cloneElement(header as React.ReactElement<{ onMenuPress?: () => void; showMenuButton?: boolean }>, {
@@ -54,6 +56,7 @@ export function AppShell({
 
           {scrollEnabled ? (
             <ScrollView
+              style={styles.scroll}
               contentContainerStyle={[
                 styles.content,
                 { padding: contentPadding, paddingBottom: scrollBottomPadding },
@@ -72,14 +75,21 @@ export function AppShell({
               {children}
             </View>
           )}
-
-          {showFloatingBar ? <FloatingQuickActionsBar actions={floatingQuickActions} /> : null}
         </View>
+
+        {showFloatingBar ? (
+          <View style={styles.footer}>
+            <FloatingQuickActionsBar actions={floatingQuickActions} />
+          </View>
+        ) : null}
       </SafeAreaView>
 
       <Modal visible={mobileNavOpen} transparent animationType="fade" onRequestClose={closeMobileNav}>
         <Pressable style={styles.overlay} onPress={closeMobileNav}>
-          <Pressable style={styles.drawer} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={[styles.drawer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+            onPress={(e) => e.stopPropagation()}
+          >
             {React.isValidElement(sidebar)
               ? React.cloneElement(
                   sidebar as React.ReactElement<{ onClose?: () => void }>,

@@ -5,15 +5,11 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import ComplaintDetailContent from '../../../components/complaint/ComplaintDetailContent';
 import ResolveComplaintModal from '../../../components/complaint/ResolveComplaintModal';
 import { PageShell } from '../../../components/common/PageShell';
-import { getFloatingQuickActionsPadding } from '../../../components/dashboard/FloatingQuickActionsBar';
-import { useAppLayout } from '../../../hooks/useAppLayout';
 import { residentComplaintDetailStyles as styles } from '../../../styles/app/residentComplaintDetail';
 import {
   canResolveComplaint,
@@ -28,13 +24,8 @@ import {
 
 export default function RespondentComplaintDetailScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const layout = useAppLayout();
   const { referenceId } = useLocalSearchParams<{ referenceId: string }>();
-  const scrollPaddingBottom = layout.showMobileMenu
-    ? getFloatingQuickActionsPadding(width, insets.bottom)
-    : 32;
+  const scrollPaddingBottom = 32;
   const [complaint, setComplaint] = useState<ComplaintRecord | null>(null);
   const [media, setMedia] = useState<ComplaintMedia[]>([]);
   const [loading, setLoading] = useState(true);

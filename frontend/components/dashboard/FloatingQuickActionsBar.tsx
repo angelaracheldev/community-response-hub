@@ -10,45 +10,70 @@ type Props = {
   actions: QuickAction[];
 };
 
+const BAR_CONTENT_HEIGHT = 68;
+
 export function FloatingQuickActionsBar({ actions }: Props) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const maxWidth = getContentMaxWidth(width);
   const isFloated = width >= 450;
+  const useFixedWebBar = Platform.OS === 'web' && isFloated;
+  const useNativeTabBar = Platform.OS !== 'web';
+  const bottomInset = Math.max(insets.bottom, 8);
+
+  if (useNativeTabBar) {
+    return (
+      <View style={[styles.wrapper, { paddingBottom: bottomInset }]}>
+        <View style={styles.bar}>
+          {actions.map((action) => (
+            <TouchableOpacity
+              key={action.id}
+              style={styles.action}
+              activeOpacity={0.85}
+              onPress={() => router.push(action.route as never)}
+            >
+              <View style={[styles.iconWrap, { backgroundColor: `${action.color}18` }]}>
+                <Text style={styles.icon}>{action.icon}</Text>
+              </View>
+              <Text style={styles.label} numberOfLines={1}>
+                {action.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View
       style={[
-        styles.wrapper,
         {
+          alignItems: 'center',
           paddingBottom: Math.max(insets.bottom, isFloated ? 16 : 8),
           paddingHorizontal: isFloated ? 16 : 0,
-          pointerEvents: 'box-none', 
         },
-        Platform.OS === 'web' && isFloated
+        useFixedWebBar
           ? ({
-              position: 'fixed' as any, // 👈 FIX: Cast 'fixed' as any to bypass native ViewStyle limits
+              position: 'fixed' as any,
               bottom: 0,
               left: 0,
               right: 0,
               zIndex: 100,
             } as ViewStyle)
-          : styles.wrapperAbsolute,
+          : null,
       ]}
     >
       <View
         style={[
           styles.bar,
+          styles.barFloated,
           {
             maxWidth,
             width: '100%',
+            alignSelf: 'center',
           },
-          Platform.OS === 'web' && isFloated
-            ? {
-                alignSelf: 'center',
-              }
-            : null,
         ]}
       >
         {actions.map((action) => (
@@ -71,9 +96,11 @@ export function FloatingQuickActionsBar({ actions }: Props) {
   );
 }
 
-const BAR_HEIGHT = 76;
-
 export function getFloatingQuickActionsPadding(screenWidth: number, bottomInset = 0): number {
   const isFloated = screenWidth >= 450;
-  return BAR_HEIGHT + Math.max(bottomInset, isFloated ? 16 : 8) + 16;
+  return BAR_CONTENT_HEIGHT + Math.max(bottomInset, isFloated ? 16 : 8) + 16;
+}
+
+export function getNativeTabBarHeight(bottomInset = 0): number {
+  return BAR_CONTENT_HEIGHT + Math.max(bottomInset, 8);
 }

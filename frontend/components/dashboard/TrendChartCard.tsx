@@ -5,12 +5,13 @@ import { trendChartCardStyles as styles } from '../../styles/dashboard/trendChar
 
 type Props = {
   title: string;
-  points: TrendPoint[];
+  points?: TrendPoint[];
   filterLabel?: string;
 };
 
-export function TrendChartCard({ title, points, filterLabel = 'This Month' }: Props) {
-  const maxValue = Math.max(...points.map((point) => point.value), 1);
+export function TrendChartCard({ title, points = [], filterLabel = 'This Month' }: Props) {
+  const chartPoints = Array.isArray(points) ? points : [];
+  const maxValue = Math.max(...chartPoints.map((point) => point.value), 1);
 
   return (
     <View style={styles.card}>
@@ -22,7 +23,7 @@ export function TrendChartCard({ title, points, filterLabel = 'This Month' }: Pr
       </View>
 
       <View style={styles.chartArea}>
-        {points.map((point) => {
+        {chartPoints.map((point) => {
           const heightPct = (point.value / maxValue) * 100;
           return (
             <View key={point.label} style={styles.barColumn}>

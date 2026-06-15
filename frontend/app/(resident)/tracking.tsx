@@ -1,11 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { Text, View, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl, useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, View, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
 import { PageShell } from '../../components/common/PageShell';
-import { getFloatingQuickActionsPadding } from '../../components/dashboard/FloatingQuickActionsBar';
-import { useAppLayout } from '../../hooks/useAppLayout';
 import { residentTrackingStyles as styles } from '../../styles/app/residentTracking';
 import {
   fetchMyComplaints,
@@ -17,12 +14,7 @@ import {
 
 export default function TrackingScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const layout = useAppLayout();
-  const scrollPaddingBottom = layout.showMobileMenu
-    ? getFloatingQuickActionsPadding(width, insets.bottom)
-    : 32;
+  const scrollPaddingBottom = 32;
   const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

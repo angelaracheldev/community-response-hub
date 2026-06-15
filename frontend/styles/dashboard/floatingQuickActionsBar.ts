@@ -1,28 +1,25 @@
-import { StyleSheet } from 'react-native';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 export const floatingQuickActionsBarStyles = StyleSheet.create({
   wrapper: {
-    alignItems: 'center',
-  },
-  wrapperAbsolute: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
+    paddingTop: 8,
+    paddingHorizontal: 8,
+  },
+  barFloated: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 10,
-    paddingHorizontal: 8,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    alignSelf: 'center',
     ...Platform.select({
       web: {
         boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.12)',

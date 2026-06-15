@@ -24,6 +24,11 @@ export class SessionExpiredError extends Error {
 function mergeAuthHeader(init: RequestInit | undefined, token: string): RequestInit {
   const headers = new Headers(init?.headers);
   headers.set('Authorization', `Bearer ${token}`);
+
+  if (init?.body instanceof FormData) {
+    headers.delete('Content-Type');
+  }
+
   return { ...init, headers };
 }
 
