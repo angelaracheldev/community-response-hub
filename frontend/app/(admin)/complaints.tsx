@@ -23,8 +23,9 @@ import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
 import { useAppLayout } from '../../hooks/useAppLayout';
 import { fetchAdminComplaintDetails, fetchAdminComplaints } from '../../utils/adminApi';
-import { formatComplaintStatus, formatDateTime } from '../../utils/complaintApi';
+import { formatComplaintStatus, formatDateTime, formatAssigneeName } from '../../utils/complaintApi';
 import { adminComplaintsStyles as styles } from '../../styles/app/adminComplaints';
+import { useComplaintCategories } from '../../hooks/useComplaintCategories';
 import { authFetch } from '../../utils/authFetch';
 
 
@@ -80,23 +81,87 @@ function AdminSelect({
   options,
   placeholder = 'Select...',
   disabled = false,
+  compact = false,
+  overlayDropdown = true,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   value: string;
   onValueChange: (value: string) => void;
   options: { label: string; value: string }[];
   placeholder?: string;
   disabled?: boolean;
+  compact?: boolean;
+  overlayDropdown?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+
+  const setOpen = (next: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(next);
+    } else {
+      setInternalOpen(next);
+    }
+  };
+
   const selected = options.find((option) => option.value === value);
   const display = value && selected ? selected.label : placeholder;
   const showPlaceholder = !value;
+  const useOverlayPanel = compact && overlayDropdown;
+  const needsScroll =
+    useOverlayPanel ? options.length > 4 : compact && options.length > 8;
+
+  const renderOptions = () =>
+    options.map((option, index) => {
+      const isSelected = option.value === value;
+      const isLast = index === options.length - 1;
+      return (
+        <TouchableOpacity
+          key={option.value || '__placeholder__'}
+          style={[
+            s.modalDetailSelectOption,
+            compact && styles.filterSelectOption,
+            compact && isLast && styles.filterSelectOptionLast,
+            isSelected && s.modalDetailSelectOptionSelected,
+          ]}
+          onPress={() => {
+            onValueChange(option.value);
+            setOpen(false);
+          }}
+        >
+          <Text
+            style={[
+              s.modalDetailSelectOptionText,
+              isSelected && s.modalDetailSelectOptionTextSelected,
+            ]}
+          >
+            {option.label}
+          </Text>
+        </TouchableOpacity>
+      );
+    });
 
   return (
-    <View style={s.modalDetailSelectWrap}>
+    <View
+      style={[
+        s.modalDetailSelectWrap,
+        compact && styles.filterSelectWrap,
+        useOverlayPanel && open && styles.filterSelectWrapOpen,
+        compact && useOverlayPanel && { overflow: 'visible' as const },
+        compact && !useOverlayPanel && styles.filterSelectWrapInline,
+      ]}
+    >
       <TouchableOpacity
-        style={[s.modalDetailSelectTrigger, disabled && s.modalDetailSelectTriggerDisabled]}
-        onPress={() => !disabled && setOpen((current) => !current)}
+        style={[
+          s.modalDetailSelectTrigger,
+          compact && styles.filterSelectTrigger,
+          disabled && s.modalDetailSelectTriggerDisabled,
+        ]}
+        onPress={() => !disabled && setOpen(!open)}
         disabled={disabled}
         accessibilityRole="button"
         accessibilityState={{ expanded: open, disabled }}
@@ -110,29 +175,24 @@ function AdminSelect({
         <Text style={s.modalDetailSelectChevron}>{open ? '▲' : '▼'}</Text>
       </TouchableOpacity>
       {open && !disabled ? (
-        <View style={s.modalDetailSelectOptions}>
-          {options.map((option) => {
-            const isSelected = option.value === value;
-            return (
-              <TouchableOpacity
-                key={option.value || '__placeholder__'}
-                style={[s.modalDetailSelectOption, isSelected && s.modalDetailSelectOptionSelected]}
-                onPress={() => {
-                  onValueChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                <Text
-                  style={[
-                    s.modalDetailSelectOptionText,
-                    isSelected && s.modalDetailSelectOptionTextSelected,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View
+          style={[
+            compact ? styles.filterSelectOptionsPanel : s.modalDetailSelectOptions,
+            useOverlayPanel && styles.filterSelectOptions,
+            compact && !overlayDropdown && styles.filterSelectOptionsInline,
+          ]}
+        >
+          {needsScroll ? (
+            <ScrollView
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+              style={useOverlayPanel ? styles.filterSelectScroll : styles.filterSelectScrollInline}
+            >
+              {renderOptions()}
+            </ScrollView>
+          ) : (
+            renderOptions()
+          )}
         </View>
       ) : null}
     </View>
@@ -152,6 +212,14 @@ export default function AdminComplaints() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterPriority, setFilterPriority] = useState('');
+  const [filterRespondent, setFilterRespondent] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [openFilterId, setOpenFilterId] = useState<'priority' | 'respondent' | 'category' | null>(
+    null
+  );
+  const { categories } = useComplaintCategories();
   const [selected, setSelected] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedResponder, setSelectedResponder] = useState('');
@@ -176,9 +244,13 @@ export default function AdminComplaints() {
   };
 
   useEffect(() => {
-    loadComplaints(1, pageSize, tab);
     loadResponders();
-  }, [tab]);
+  }, []);
+
+  useEffect(() => {
+    loadComplaints(1, pageSize, tab);
+    setOpenFilterId(null);
+  }, [tab, filterPriority, filterRespondent, filterCategory]);
 
   useEffect(() => {
     if (!modalOpen) {
@@ -211,17 +283,25 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
 // };
 
 
-  const loadComplaints = async (p = 1, ps = pageSize, currentTab: typeof tab = 'active') => {
+  const loadComplaints = async (
+    p = 1,
+    ps = pageSize,
+    currentTab: typeof tab = tab,
+    searchOverride?: string
+  ) => {
     setLoading(true);
+    const search = searchOverride !== undefined ? searchOverride : searchQuery;
     try {
       const data = await fetchAdminComplaints({
         page: p,
         pageSize: ps,
         statusGroup: currentTab,
+        search: search.trim() || undefined,
+        priorityLevel: filterPriority || undefined,
+        assignedToUserId: filterRespondent || undefined,
+        categoryId: filterCategory || undefined,
       });
 
-      console.log('COMPLAINT DATA:', data);
-      console.log('Complaints response:', data);
       setComplaints(data.complaints);
       setTotal(data.total);
       setPage(data.page);
@@ -231,6 +311,15 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  const onSearch = () => {
+    loadComplaints(1, pageSize, tab);
+  };
+
+  const onClearSearch = () => {
+    setSearchQuery('');
+    loadComplaints(1, pageSize, tab, '');
   };
 
   // const openDetails = async (complaintId: string) => {
@@ -459,6 +548,7 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
             { label: 'Category', value: item.category_name || '-' },
             { label: 'Status', value: formatComplaintStatus(item.status) },
             { label: 'Priority', value: item.priority_level || '-' },
+            { label: 'Assigned', value: formatAssigneeName(item) },
           ]}
           actions={
             <TouchableOpacity style={s.actionBtn} onPress={() => openDetails(item.complaint_id)}>
@@ -471,17 +561,24 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
 
     return (
       <View style={s.tableRow}>
-        <Text style={[s.col, styles.colId]} numberOfLines={1}>
+        <Text style={[s.col, styles.colId, styles.colIdText]} numberOfLines={1}>
           {item.reference_id}
         </Text>
-        <Text style={[s.col, styles.colTitle]} numberOfLines={1}>
+        <Text style={[s.col, styles.colTitle]} numberOfLines={1} ellipsizeMode="tail">
           {item.title}
         </Text>
-        <Text style={[s.col, styles.colCat]}>{item.category_name || '-'}</Text>
+        <Text style={[s.col, styles.colCat, styles.colCatText]} numberOfLines={1}>
+          {item.category_name || '-'}
+        </Text>
         <View style={[s.col, styles.colStatus]}>
           <ComplaintStatusBadge status={item.status} compact />
         </View>
-        <Text style={[s.col, styles.colSmall]}>{item.priority_level}</Text>
+        <Text style={[s.col, styles.colSmall]} numberOfLines={1}>
+          {item.priority_level}
+        </Text>
+        <Text style={[s.col, styles.colAssigned]} numberOfLines={1} ellipsizeMode="tail">
+          {formatAssigneeName(item)}
+        </Text>
         <View style={[s.col, styles.colActions]}>
           <TouchableOpacity style={s.actionBtn} onPress={() => openDetails(item.complaint_id)}>
             <Text style={s.actionBtnText}>View</Text>
@@ -726,13 +823,124 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
       pageTitle="Manage Complaints"
       scrollEnabled={layout.useCompactList}
     >
-      <View style={s.toolbar}>
-        <AdminSegmentTabs
-          tabs={COMPLAINT_TABS}
-          activeId={tab}
-          onChange={(id) => setTab(id as typeof tab)}
-          compact={layout.useCompactList}
-        />
+      <View style={styles.controlsSection}>
+        <View style={[s.toolbar, layout.isDesktop && s.toolbarDesktop, { marginBottom: 0 }]}>
+          <AdminSegmentTabs
+            tabs={COMPLAINT_TABS}
+            activeId={tab}
+            onChange={(id) => setTab(id as typeof tab)}
+            compact={layout.useCompactList}
+          />
+
+          <View style={[s.searchRow, layout.useCompactList ? s.searchRowCompact : s.searchRowDesktop]}>
+            <View
+              style={[
+                styles.searchField,
+                layout.useCompactList ? styles.searchFieldCompact : styles.searchFieldDesktop,
+              ]}
+            >
+              <TextInput
+                placeholder="Search complaints"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                style={[
+                  s.searchInput,
+                  styles.searchInputInField,
+                  searchQuery ? styles.searchInputWithClear : null,
+                ]}
+                returnKeyType="search"
+                onSubmitEditing={onSearch}
+              />
+              {searchQuery ? (
+                <TouchableOpacity
+                  style={styles.searchClearBtn}
+                  onPress={onClearSearch}
+                  accessibilityLabel="Clear search"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.searchClearText}>✕</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            {layout.useCompactList ? (
+              <View style={[s.btnRow, s.btnRowCompact]}>
+                <TouchableOpacity style={s.textBtn} onPress={onSearch}>
+                  <Text style={s.textBtnLabel}>Search</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.textBtn}>
+                  <Text style={s.textBtnLabel}>+ Add Complaint</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity style={s.linkBtn} onPress={onSearch}>
+                  <Text style={s.linkBtnText}>Search</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.addComplaintBtn}>
+                  <Text style={styles.addComplaintBtnText}>+ Add Complaint</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+
+        <View style={layout.useCompactList ? s.filtersStack : styles.filtersRow}>
+        <View style={layout.useCompactList ? styles.filterSelectCompact : styles.filterSelect}>
+          <AdminSelect
+            compact
+            overlayDropdown={!layout.isMobile}
+            open={openFilterId === 'priority'}
+            onOpenChange={(open) => setOpenFilterId(open ? 'priority' : null)}
+            value={filterPriority}
+            onValueChange={setFilterPriority}
+            placeholder="All priorities"
+            options={[
+              { label: 'All priorities', value: '' },
+              { label: 'Low', value: 'low' },
+              { label: 'Normal', value: 'normal' },
+              { label: 'High', value: 'high' },
+              { label: 'Urgent', value: 'urgent' },
+            ]}
+          />
+        </View>
+        <View style={layout.useCompactList ? styles.filterSelectCompact : styles.filterSelect}>
+          <AdminSelect
+            compact
+            overlayDropdown={!layout.isMobile}
+            open={openFilterId === 'respondent'}
+            onOpenChange={(open) => setOpenFilterId(open ? 'respondent' : null)}
+            value={filterRespondent}
+            onValueChange={setFilterRespondent}
+            placeholder="All respondents"
+            options={[
+              { label: 'All respondents', value: '' },
+              { label: 'Unassigned', value: 'unassigned' },
+              ...responders.map((r) => ({
+                label: `${r.first_name} ${r.last_name}`,
+                value: r.user_id,
+              })),
+            ]}
+          />
+        </View>
+        <View style={layout.useCompactList ? styles.filterSelectCompact : styles.filterSelect}>
+          <AdminSelect
+            compact
+            overlayDropdown={!layout.isMobile}
+            open={openFilterId === 'category'}
+            onOpenChange={(open) => setOpenFilterId(open ? 'category' : null)}
+            value={filterCategory}
+            onValueChange={setFilterCategory}
+            placeholder="All categories"
+            options={[
+              { label: 'All categories', value: '' },
+              ...categories.map((cat) => ({
+                label: cat.category_name,
+                value: String(cat.category_id),
+              })),
+            ]}
+          />
+        </View>
+        </View>
       </View>
 
       {loading ? (
@@ -748,28 +956,31 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
           ))
         )
       ) : (
-        <FlatList
-          style={s.list}
-          data={complaints}
-          keyExtractor={(item) => item.complaint_id}
-          nestedScrollEnabled
-          ListEmptyComponent={
-            <View style={s.emptyBox}>
-              <Text style={s.emptyText}>No complaints in this tab.</Text>
-            </View>
-          }
-          ListHeaderComponent={() => (
+        <View style={[s.tableSection, styles.tableSectionRaised]}>
+          <View style={s.tableWrap}>
             <View style={s.tableHeader}>
-              <Text style={[s.col, styles.colId]}>ID</Text>
+              <Text style={[s.col, styles.colId, styles.colIdText]}>ID</Text>
               <Text style={[s.col, styles.colTitle]}>Title</Text>
               <Text style={[s.col, styles.colCat]}>Category</Text>
               <Text style={[s.col, styles.colStatus]}>Status</Text>
               <Text style={[s.col, styles.colSmall]}>Priority</Text>
+              <Text style={[s.col, styles.colAssigned]}>Assigned</Text>
               <Text style={[s.col, styles.colActions]}>Actions</Text>
             </View>
-          )}
-          renderItem={renderComplaintItem}
-        />
+            <FlatList
+              style={s.list}
+              data={complaints}
+              keyExtractor={(item) => item.complaint_id}
+              nestedScrollEnabled
+              ListEmptyComponent={
+                <View style={s.emptyBox}>
+                  <Text style={s.emptyText}>No complaints in this tab.</Text>
+                </View>
+              }
+              renderItem={renderComplaintItem}
+            />
+          </View>
+        </View>
       )}
 
       {!loading ? (

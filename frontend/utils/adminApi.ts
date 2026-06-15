@@ -112,12 +112,20 @@ export async function fetchAdminComplaints(params: {
   page: number;
   pageSize: number;
   statusGroup?: 'active' | 'closed' | 'resolved';
+  search?: string;
+  priorityLevel?: string;
+  assignedToUserId?: string;
+  categoryId?: string;
 }): Promise<PaginatedComplaints> {
   const q = new URLSearchParams({
     page: String(params.page),
     pageSize: String(params.pageSize),
   });
   if (params.statusGroup) q.set('statusGroup', params.statusGroup);
+  if (params.search) q.set('search', params.search);
+  if (params.priorityLevel) q.set('priorityLevel', params.priorityLevel);
+  if (params.assignedToUserId) q.set('assignedToUserId', params.assignedToUserId);
+  if (params.categoryId) q.set('categoryId', params.categoryId);
 
   const response = await authFetch(`${API_BASE}/complaints?${q.toString()}`);
   const data = await parseJson<{
