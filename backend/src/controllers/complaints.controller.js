@@ -59,7 +59,7 @@ async function updateComplaintStatus(req, res) {
   }
 
   try {
-    const result = await complaintsService.updateComplaintStatus(req.params.id, req.body);
+    const result = await complaintsService.updateComplaintStatus(req.params.id, req.body, req.user);
     if (result.error) {
       return res.status(result.error.status).json(result.error.body);
     }
@@ -78,11 +78,14 @@ async function assignComplaint(req, res) {
 
   try {
     const { assignedToUserId } = req.body;
-    const result = await complaintsService.assignComplaint(req.params.id, {
-      assignedToUserId,
-      assignedByUserId: req.user.user_id,
-    
-    });
+    const result = await complaintsService.assignComplaint(
+      req.params.id,
+      {
+        assignedToUserId,
+        assignedByUserId: req.user.user_id,
+      },
+      req.user
+    );
     if (result.error) {
       return res.status(result.error.status).json(result.error.body);
     }
