@@ -46,13 +46,21 @@ async function insertComplaint({
   );
 }
 
-async function listComplaints({ whereClause, params }) {
+async function listComplaints({ whereClause, params, limit, offset }) {
   const query = `
       SELECT ${COMPLAINT_SELECT}
       ${COMPLAINT_JOINS}
       ${whereClause}
       ORDER BY c.created_at DESC
-      LIMIT 100`;
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  return db.query(query, [...params, limit, offset]);
+}
+
+async function countComplaints({ whereClause, params }) {
+  const query = `
+      SELECT COUNT(DISTINCT c.complaint_id)::int AS total
+      ${COMPLAINT_JOINS}
+      ${whereClause}`;
   return db.query(query, params);
 }
 
@@ -143,6 +151,7 @@ module.exports = {
   findCategoryById,
   insertComplaint,
   listComplaints,
+  countComplaints,
   listComplaintsByReporter,
   findComplaintById,
   findComplaintByIdentifier,

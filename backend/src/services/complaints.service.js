@@ -83,19 +83,40 @@ async function deleteFailedComplaint(id, requestUser) {
   };
 }
 
+const STATUS_GROUPS = {
+  active: ['pending', 'under_review', 'assigned', 'in_progress'],
+  closed: ['cancelled', 'rejected'],
+  resolved: ['resolved'],
+};
+
+function parseComplaintPagination(query) {
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const pageSize = Math.min(100, Math.max(1, parseInt(query.pageSize, 10) || 10));
+  const offset = (page - 1) * pageSize;
+  return { page, pageSize, offset };
+}
+
 async function listComplaints(requestUser, query) {
   const filters = [];
   const params = [];
 
-  if (query.status) {
+  if (query.statusGroup) {
+    const group = query.statusGroup.toLowerCase();
+    const statuses = STATUS_GROUPS[group];
+    if (statuses) {
+      params.push(statuses);
+      filters.push(`c.status = ANY($${params.length})`);
+    }
+  } else if (query.status) {
     const status = query.status.toLowerCase();
     if (STATUS_VALUES.includes(status)) {
       params.push(status);
       filters.push(`c.status = $${params.length}`);
     }
   }
+
   if (query.categoryId) {
-    params.push(query.categoryId);
+    params.push(Number(query.categoryId));
     filters.push(`c.category_id = $${params.length}`);
   }
   if (query.priorityLevel) {
@@ -105,9 +126,19 @@ async function listComplaints(requestUser, query) {
       filters.push(`c.priority_level = $${params.length}`);
     }
   }
-  if (query.assignedToUserId) {
+  if (query.assignedToUserId === 'unassigned') {
+    filters.push('ca.assigned_to IS NULL');
+  } else if (query.assignedToUserId) {
     params.push(query.assignedToUserId);
     filters.push(`ca.assigned_to = $${params.length}`);
+  }
+  if (query.search && String(query.search).trim()) {
+    const term = `%${String(query.search).trim()}%`;
+    params.push(term);
+    const searchIndex = params.length;
+    filters.push(
+      `(c.title ILIKE $${searchIndex} OR c.reference_id ILIKE $${searchIndex} OR c.description ILIKE $${searchIndex})`
+    );
   }
 
   if (requestUser.role_name === 'resident') {
@@ -116,9 +147,23 @@ async function listComplaints(requestUser, query) {
   }
 
   const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-  const result = await complaintsRepository.listComplaints({ whereClause, params });
+  const { page, pageSize, offset } = parseComplaintPagination(query);
+
+  const [result, countResult] = await Promise.all([
+    complaintsRepository.listComplaints({ whereClause, params, limit: pageSize, offset }),
+    complaintsRepository.countComplaints({ whereClause, params }),
+  ]);
+
   return {
-    body: { status: 'ok', count: result.rowCount, complaints: result.rows, timestamp: new Date().toISOString() },
+    body: {
+      status: 'ok',
+      count: result.rowCount,
+      total: countResult.rows[0]?.total ?? 0,
+      page,
+      pageSize,
+      complaints: result.rows,
+      timestamp: new Date().toISOString(),
+    },
   };
 }
 
