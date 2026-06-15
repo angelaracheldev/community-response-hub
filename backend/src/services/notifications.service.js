@@ -1,5 +1,6 @@
 const { NOTIFICATION_TYPES, ENTITY_TYPES } = require('../constants/notificationTypes');
 const notificationsRepository = require('../repositories/notifications.repository');
+const complaintsRepository = require('../repositories/complaints.repository');
 const { getIo } = require('../socket/emitter');
 
 function parseBooleanQuery(value) {
@@ -86,11 +87,20 @@ async function openNotification(notificationId, userId) {
     }
   }
 
+  let referenceId = null;
+  if (notification.entity_type === 'complaint') {
+    const complaint = await complaintsRepository.findComplaintById(notification.entity_id);
+    if (complaint.rowCount) {
+      referenceId = complaint.rows[0].reference_id;
+    }
+  }
+
   return {
     body: {
       status: 'ok',
       entity_type: notification.entity_type,
       entity_id: notification.entity_id,
+      reference_id: referenceId,
       timestamp: new Date().toISOString(),
     },
   };

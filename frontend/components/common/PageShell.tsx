@@ -40,6 +40,7 @@ export function PageShell({
           pageTitle={pageTitle}
           userName={userName}
           userRole={roleLabel}
+          portal={portal}
           getToken={getToken}
           onLogout={logout}
         />

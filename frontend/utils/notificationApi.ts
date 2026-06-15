@@ -24,6 +24,7 @@ export type NotificationListResult = {
 export type OpenNotificationResult = {
   entity_type: string;
   entity_id: string;
+  reference_id?: string | null;
 };
 
 function apiErrorMessage(
@@ -85,6 +86,7 @@ export async function openNotification(notificationId: string): Promise<OpenNoti
   return {
     entity_type: data.entity_type,
     entity_id: data.entity_id,
+    reference_id: data.reference_id ?? null,
   };
 }
 
