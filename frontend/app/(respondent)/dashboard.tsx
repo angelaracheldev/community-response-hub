@@ -117,7 +117,7 @@ export default function RespondentDashboard() {
               title="Recent Assignments"
               items={recentItems}
               onViewAll={() => router.push('/(respondent)/assignments')}
-              onItemPress={() => router.push('/(respondent)/assignments')}
+              onItemPress={(item) => router.push(`/(respondent)/complaint/${item.referenceId}`)}
             />
           </View>
         </>

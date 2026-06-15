@@ -37,4 +37,13 @@ async function deleteById(mediaId, complaintId) {
   );
 }
 
-module.exports = { insertMedia, listByComplaintId, findById, deleteById };
+async function countMediaUploadedBy(complaintId, userId) {
+  return db.query(
+    `SELECT COUNT(*)::int AS count
+     FROM complaint_media
+     WHERE complaint_id = $1 AND uploaded_by = $2`,
+    [complaintId, userId]
+  );
+}
+
+module.exports = { insertMedia, listByComplaintId, findById, deleteById, countMediaUploadedBy };

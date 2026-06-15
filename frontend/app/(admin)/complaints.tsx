@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   Modal,
   ScrollView,
   Text,
@@ -13,7 +12,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ResizeMode, Video } from 'expo-av';
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge';
 import ComplaintEvidenceGallery from '../../components/ComplaintEvidenceGallery';
 import { AdminListCard } from '../../components/admin/AdminListCard';
@@ -260,27 +258,27 @@ export default function AdminComplaints() {
 
   
 
-  const [viewerVisible, setViewerVisible] = useState(false);
-const [activeMedia, setActiveMedia] = useState<any>(null);
+  const logEvidenceView = async (media: { media_id: string; media_type: string }) => {
+    if (!selected?.complaint?.complaint_id) return;
 
-// const openEvidenceViewer = async (media: any) => {
-//   setActiveMedia(media);
-//   setViewerVisible(true);
-
-//   // 🔥 LOG activity
-//   await authFetch(`${API_BASE}/activity-logs`, {
-//     method: 'POST',
-//     headers: { 'Content-Type': 'application/json' },
-//     body: JSON.stringify({
-//       action_type: 'evidence_viewed',
-//       description: `Viewed evidence (${media.media_type})`,
-//       entity_id: selected.complaint.complaint_id,
-//       metadata: { media_id: media.media_id }
-//     }),
-//   });
-
-  
-// };
+    try {
+      await authFetch(`${API_BASE}/activity-logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          complaintId: selected.complaint.complaint_id,
+          actionType: 'evidence_viewed',
+          description: `Viewed evidence (${media.media_type})`,
+          metadata: {
+            media_id: media.media_id,
+            media_type: media.media_type,
+          },
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to log evidence view:', err);
+    }
+  };
 
 
   const loadComplaints = async (
@@ -362,28 +360,6 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
 
   const [selectedPriority, setSelectedPriority] =
     useState('normal');
-
-  const openEvidenceViewer = async (media: any) => {
-    setActiveMedia(media);
-    setViewerVisible(true);
-    try {
-      await authFetch(`${API_BASE}/activity-logs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          complaintId: selected.complaint.complaint_id,
-          actionType: 'evidence_viewed',
-          description: `Viewed evidence (${media.media_type})`,
-          metadata: {
-            media_id: media.media_id,
-            media_type: media.media_type,
-          },
-        }),
-      });
-    } catch (err) {
-      console.error('Failed to log evidence view:', err);
-    }
-  };
 
   const handleUpdatePriority = async (
     complaintId: string
@@ -667,7 +643,7 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
             <ComplaintEvidenceGallery
               media={selected.media ?? []}
               emptyMessage="No evidence uploaded"
-              onItemPress={openEvidenceViewer}
+              onMediaOpen={logEvidenceView}
             />
           </View>
 
@@ -1054,25 +1030,6 @@ const [activeMedia, setActiveMedia] = useState<any>(null);
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-
-      <Modal visible={viewerVisible} animationType="slide" onRequestClose={() => setViewerVisible(false)}>
-        <SafeAreaView style={s.modalViewerSafe}>
-          <TouchableOpacity onPress={() => setViewerVisible(false)} style={s.modalViewerClose}>
-            <Text style={s.modalViewerCloseText}>Close</Text>
-          </TouchableOpacity>
-          {activeMedia?.media_type === 'image' ? (
-            <Image source={{ uri: activeMedia.media_url }} style={s.modalViewerMedia} resizeMode="contain" />
-          ) : null}
-          {activeMedia?.media_type === 'video' ? (
-            <Video
-              source={{ uri: activeMedia.media_url }}
-              style={s.modalViewerMedia}
-              useNativeControls
-              resizeMode={ResizeMode.CONTAIN}
-            />
-          ) : null}
-        </SafeAreaView>
       </Modal>
     </PageShell>
   );
