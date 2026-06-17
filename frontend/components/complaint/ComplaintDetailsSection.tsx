@@ -17,22 +17,30 @@ type Props = {
   viewer: Viewer;
 };
 
+
+
 export default function ComplaintDetailsSection({ complaint, viewer }: Props) {
+  const safeComplaint = sanitizeComplaintForViewer(complaint, viewer);
   const gridFields = [
-    { label: 'Category', value: complaint.category_name ?? '-' },
-    { label: 'Location', value: complaint.location_text || '-' },
-    ...(complaint.priority_level
-      ? [{ label: 'Priority', value: formatPriorityLevel(complaint.priority_level) }]
+    { label: 'Category', value: safeComplaint.category_name ?? '-' },
+    { label: 'Location', value: safeComplaint.location_text || '-' },
+    ...(safeComplaint.priority_level
+      ? [{ label: 'Priority', value: formatPriorityLevel(safeComplaint.priority_level) }]
       : []),
-    { label: 'Date Submitted', value: formatDate(complaint.created_at) },
+    { label: 'Date Submitted', value: formatDate(safeComplaint.created_at) },
     {
       label: 'Last Updated',
-      value: formatDateTime(complaint.updated_at ?? complaint.created_at),
+      value: formatDateTime(safeComplaint.updated_at ?? safeComplaint.created_at),
     },
     ...(viewer === 'resident'
-      ? [{ label: 'Assigned Responder', value: formatAssigneeName(complaint) }]
+      ? [{ label: 'Assigned Responder', value: formatAssigneeName(safeComplaint) }]
       : []),
   ];
+
+ 
+
+
+  console.log('COMPLAINT DETAILS', safeComplaint);
 
   return (
     <View style={styles.section}>
@@ -40,11 +48,21 @@ export default function ComplaintDetailsSection({ complaint, viewer }: Props) {
 
       <ComplaintDetailField
         label="Description"
-        value={complaint.description}
+        value={safeComplaint.description}
         multiline
         containerStyle={styles.detailFullWidth}
       />
 
+      {viewer === 'resident' ? (
+        <ComplaintDetailField
+          label="Assigned By"
+          value={
+            safeComplaint.assigned_by_first_name
+              ? `${safeComplaint.assigned_by_first_name} ${safeComplaint.assigned_by_last_name ?? ''}`
+              : 'Not Assigned'
+          }
+        />
+      ) : null}
       <View style={styles.detailGrid}>
         {gridFields.map((field) => (
           <ComplaintDetailField
@@ -55,6 +73,25 @@ export default function ComplaintDetailsSection({ complaint, viewer }: Props) {
           />
         ))}
       </View>
+
+
     </View>
   );
 }
+
+function sanitizeComplaintForViewer(
+  complaint: ComplaintRecord,
+  viewer: Viewer
+): ComplaintRecord {
+  if (viewer === 'responder') {
+    return {
+      ...complaint,
+      assigned_by_first_name: undefined,
+      assigned_by_last_name: undefined,
+    };
+  }
+
+  return complaint;
+}
+
+

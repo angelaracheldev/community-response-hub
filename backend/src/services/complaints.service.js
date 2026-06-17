@@ -350,6 +350,9 @@ async function updateComplaintStatus(id, { complaintStatus, remarks }, requestUs
       ? sanitizeComplaintForResponder(complaintData)
       : complaintData;
 
+  console.log('UPDATED COMPLAINT');
+console.log(JSON.stringify(complaintData, null, 2));
+
   return {
     body: {
       status: 'ok',
@@ -385,7 +388,7 @@ async function cancelComplaint(id, requestUser, { cancellationReason }) {
     };
   }
 
-  await complaintsRepository.updateComplaintStatus({
+  await complaintsRepository.updateComplaintStatus({  
     status: 'cancelled',
     remarks: cancellationReason,
     id,

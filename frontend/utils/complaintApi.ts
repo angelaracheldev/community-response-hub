@@ -30,6 +30,10 @@ export type ComplaintRecord = {
   assigned_to?: string | null;
   assigned_to_first_name?: string | null;
   assigned_to_last_name?: string | null;
+
+  assigned_by?: string | null;
+  assigned_by_first_name?: string | null;
+  assigned_by_last_name?: string | null;
 };
 
 export type ComplaintMedia = {

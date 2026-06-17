@@ -40,7 +40,7 @@ export default function ComplaintDetailContent({
 
   const showActionsAtTop = viewer === 'responder' && actionSection;
   const showActionsAtBottom = viewer === 'resident' && actionSection;
-
+  console.log('COMPLAINT DETAILS', complaint);
   return (
     <ScrollView
       contentContainerStyle={[
@@ -118,6 +118,7 @@ export default function ComplaintDetailContent({
       <ComplaintStatusTimeline complaint={complaint} />
 
       {showActionsAtBottom ? actionSection : null}
+    
     </ScrollView>
   );
 }
