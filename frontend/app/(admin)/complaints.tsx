@@ -335,9 +335,14 @@ export default function AdminComplaints() {
   const openDetails = async (complaintId: string) => {
     setModalOpen(true);
     setSelected(null);
+    
 
     try {
       const data = await fetchAdminComplaintDetails(complaintId);
+      console.log(
+      'ADMIN DETAIL SCREEN RAW RESPONSE',
+      JSON.stringify(data, null, 2)
+    );
       setSelected(data);
 
       await loadResponders(); // 🔥 ADD THIS
@@ -500,15 +505,19 @@ export default function AdminComplaints() {
   };
 
 
-  const assignedLabel = selected
-    ? ['rejected', 'cancelled', 'resolved'].includes(selected.complaint.status)
-      ? 'N/A'
-      : lastAssignment
-        ? lastAssignment.assigned_to_first_name
-          ? `${lastAssignment.assigned_to_first_name} ${lastAssignment.assigned_to_last_name}`
-          : 'Responder Assigned'
-        : 'Not Assigned'
-    : '-';
+  // const assignedLabel = selected
+  //   ? ['rejected', 'cancelled', 'resolved'].includes(selected.complaint.status)
+  //     ? 'N/A'
+  //     : lastAssignment
+  //       ? lastAssignment.assigned_to_first_name
+  //         ? `${lastAssignment.assigned_to_first_name} ${lastAssignment.assigned_to_last_name}`
+  //         : 'Responder Assigned'
+  //       : 'Not Assigned'
+  //   : '-';
+  const assignedLabel =
+  selected?.assignments?.length
+    ? `${lastAssignment.assigned_to_first_name} ${lastAssignment.assigned_to_last_name}`
+    : 'Not Assigned';
 
   const headerSubtitle = selected
     ? `${selected.complaint.reference_id} · ${formatComplaintStatus(selected.complaint.status)}`
