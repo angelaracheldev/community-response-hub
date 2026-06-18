@@ -11,13 +11,6 @@ const io = new Server(server, {
 
 initSocket(io);
 
-const cors = require('cors');
-
-app.use(cors({
-  origin: '*', // for development only
-  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-}));
-
 server.listen(port, host, () => {
   console.log(`Backend service running at http://${host}:${port}`);
 });

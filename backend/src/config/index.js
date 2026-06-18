@@ -5,7 +5,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), override: tru
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 module.exports = {
-  port: process.env.API_PORT || 5000,
+  port: Number(process.env.API_PORT || process.env.PORT || 5000),
   host: process.env.API_HOST || '0.0.0.0',
   nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.FRONTEND_URL || '*',
