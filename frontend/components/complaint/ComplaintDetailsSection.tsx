@@ -37,11 +37,6 @@ export default function ComplaintDetailsSection({ complaint, viewer }: Props) {
       : []),
   ];
 
- 
-
-
-  console.log('COMPLAINT DETAILS', safeComplaint);
-
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Complaint Information</Text>

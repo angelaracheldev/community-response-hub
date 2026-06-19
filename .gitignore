@@ -30,3 +30,8 @@ npm-debug.log*
 
 # Uploads
 uploads/
+
+# Dev snapshots (regenerate with git diff / tree)
+diff_output.txt
+tree.txt
+**/tree.txt

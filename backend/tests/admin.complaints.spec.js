@@ -1,4 +1,4 @@
-jest.mock('../db', () => ({
+jest.mock('../src/config/database', () => ({
   query: jest.fn(async (text, params) => {
     if (/FROM complaints c/i.test(text)) {
       return {
@@ -6,6 +6,7 @@ jest.mock('../db', () => ({
         rows: [
           {
             complaint_id: '1111-2222-3333',
+            reference_id: 'CMP-001',
             reported_by: 'user-1',
             category_id: 1,
             category_name: 'Noise Complaint',
@@ -25,33 +26,37 @@ jest.mock('../db', () => ({
       };
     }
     if (/FROM complaint_assignments/i.test(text)) {
-      return { rowCount: 1, rows: [] };
+      return { rowCount: 0, rows: [] };
     }
     if (/FROM complaint_media/i.test(text)) {
-      return { rowCount: 1, rows: [] };
+      return { rowCount: 0, rows: [] };
     }
     if (/FROM activity_logs/i.test(text)) {
-      return { rowCount: 1, rows: [] };
+      return { rowCount: 0, rows: [] };
     }
     return { rowCount: 0, rows: [] };
   }),
 }));
 
-jest.mock('../middleware/auth', () => ({
+jest.mock('../src/middleware/auth', () => ({
   authMiddleware: (req, res, next) => {
     req.user = { user_id: 'admin-1', role_name: 'admin' };
     return next();
   },
   requireRole: () => (req, res, next) => next(),
   requireAnyRole: () => (req, res, next) => next(),
+  requireVerified: (req, res, next) => next(),
 }));
 
 const request = require('supertest');
-const app = require('../server');
+const app = require('../src/app');
 
 describe('Admin complaints details endpoint', () => {
   test('returns aggregated complaint details', async () => {
-    const res = await request(app).get('/api/admin/complaints/1111-2222-3333/details').set('Authorization', 'Bearer faketoken');
+    const res = await request(app)
+      .get('/api/v1/admin/complaints/1111-2222-3333/details')
+      .set('Authorization', 'Bearer faketoken');
+
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('complaint');
     expect(res.body.complaint).toHaveProperty('complaint_id', '1111-2222-3333');

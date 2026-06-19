@@ -1,43 +1,13 @@
-import { ADMIN_API_BASE, API_BASE } from './apiConfig';
+import { API_BASE } from './apiConfig';
 import { authFetch } from './authFetch';
-
-function apiErrorMessage(
-  data: { message?: string; errors?: { msg?: string }[] },
-  fallback: string
-): string {
-  if (data.message) return data.message;
-  if (data.errors?.length) return data.errors[0].msg ?? fallback;
-  return fallback;
-}
-
-// parseJson from github or main latest gitpull
-// async function parseJson<T>(response: Response, fallback: string): Promise<T> {
-//   const data = await response.json();
-//   if (!response.ok) {
-//     throw new Error(apiErrorMessage(data, fallback));
-//   }
-//   return data as T;
-// }
-
-
-// parseJson latest to address the case where response is not json
-async function parseJson<T>(response: Response, fallback: string): Promise<T> {
-  const text = await response.text();
-
-  try {
-    const data = JSON.parse(text);
-
-    if (!response.ok) {
-      throw new Error(apiErrorMessage(data, fallback));
-    }
-
-    return data as T;
-  } catch (err) {
-    console.error('Invalid JSON response:', text);
-    throw new Error(fallback);
-  }
-}
-
+import { parseJson } from './apiHelpers';
+import type {
+  ChartSegment,
+  DashboardStat,
+  RecentComplaintItem,
+  SystemMetric,
+  TrendPoint,
+} from './adminDashboard.mock';
 
 export type PaginatedComplaints = {
   complaints: Record<string, unknown>[];
@@ -58,8 +28,6 @@ export type PaginatedActivityLogs = {
   total: number;
   page: number;
 };
-
-export type AdminComplaintDetail = Record<string, unknown>;
 
 export type ComplaintActivityLog = {
   activity_log_id: string;
@@ -108,6 +76,45 @@ export type AdminComplaint = {
   assigned_to_last_name?: string | null;
 };
 
+export type AdminComplaintAssignment = {
+  assignment_id: string;
+  complaint_id: string;
+  assigned_to: string;
+  assigned_by: string;
+  is_active: boolean;
+  assigned_at: string;
+  assigned_to_first_name?: string | null;
+  assigned_to_last_name?: string | null;
+  assigned_by_first_name?: string | null;
+  assigned_by_last_name?: string | null;
+};
+
+export type AdminComplaintDetailResponse = {
+  status: string;
+  complaint: AdminComplaint;
+  category: { category_name: string; description?: string | null };
+  assignments: AdminComplaintAssignment[];
+  media: Record<string, unknown>[];
+  activityLogs: ComplaintActivityLog[];
+};
+
+export type AdminDashboardData = {
+  stats: DashboardStat[];
+  statusBreakdown: ChartSegment[];
+  trendPoints: TrendPoint[];
+  recentComplaints: RecentComplaintItem[];
+  systemOverview: SystemMetric[];
+};
+
+export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
+  const response = await authFetch(`${API_BASE}/admin/dashboard`);
+  const data = await parseJson<{ data?: AdminDashboardData }>(response, 'Failed to load dashboard');
+  if (!data.data) {
+    throw new Error('Dashboard response did not include data');
+  }
+  return data.data;
+}
+
 export async function fetchAdminComplaints(params: {
   page: number;
   pageSize: number;
@@ -143,25 +150,11 @@ export async function fetchAdminComplaints(params: {
   };
 }
 
-// export async function fetchAdminComplaintDetails(
-//   complaintId: string
-// ): Promise<AdminComplaintDetail> {
-//   const response = await authFetch(
-//     // `${ADMIN_API_BASE}/admin/complaints/${complaintId}/details`
-//     // `${API_BASE}/complaints/${complaintId}/details`
-//     `${API_BASE}/complaints/${encodeURIComponent(complaintId)}/details`
-//   );
-//   return parseJson<AdminComplaintDetail>(response, 'Failed to load complaint details');
-// }
-
-export async function fetchAdminComplaintDetails(complaintId: string) {
-  const response = await authFetch(
-    // `${API_BASE}/complaints/${encodeURIComponent(complaintId)}/details`
-    // `${API_BASE}/complaints/${complaintId}/details`
-    `${API_BASE}/admin/complaints/${complaintId}/details`
-  );
-
-  return parseJson(response, 'Failed to load complaint details');
+export async function fetchAdminComplaintDetails(
+  complaintId: string
+): Promise<AdminComplaintDetailResponse> {
+  const response = await authFetch(`${API_BASE}/admin/complaints/${complaintId}/details`);
+  return parseJson<AdminComplaintDetailResponse>(response, 'Failed to load complaint details');
 }
 
 export async function fetchAdminComplaint(complaintId: string): Promise<AdminComplaint | null> {
@@ -217,14 +210,10 @@ export async function fetchUsers(params: {
 export async function fetchUsersByVerificationStatus(
   status: 'pending' | 'approved' | 'rejected'
 ): Promise<AdminUser[]> {
-  const response = await authFetch(
-    `${API_BASE}/users?roleId=1&verificationStatus=${status}`,
-    { headers: { 'Content-Type': 'application/json' } }
-  );
-  const data = await parseJson<{ users?: AdminUser[] }>(
-    response,
-    'Failed to load verifications'
-  );
+  const response = await authFetch(`${API_BASE}/users?roleId=1&verificationStatus=${status}`, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const data = await parseJson<{ users?: AdminUser[] }>(response, 'Failed to load verifications');
   return data.users ?? [];
 }
 
@@ -320,4 +309,10 @@ export async function createUser(payload: {
     throw new Error('Create user response did not include a user');
   }
   return data.user;
+}
+
+export async function fetchResponders(): Promise<AdminUser[]> {
+  const response = await authFetch(`${API_BASE}/users/responders`);
+  const data = await parseJson<{ users?: AdminUser[] }>(response, 'Failed to load responders');
+  return data.users ?? [];
 }

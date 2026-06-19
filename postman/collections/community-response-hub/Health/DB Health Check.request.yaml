@@ -1,7 +1,0 @@
-$kind: http-request
-name: DB Health Check
-method: GET
-url: '{{baseUrl}}/api/v1/db'
-order: 3000
-auth:
-  type: noauth
