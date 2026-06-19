@@ -1,13 +1,14 @@
 const bcrypt = require('bcrypt');
 const usersRepository = require('../repositories/users.repository');
 const verificationsRepository = require('../repositories/verifications.repository');
+const verificationMediaService = require('./verificationMedia.service');
 const crypto = require('crypto');
 
 function defaultAdminCreatedPassword() {
   return process.env.ADMIN_CREATED_DEFAULT_PASSWORD || crypto.randomBytes(16).toString('base64url');
 }
 
-async function createUser(body) {
+async function createUser(body, { file, reviewedBy } = {}) {
   const roleId = Number(body.role_id);
   const role = await usersRepository.findRoleById(roleId);
   if (!role.rowCount) {
@@ -39,12 +40,25 @@ async function createUser(body) {
     isVerified: true,
   });
 
+  const user = result.rows[0];
+
+  if (roleName === 'resident' && body.address && file) {
+    const documentUrl = await verificationMediaService.uploadVerificationDocument(file);
+    await verificationsRepository.insertApprovedVerification({
+      userId: user.user_id,
+      verificationType: body.verification_type || 'ID',
+      documentUrl,
+      address: body.address,
+      reviewedBy,
+    });
+  }
+
   return {
     status: 201,
     body: {
       status: 'ok',
       message: 'User created successfully',
-      user: result.rows[0],
+      user,
       temporaryPassword: body.password ? undefined : generatedPassword,
       timestamp: new Date().toISOString(),
     },

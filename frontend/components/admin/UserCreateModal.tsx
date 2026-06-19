@@ -1,44 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Modal, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  View, 
-  ActivityIndicator, 
-  StyleSheet, 
-  ScrollView 
+import {
+  Modal,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+  StyleSheet,
+  ScrollView,
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { colors } from '../../styles/theme';
-import { createUser } from '../../utils/adminApi'; // Hooked directly into your API utilities
+import { createUser } from '../../utils/adminApi';
 
 interface UserCreateModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  defaultRoleId: number; // 1 for Resident, 2 for Responder
+  defaultRoleId: number; // 1 for Resident, 2 for Responder, 3 for Staff
 }
 
 export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: UserCreateModalProps) {
+  const isResident = defaultRoleId === 1;
+  const roleLabel = defaultRoleId === 1 ? 'Resident' : defaultRoleId === 2 ? 'Responder' : 'Staff';
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
+  const [idFile, setIdFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Reset fields when the form visibility changes
   useEffect(() => {
     if (visible) {
       setFirstName('');
       setLastName('');
       setEmail('');
       setPhone('');
+      setAddress('');
       setPassword('');
+      setIdFile(null);
       setErrorMessage(null);
     }
   }, [visible]);
+
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/jpeg', 'image/png', 'application/pdf'],
+      });
+
+      if (!result.canceled) {
+        setIdFile(result.assets[0]);
+        setErrorMessage(null);
+      }
+    } catch (error) {
+      console.error('Pick document error', error);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
@@ -51,11 +73,21 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
       return;
     }
 
+    if (isResident) {
+      if (!address.trim()) {
+        setErrorMessage('Address is required for residents.');
+        return;
+      }
+      if (!idFile) {
+        setErrorMessage('Valid ID document is required for residents.');
+        return;
+      }
+    }
+
     setSubmitting(true);
     setErrorMessage(null);
 
     try {
-      // Execute using your central API configuration rules
       await createUser({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -63,6 +95,14 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
         phone_number: phone.trim() || null,
         role_id: defaultRoleId,
         password: password.trim(),
+        address: isResident ? address.trim() : null,
+        idFile: isResident && idFile
+          ? {
+              uri: idFile.uri,
+              name: idFile.name,
+              type: idFile.mimeType || 'application/octet-stream',
+            }
+          : null,
       });
 
       onSuccess();
@@ -78,9 +118,7 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
     <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>
-            Add New {defaultRoleId === 1 ? 'Resident' : 'Responder'}
-          </Text>
+          <Text style={styles.modalTitle}>Add New {roleLabel}</Text>
 
           {errorMessage && (
             <View style={styles.errorBox}>
@@ -132,6 +170,39 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
               editable={!submitting}
             />
 
+            {isResident ? (
+              <>
+                <Text style={styles.label}>Address *</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={address}
+                  onChangeText={setAddress}
+                  placeholder="Complete residential address"
+                  placeholderTextColor="#999"
+                  multiline
+                  numberOfLines={3}
+                  editable={!submitting}
+                />
+
+                <Text style={styles.label}>Valid ID / Proof of Address *</Text>
+                {idFile ? (
+                  <View style={styles.fileInfo}>
+                    <Text style={styles.fileName} numberOfLines={1}>
+                      {idFile.name}
+                    </Text>
+                    <TouchableOpacity onPress={() => setIdFile(null)} disabled={submitting}>
+                      <Text style={styles.removeFile}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.uploadBox} onPress={pickDocument} disabled={submitting}>
+                    <Text style={styles.uploadTitle}>+ Select File</Text>
+                    <Text style={styles.uploadSubtitle}>JPG, JPEG, PNG, or PDF (Max 5-10MB)</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : null}
+
             <Text style={styles.label}>Temporary Password *</Text>
             <TextInput
               style={styles.input}
@@ -145,16 +216,16 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
           </ScrollView>
 
           <View style={styles.btnRow}>
-            <TouchableOpacity 
-              style={[styles.btn, styles.btnCancel]} 
+            <TouchableOpacity
+              style={[styles.btn, styles.btnCancel]}
               onPress={onClose}
               disabled={submitting}
             >
               <Text style={styles.btnTextCancel}>Cancel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.btn, styles.btnSubmit]} 
+            <TouchableOpacity
+              style={[styles.btn, styles.btnSubmit]}
               onPress={handleSubmit}
               disabled={submitting}
             >
@@ -217,6 +288,51 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     backgroundColor: '#fff',
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  uploadBox: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+    borderRadius: 4,
+    padding: 16,
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+  },
+  uploadTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary || '#007AFF',
+    marginBottom: 4,
+  },
+  uploadSubtitle: {
+    fontSize: 12,
+    color: '#888',
+  },
+  fileInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#f9fafb',
+  },
+  fileName: {
+    flex: 1,
+    fontSize: 13,
+    color: '#333',
+    marginRight: 8,
+  },
+  removeFile: {
+    fontSize: 13,
+    color: '#dc2626',
+    fontWeight: '500',
   },
   errorBox: {
     backgroundColor: '#fef2f2',

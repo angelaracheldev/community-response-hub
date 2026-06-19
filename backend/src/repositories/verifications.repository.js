@@ -41,6 +41,7 @@ module.exports = {
   findVerificationByUserId,
   updateVerification,
   insertVerification,
+  insertApprovedVerification,
   reviewVerification,
   setUserVerified,
 };

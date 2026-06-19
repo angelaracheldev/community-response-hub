@@ -51,12 +51,48 @@ const createUserValidation = [
   body('last_name').trim().notEmpty().withMessage('Last name is required'),
   body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
   body('phone_number').optional({ nullable: true, checkFalsy: true }).isString().withMessage('Phone number must be a string'),
+  body('address')
+    .if(body('role_id').custom((value) => Number(value) === 1))
+    .trim()
+    .notEmpty()
+    .withMessage('Address is required for residents'),
   body('address').optional({ nullable: true, checkFalsy: true }).isString().withMessage('Address must be a string'),
   body('role_id').isInt({ min: 1 }).withMessage('Valid role_id is required'),
   body('password')
     .optional({ nullable: true, checkFalsy: true })
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters'),
+  (req, res, next) => {
+    if (Number(req.body.role_id) !== 1) {
+      return next();
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Valid ID document is required for residents',
+      });
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Unsupported file type. Upload JPG, JPEG, PNG, or PDF only.',
+      });
+    }
+
+    const isPdf = req.file.mimetype === 'application/pdf';
+    const maxSize = isPdf ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (req.file.size > maxSize) {
+      return res.status(400).json({
+        status: 'error',
+        message: isPdf ? 'PDF must be 10 MB or smaller.' : 'Image must be 5 MB or smaller.',
+      });
+    }
+
+    next();
+  },
 ];
 
 module.exports = {

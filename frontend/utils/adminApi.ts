@@ -1,6 +1,7 @@
 import { API_BASE } from './apiConfig';
 import { authFetch } from './authFetch';
 import { parseJson } from './apiHelpers';
+import { appendLocalFileToFormData } from './formDataUpload';
 import type {
   ChartSegment,
   DashboardStat,
@@ -288,6 +289,12 @@ export async function fetchActivityLogs(params: {
   };
 }
 
+export type CreateUserIdFile = {
+  uri: string;
+  name: string;
+  type: string;
+};
+
 export async function createUser(payload: {
   first_name: string;
   last_name: string;
@@ -295,14 +302,49 @@ export async function createUser(payload: {
   phone_number: string | null;
   role_id: number;
   password?: string;
+  address?: string | null;
+  idFile?: CreateUserIdFile | null;
 }): Promise<AdminUser> {
-  const response = await authFetch(`${API_BASE}/users`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  const hasResidentVerification = payload.role_id === 1 && payload.idFile;
+
+  let response: Response;
+
+  if (hasResidentVerification && payload.idFile) {
+    const formData = new FormData();
+    formData.append('first_name', payload.first_name);
+    formData.append('last_name', payload.last_name);
+    formData.append('email', payload.email);
+    formData.append('role_id', String(payload.role_id));
+    if (payload.phone_number) {
+      formData.append('phone_number', payload.phone_number);
+    }
+    if (payload.address) {
+      formData.append('address', payload.address);
+    }
+    if (payload.password) {
+      formData.append('password', payload.password);
+    }
+
+    await appendLocalFileToFormData(formData, 'file', {
+      uri: payload.idFile.uri,
+      name: payload.idFile.name,
+      type: payload.idFile.type,
+    });
+
+    response = await authFetch(`${API_BASE}/users`, {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      body: formData,
+    });
+  } else {
+    response = await authFetch(`${API_BASE}/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+  }
 
   const data = await parseJson<{ user?: AdminUser }>(response, 'Failed to create user');
   if (!data.user) {

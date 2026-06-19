@@ -8,7 +8,14 @@ const {
   reviewVerificationValidation,
 } = require('../validators/users.validator');
 
-router.post('/', authMiddleware, requireRole('admin'), createUserValidation, usersController.createUser);
+router.post(
+  '/',
+  authMiddleware,
+  requireRole('admin'),
+  uploadVerification.single('file'),
+  createUserValidation,
+  usersController.createUser
+);
 router.get('/', authMiddleware, requireRole('admin'), usersController.listUsers);
 router.get('/me', authMiddleware, usersController.getCurrentUser);
 router.get('/responders', authMiddleware, requireRole('admin'), usersController.getResponders);

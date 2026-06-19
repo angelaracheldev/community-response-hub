@@ -3,7 +3,11 @@ const usersService = require('../services/users.service');
 const verificationMediaService = require('../services/verificationMedia.service');
 
 const createUser = handleService(
-  (req) => usersService.createUser(req.body),
+  (req) =>
+    usersService.createUser(req.body, {
+      file: req.file,
+      reviewedBy: req.user.user_id,
+    }),
   { validate: true, logLabel: 'Failed to create user', fallbackMessage: 'Unable to create user', defaultStatus: 201 }
 );
 
