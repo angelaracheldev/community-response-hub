@@ -46,14 +46,7 @@ export type ComplaintMedia = {
   is_resident_evidence?: boolean;
 };
 
-function apiErrorMessage(
-  data: { message?: string; errors?: { msg?: string }[] },
-  fallback: string
-): string {
-  if (data.message) return data.message;
-  if (data.errors?.length) return data.errors[0].msg ?? fallback;
-  return fallback;
-}
+import { apiErrorMessage } from './apiHelpers';
 
 export function formatComplaintStatus(status: string): string {
   const labels: Record<string, string> = {

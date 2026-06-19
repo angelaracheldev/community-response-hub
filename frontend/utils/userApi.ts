@@ -1,14 +1,7 @@
 import { API_BASE } from './apiConfig';
 import { authFetch } from './authFetch';
 
-function apiErrorMessage(
-  data: { message?: string; errors?: { msg?: string }[] },
-  fallback: string
-): string {
-  if (data.message) return data.message;
-  if (data.errors?.length) return data.errors[0].msg ?? fallback;
-  return fallback;
-}
+import { apiErrorMessage } from './apiHelpers';
 
 export type VerificationStatus = 'not_submitted' | 'pending' | 'rejected' | 'approved';
 

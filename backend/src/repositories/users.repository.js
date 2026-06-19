@@ -91,21 +91,6 @@ async function getResponders() {
 }
 
 
-async function updatePriority({
-  id,
-  priorityLevel,
-}) {
-  return db.query(
-    `
-    UPDATE complaints
-    SET priority_level = $2,
-        updated_at = NOW()
-    WHERE complaint_id = $1
-    `,
-    [id, priorityLevel]
-  );
-}
-
 module.exports = {
   findUserIdByEmail,
   findRoleById,
@@ -117,5 +102,4 @@ module.exports = {
   findUserIdOnly,
   findActiveUsersByRoleName,
   getResponders,
-  updatePriority,
 };

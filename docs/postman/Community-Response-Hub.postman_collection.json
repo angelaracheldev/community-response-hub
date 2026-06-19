@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "community-response-hub-api",
     "name": "Community Response Hub API",
-    "description": "Local API tests for Community Response Hub (backend/src).\n\n**Setup:**\n1. `docker-compose up -d`\n2. Copy `backend/.env.example` to `backend/.env.local` and set Cloudinary credentials\n3. `cd backend && npm run dev`\n4. Import `CRH-Local.postman_environment.json` and select **CRH Local**\n5. Run **Auth → Login (Admin)** first to set `accessToken`\n\nSeed admin: `admin@example.com` / `Admin123!`\n\n**Media:** Run **Complaints → List** or **Create Complaint** to set `complaintId`, then **Complaint Media → Upload** (pick a file in the Body tab).",
+    "description": "Local API tests for Community Response Hub (backend/src). Aligned with docs/swagger.yml.\n\n**Setup:**\n1. `docker-compose up -d`\n2. Copy `backend/.env.example` to `backend/.env.local` and set Cloudinary credentials\n3. `cd backend && npm run dev`\n4. Import `CRH-Local.postman_environment.json` and select **CRH Local**\n5. Run **Auth → Login (Admin)** first to set `accessToken`\n\nSeed admin: `admin@example.com` / `Admin123!`\n\n**Admin:** **Admin → Get Dashboard**, **Get Complaint Details**\n**Media:** Run **Complaints → List** or **Create Complaint** to set `complaintId`, then **Complaint Media → Upload**.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -304,9 +304,64 @@
               "query": [
                 { "key": "roleId", "value": "", "description": "Optional filter" },
                 { "key": "isActive", "value": "", "description": "true | false" },
-                { "key": "verificationStatus", "value": "", "description": "pending | approved | rejected" }
+                { "key": "verificationStatus", "value": "", "description": "pending | approved | rejected | not_submitted" }
               ]
             }
+          }
+        },
+        {
+          "name": "Create User (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data?.user_id) {",
+                  "  pm.environment.set('userId', json.data.user_id);",
+                  "}",
+                  "pm.test('User created', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"Responder\",\n  \"email\": \"test.responder@example.com\",\n  \"phone_number\": \"09171234567\",\n  \"role_id\": 2\n}"
+            },
+            "url": "{{baseUrl}}/users",
+            "description": "Admin only. Creates a pre-verified user. Omit `password` to receive a `temporaryPassword` in the response."
+          }
+        },
+        {
+          "name": "List Responders (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.users?.length) {",
+                  "  pm.environment.set('assignedToUserId', json.users[0].user_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users/responders",
+            "description": "Admin only. Active responders for assignment dropdowns. Sets `assignedToUserId` from the first result."
           }
         },
         {
@@ -356,9 +411,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"verificationStatus\": \"approved\"\n}"
+              "raw": "{\n  \"verificationStatus\": \"approved\",\n  \"remarks\": \"\"\n}"
             },
-            "url": "{{baseUrl}}/users/{{userId}}/verification/review"
+            "url": "{{baseUrl}}/users/{{userId}}/verification/review",
+            "description": "Admin only. Use `verificationStatus`: `approved` or `rejected`. `remarks` required when rejecting."
           }
         }
       ],
@@ -371,17 +427,99 @@
       "name": "Users (resident)",
       "item": [
         {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users/me"
+          }
+        },
+        {
           "name": "Submit Verification (me)",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"verificationType\": \"ID\",\n  \"documentUrl\": \"https://example.com/sample-id.jpg\",\n  \"address\": \"Block 10, Barangay Example\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "verificationType",
+                  "value": "ID",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "Block 10, Barangay Example",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "description": "JPG, PNG, or PDF (max 5 MB image / 10 MB PDF)",
+                  "type": "file",
+                  "src": []
+                }
+              ]
             },
-            "url": "{{baseUrl}}/users/me/verification"
+            "url": "{{baseUrl}}/users/me/verification",
+            "description": "Multipart upload. Select a document in the `file` field. Alternatively send JSON with `documentUrl` if not using file upload."
+          }
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+      }
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Dashboard loaded', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.eql('ok');",
+                  "  pm.expect(json.data).to.be.an('object');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/dashboard",
+            "description": "Admin only. Returns stats cards, status breakdown, trend chart, recent complaints, and system overview."
+          }
+        },
+        {
+          "name": "Get Complaint Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Complaint details loaded', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.complaint).to.be.an('object');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/complaints/{{complaintId}}/details",
+            "description": "Admin only. Aggregates complaint, category, assignments, media, and activity logs. Path accepts UUID or `referenceId`."
           }
         }
       ],
@@ -523,7 +661,37 @@
               "raw": "{\n  \"assignedToUserId\": \"{{assignedToUserId}}\"\n}"
             },
             "url": "{{baseUrl}}/complaints/{{complaintId}}/assign",
-            "description": "Run **List Users** first to set `assignedToUserId` (responder UUID)."
+            "description": "Run **List Responders** or **List Users** first to set `assignedToUserId`."
+          }
+        },
+        {
+          "name": "Update Complaint Priority (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priorityLevel\": \"high\"\n}"
+            },
+            "url": "{{baseUrl}}/complaints/{{complaintId}}/priority",
+            "description": "Admin only. Values: `low`, `normal`, `high`, `urgent`."
+          }
+        },
+        {
+          "name": "Reject Complaint (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Duplicate report or invalid complaint details.\"\n}"
+            },
+            "url": "{{baseUrl}}/complaints/{{complaintId}}/reject",
+            "description": "Admin only. Sets status to `rejected`. `reason` min 10 characters."
           }
         },
         {
@@ -539,6 +707,15 @@
             },
             "url": "{{baseUrl}}/complaints/{{referenceId}}/cancel",
             "description": "Verified resident only. Complaint must be `pending` or `assigned`. Run **My Complaints** or **Create Complaint** first to set `referenceId`. Authenticate as the owning resident."
+          }
+        },
+        {
+          "name": "Delete Pending Complaint (resident)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/complaints/{{complaintId}}",
+            "description": "Verified resident only. Deletes own `pending` complaints (e.g. after failed media upload)."
           }
         }
       ],

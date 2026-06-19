@@ -3,47 +3,51 @@ openapi: 3.0.3
 info:
   title: Community Incident Reporting & Response Platform API
   description: |
-    API for the Community Incident Reporting & Response Platform.
+    API for the Community Response Hub platform.
 
-    Aligned with database ERD (USER, ROLE, RESIDENT_VERIFICATIONS, COMPLAINTS,
-    COMPLAINT_CATEGORIES, COMPLAINT_MEDIA, COMPLAINT_ASSIGNMENTS, ACTIVITY_LOGS,
-    NOTIFICATIONS, EMERGENCY_HOTLINES).
+    **Synced to implemented backend routes** (v1.4.0).
 
-    FAQs are out of scope for this API version (resident FAQs remain client-side or static content).
+    Base URL: `http://localhost:5000/api/v1`
 
-    Roles: Admin, Resident, Responder.
+    Roles: `admin`, `resident`, `responder`.
 
-    Privacy: Complainant residentId is hidden from Responder responses. Admin sees full PII.
-    Verification documents are temporary and removed after admin review.
-  version: 1.3.0
+    Privacy: Complainant `reported_by` is hidden from responder complaint responses. Admins see full PII.
+
+    Path identifiers: Most complaint paths accept either internal `complaint_id` (UUID) or public `reference_id` (e.g. `CMP-2026-00001`).
+
+    Response conventions:
+    - Success payloads typically include `status: "ok"` and a `timestamp` (ISO-8601).
+    - Errors return `status: "error"` with a `message`; in non-production environments an `error` field may include internal details.
+    - Auth register/login responses use `success: true` with a nested `data` object (legacy shape retained for the mobile client).
+  version: 1.4.0
 
 servers:
   - url: http://localhost:5000/api/v1
     description: Local Development
 
 tags:
+  - name: Health
+    description: Service health checks
+  - name: Database
+    description: Admin database diagnostics
   - name: Auth
-    description: Authentication and account endpoints
+    description: Authentication
   - name: Users
-    description: User management endpoints
+    description: User management
   - name: Verifications
-    description: Resident verification (RESIDENT_VERIFICATIONS table)
-  - name: Assignments
-    description: Complaint officer assignments (COMPLAINT_ASSIGNMENTS table)
-  - name: Complaints
-    description: Complaint reporting and workflow endpoints
-  - name: Media
-    description: Complaint media upload and management endpoints
-  - name: Activity Logs
-    description: Audit trail and complaint history endpoints
-  - name: Notifications
-    description: User notification endpoints
+    description: Resident verification workflow
+  - name: Admin
+    description: Admin-only dashboard and complaint detail views
   - name: Categories
-    description: Complaint category endpoints
-  - name: Emergency Hotlines
-    description: Emergency hotline endpoints
-  - name: Dashboard
-    description: Summary and analytics endpoints
+    description: Complaint categories
+  - name: Complaints
+    description: Complaint reporting and workflow
+  - name: Media
+    description: Complaint evidence upload
+  - name: Activity Logs
+    description: Complaint audit trail
+  - name: Notifications
+    description: User notifications
 
 components:
   securitySchemes:
@@ -53,774 +57,258 @@ components:
       bearerFormat: JWT
 
   schemas:
-    ErrorResponse:
+    ApiError:
       type: object
       properties:
-        success:
-          type: boolean
-          example: false
+        status:
+          type: string
+          example: error
         message:
           type: string
-          example: Unauthorized
+          example: Complaint not found
+        errors:
+          type: array
+          description: Present for validation failures (express-validator)
+          items:
+            type: object
+            properties:
+              msg:
+                type: string
         error:
           type: string
-          example: Invalid token
+          description: Internal error detail (non-production only)
+          example: relation "foo" does not exist
 
-    SuccessResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
-          type: string
-          example: Request successful
+    Timestamp:
+      type: string
+      format: date-time
+      example: '2026-06-19T12:00:00.000Z'
 
     AuthTokens:
       type: object
       properties:
         accessToken:
           type: string
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         refreshToken:
           type: string
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-        tokenType:
-          type: string
-          example: Bearer
-        expiresIn:
-          type: integer
-          example: 3600
 
-    LoginRequest:
+    UserSummary:
       type: object
-      required:
-        - email
-        - password
       properties:
+        user_id:
+          type: string
+          format: uuid
+        user_code:
+          type: string
+          example: RES-2026-001
+        first_name:
+          type: string
+        last_name:
+          type: string
         email:
           type: string
           format: email
-          example: resident@example.com
-        password:
+        phone_number:
           type: string
-          example: P@ssw0rd123
-
-    RegisterRequest:
-      type: object
-      required:
-        - firstName
-        - lastName
-        - email
-        - password
-      properties:
-        firstName:
-          type: string
-          example: Juan
-        lastName:
-          type: string
-          example: Dela Cruz
-        email:
-          type: string
-          format: email
-          example: juan.delacruz@example.com
-        password:
-          type: string
-          example: P@ssw0rd123
-        phoneNumber:
-          type: string
-          example: "09171234567"
-        profileImageUrl:
-          type: string
-          example: https://example.com/profile.jpg
-
-    UpdateProfileRequest:
-      type: object
-      properties:
-        firstName:
-          type: string
-          example: Juan
-        lastName:
-          type: string
-          example: Dela Cruz
-        phoneNumber:
-          type: string
-          example: "09171234567"
-        profileImageUrl:
-          type: string
-          example: https://example.com/profile.jpg
-
-    VerificationSubmitRequest:
-      type: object
-      required:
-        - verificationType
-        - address
-        - file
-      properties:
-        verificationType:
-          type: string
-          enum:
-            - ID
-            - UTILITY_BILL
-            - BARANGAY_CERTIFICATE
-            - OTHER
-          example: ID
+          nullable: true
         address:
           type: string
-          description: Maps to RESIDENT_VERIFICATIONS.ADDRESS
-          example: Block 10 Lot 5, Barangay Example
-        file:
-          type: string
-          format: binary
-          description: Proof of residency. Deleted from storage after admin review.
-
-    VerificationReviewRequest:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          description: Maps to RESIDENT_VERIFICATIONS.STATUS
-          enum:
-            - APPROVED
-            - REJECTED
-          example: APPROVED
-        remarks:
-          type: string
-          example: Valid government ID presented.
-
-    ResidentVerification:
-      type: object
-      description: RESIDENT_VERIFICATIONS table
-      properties:
-        verificationId:
-          type: integer
-          example: 1
-        userId:
-          type: integer
-          example: 1
-        verificationType:
-          type: string
-          example: ID
-        documentUrl:
+          nullable: true
+        profile_image_url:
           type: string
           nullable: true
-          description: Admin only during review. Not returned after approval.
-        address:
-          type: string
-          example: Block 10 Lot 5, Barangay Example
-        status:
-          type: string
-          enum:
-            - PENDING
-            - APPROVED
-            - REJECTED
-          example: PENDING
-        reviewedBy:
+        role_id:
           type: integer
-          nullable: true
-          example: 3
-        submittedAt:
+        role_name:
           type: string
-          format: date-time
-          example: 2026-06-01T10:00:00Z
-        reviewedAt:
-          type: string
-          format: date-time
-          nullable: true
-
-    User:
-      type: object
-      description: USER table. Verification details in ResidentVerification.
-      properties:
-        userId:
-          type: integer
-          description: USER_ID
-          example: 1
-        roleId:
-          type: integer
-          description: ROLE_ID
-          example: 2
-        roleName:
-          type: string
-          example: Resident
-        residentId:
-          type: string
-          nullable: true
-          description: RESIDENT_ID (optional resident reference code)
-          example: RES-2026-0001
-        employeeCode:
-          type: string
-          nullable: true
-          description: EMPLOYEE_CODE (Responder/Admin staff code)
-          example: EMP-004
-        firstName:
-          type: string
-          example: Juan
-        lastName:
-          type: string
-          example: Dela Cruz
-        email:
-          type: string
-          format: email
-          example: juan.delacruz@example.com
-        phoneNumber:
-          type: string
-          example: "09171234567"
-        isVerified:
+          enum: [admin, resident, responder]
+        is_verified:
           type: boolean
-          description: USER.IS_VERIFIED (true when latest verification is APPROVED)
-          example: false
-        isActive:
+        is_active:
           type: boolean
-          example: true
-        profileImageUrl:
+        verification_status:
           type: string
-          example: https://example.com/profile.jpg
-        latestVerification:
-          $ref: '#/components/schemas/ResidentVerification'
-        createdAt:
+          example: pending
+        verification_remarks:
           type: string
-          format: date-time
-          example: 2026-06-01T08:00:00Z
-        updatedAt:
+          nullable: true
+        verification_type:
           type: string
-          format: date-time
-          example: 2026-06-01T09:00:00Z
-
-    Role:
-      type: object
-      description: ROLE table
-      properties:
-        roleId:
-          type: integer
-          example: 1
-        roleName:
+          nullable: true
+        document_url:
           type: string
-          enum:
-            - Admin
-            - Resident
-            - Responder
-          example: Admin
-        roleLevel:
-          type: integer
-          example: 10
+          nullable: true
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
 
     ComplaintCategory:
       type: object
-      description: COMPLAINT_CATEGORIES table
       properties:
-        categoryId:
+        category_id:
           type: integer
-          description: CATEGORY_ID
-          example: 1
-        categoryName:
+        category_name:
           type: string
-          example: Noise Complaint
         description:
           type: string
-          example: Loud music, karaoke, or other excessive noise issues
-
-    ComplaintCategoryCreateRequest:
-      type: object
-      required:
-        - categoryName
-      properties:
-        categoryName:
-          type: string
-          example: Noise Complaint
-        description:
-          type: string
-          example: Loud music, karaoke, or other excessive noise issues
-
-    ComplaintCategoryUpdateRequest:
-      type: object
-      properties:
-        categoryName:
-          type: string
-          example: Noise Complaint
-        description:
-          type: string
-          example: Updated category description
-
-    ComplaintAssignment:
-      type: object
-      description: COMPLAINT_ASSIGNMENTS table
-      properties:
-        assignmentId:
-          type: integer
-          example: 1
-        complaintId:
-          type: integer
-          example: 101
-        assignedTo:
-          type: integer
-          description: ASSIGNED_TO (USER_ID of Responder)
-          example: 4
-        assignedToName:
-          type: string
-          example: Pedro Tanod
-        assignedBy:
-          type: integer
-          description: ASSIGNED_BY (USER_ID)
-          example: 3
-        isActive:
-          type: boolean
-          example: true
-        assignedAt:
-          type: string
-          format: date-time
-          example: 2026-06-01T09:00:00Z
+          nullable: true
 
     Complaint:
       type: object
-      description: COMPLAINTS table. Assignment history in ComplaintAssignment.
       properties:
         complaint_id:
           type: string
           format: uuid
-          description: Internal complaint primary key (UUID). Use in API path parameters.
-          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
         reference_id:
           type: string
-          description: Human-readable complaint reference (CMP-YEAR-#####). Auto-generated by database trigger on create. Read-only.
           example: CMP-2026-00001
-          readOnly: true
-        residentId:
-          type: integer
-          nullable: true
-          description: RESIDENT_ID (FK USER). Hidden from Responder; visible to Admin and owner.
-          example: 1
-        categoryId:
-          type: integer
-          description: CATEGORY_ID
-          example: 1
-        categoryName:
+        reported_by:
           type: string
-          example: Noise Complaint
+          format: uuid
+          description: Hidden from responder responses
+        category_id:
+          type: integer
+        category_name:
+          type: string
+        category_description:
+          type: string
+          nullable: true
         title:
           type: string
-          example: Loud karaoke until 2 AM
         description:
           type: string
-          example: Neighbor is singing loudly after midnight for several nights.
-        locationText:
+        location_text:
           type: string
-          description: LOCATION_TEXT
-          example: Block 4, Main Road
+          nullable: true
         latitude:
           type: number
-          format: double
-          example: 14.5995
+          nullable: true
         longitude:
           type: number
-          format: double
-          example: 120.9842
-        complaintStatus:
+          nullable: true
+        status:
           type: string
-          description: Maps to COMPLAINTS.STATUS
-          enum:
-            - PENDING
-            - VERIFIED
-            - ASSIGNED
-            - IN_PROGRESS
-            - RESOLVED
-            - REJECTED
-          example: PENDING
-        priorityLevel:
+          enum: [pending, under_review, assigned, in_progress, resolved, cancelled, rejected]
+        priority_level:
           type: string
-          description: PRIORITY_LEVEL
-          enum:
-            - LOW
-            - MEDIUM
-            - HIGH
-            - CRITICAL
-          example: MEDIUM
+          enum: [low, normal, high, urgent]
         remarks:
-          type: string
-          example: Initial complaint submitted by resident
-        activeAssignment:
-          $ref: '#/components/schemas/ComplaintAssignment'
-        resolutionStatement:
           type: string
           nullable: true
-          description: Resolution notes (stored in remarks or extension field on resolve)
-        resolutionProofUrl:
+        assigned_to:
+          type: string
+          format: uuid
+          nullable: true
+        assigned_to_first_name:
           type: string
           nullable: true
-        resolvedAt:
+        assigned_to_last_name:
           type: string
-          format: date-time
           nullable: true
-        createdAt:
+        assigned_by:
           type: string
-          format: date-time
-          example: 2026-06-01T08:30:00Z
-        updatedAt:
+          format: uuid
+          nullable: true
+        assigned_by_first_name:
           type: string
-          format: date-time
-          example: 2026-06-01T08:35:00Z
+          nullable: true
+        assigned_by_last_name:
+          type: string
+          nullable: true
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
 
-    ComplaintCreateRequest:
+    ComplaintAssignment:
       type: object
-      required:
-        - categoryId
-        - title
-        - description
       properties:
-        categoryId:
-          type: integer
-          example: 1
-        title:
+        assignment_id:
           type: string
-          example: Loud karaoke until 2 AM
-        description:
+          format: uuid
+        complaint_id:
           type: string
-          example: Neighbor is singing loudly after midnight for several nights.
-        locationText:
+          format: uuid
+        assigned_to:
           type: string
-          example: Block 4, Main Road
-        latitude:
-          type: number
-          format: double
-          example: 14.5995
-        longitude:
-          type: number
-          format: double
-          example: 120.9842
-        files:
-          type: array
-          items:
-            type: string
-            format: binary
-
-    ComplaintStatusUpdateRequest:
-      type: object
-      required:
-        - complaintStatus
-      properties:
-        complaintStatus:
+          format: uuid
+        assigned_by:
           type: string
-          enum:
-            - VERIFIED
-            - ASSIGNED
-            - IN_PROGRESS
-            - REJECTED
-          example: VERIFIED
-        remarks:
+          format: uuid
+        is_active:
+          type: boolean
+        assigned_at:
+          $ref: '#/components/schemas/Timestamp'
+        assigned_to_first_name:
           type: string
-          example: Complaint validated by barangay staff.
-
-    ComplaintCancelRequest:
-      type: object
-      required:
-        - cancellationReason
-      properties:
-        cancellationReason:
+          nullable: true
+        assigned_to_last_name:
           type: string
-          minLength: 10
-          description: Required reason for cancellation (minimum 10 characters)
-          example: Issue has already been resolved.
-
-    ComplaintAssignRequest:
-      type: object
-      required:
-        - assignedTo
-      properties:
-        assignedTo:
-          type: integer
-          description: ASSIGNED_TO userId (must be Responder or Admin role)
-          example: 4
-        remarks:
+          nullable: true
+        assigned_by_first_name:
           type: string
-          example: Assigned to responder on duty.
-
-    ComplaintPriorityUpdateRequest:
-      type: object
-      required:
-        - priorityLevel
-      properties:
-        priorityLevel:
+          nullable: true
+        assigned_by_last_name:
           type: string
-          enum:
-            - LOW
-            - MEDIUM
-            - HIGH
-            - CRITICAL
-          example: CRITICAL
-        remarks:
-          type: string
-          example: Escalated due to repeated incidents.
-
-    ComplaintResolveRequest:
-      type: object
-      required:
-        - resolutionStatement
-      properties:
-        resolutionStatement:
-          type: string
-          example: Issue addressed and resolved.
-        file:
-          type: string
-          format: binary
-          description: Optional photo proof of resolution.
+          nullable: true
 
     ComplaintMedia:
       type: object
-      description: COMPLAINT_MEDIA table
       properties:
-        mediaId:
-          type: integer
-          description: MEDIA_ID
-          example: 1
-        complaintId:
-          type: integer
-          example: 101
-        uploadedBy:
-          type: integer
-          description: UPLOADED_BY (USER_ID)
-          example: 1
-        mediaUrl:
+        media_id:
           type: string
-          example: https://res.cloudinary.com/demo/image/upload/v1/sample.jpg
-        mediaType:
-          type: string
-          enum:
-            - IMAGE
-            - VIDEO
-            - RESOLUTION_PROOF
-          example: IMAGE
-        uploadedAt:
-          type: string
-          format: date-time
-          example: 2026-06-01T08:32:00Z
-
-    ComplaintMediaUploadRequest:
-      type: object
-      required:
-        - files
-      properties:
-        files:
-          type: array
-          items:
-            type: string
-            format: binary
-
-    ActivityLog:
-      type: object
-      description: ACTIVITY_LOGS table
-      properties:
-        activityLogId:
-          type: integer
-          description: ACTIVITY_LOG_ID
-          example: 1
-        complaintId:
-          type: integer
-          example: 101
-        performedBy:
-          type: integer
-          description: PERFORMED_BY (USER_ID)
-          example: 3
-        actionType:
-          type: string
-          enum:
-            - COMPLAINT_CREATED
-            - STATUS_UPDATED
-            - ASSIGNED
-            - PRIORITY_CHANGED
-            - RESOLVED
-            - MEDIA_UPLOADED
-            - MEDIA_DELETED
-            - VERIFICATION_REVIEWED
-          example: STATUS_UPDATED
-        oldValue:
-          type: string
-          example: PENDING
-        newValue:
-          type: string
-          example: ASSIGNED
-        description:
-          type: string
-          example: Complaint status changed from PENDING to ASSIGNED
-        createdAt:
-          type: string
-          format: date-time
-          example: 2026-06-01T09:15:00Z
-
-    EmergencyHotline:
-      type: object
-      description: EMERGENCY_HOTLINES table
-      properties:
-        hotlineId:
-          type: integer
-          description: HOTLINE_ID
-          example: 1
-        agencyName:
-          type: string
-          example: Barangay Hall
-        contactNumber:
-          type: string
-          example: "09171234567"
-        description:
-          type: string
-          example: Main emergency hotline for community concerns
-
-    EmergencyHotlineCreateRequest:
-      type: object
-      required:
-        - agencyName
-        - contactNumber
-      properties:
-        agencyName:
-          type: string
-          example: Barangay Hall
-        contactNumber:
-          type: string
-          example: "09171234567"
-        description:
-          type: string
-          example: Main emergency hotline for community concerns
-
-    EmergencyHotlineUpdateRequest:
-      type: object
-      properties:
-        agencyName:
-          type: string
-          example: Barangay Hall
-        contactNumber:
-          type: string
-          example: "09171234567"
-        description:
-          type: string
-          example: Updated description
-
-    DashboardSummary:
-      type: object
-      properties:
-        totalComplaints:
-          type: integer
-          example: 120
-        pendingComplaints:
-          type: integer
-          example: 15
-        verifiedComplaints:
-          type: integer
-          example: 20
-        assignedComplaints:
-          type: integer
-          example: 18
-        inProgressComplaints:
-          type: integer
-          example: 12
-        resolvedComplaints:
-          type: integer
-          example: 50
-        rejectedComplaints:
-          type: integer
-          example: 5
-        totalUsers:
-          type: integer
-          example: 240
-        totalResidents:
-          type: integer
-          example: 210
-        totalHotlines:
-          type: integer
-          example: 8
-
-    DashboardRecentComplaint:
-      type: object
-      properties:
+          format: uuid
         complaint_id:
           type: string
           format: uuid
-          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        reference_id:
+        uploaded_by:
           type: string
-          example: CMP-2026-00001
-        title:
+          format: uuid
+        media_url:
           type: string
-          example: Loud karaoke until 2 AM
-        complaintStatus:
+        media_type:
           type: string
-          example: PENDING
-        priorityLevel:
-          type: string
-          example: HIGH
-        createdAt:
-          type: string
-          format: date-time
-          example: 2026-06-01T08:30:00Z
+          enum: [image, video]
+        uploaded_at:
+          $ref: '#/components/schemas/Timestamp'
+        is_resident_evidence:
+          type: boolean
 
-    PaginatedComplaintResponse:
+    ActivityLog:
       type: object
       properties:
-        success:
-          type: boolean
-          example: true
-        message:
+        activity_log_id:
           type: string
-          example: Complaints retrieved successfully
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Complaint'
-        pagination:
-          type: object
-          properties:
-            page:
-              type: integer
-              example: 1
-            limit:
-              type: integer
-              example: 10
-            totalItems:
-              type: integer
-              example: 120
-            totalPages:
-              type: integer
-              example: 12
-
-    SingleComplaintResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
+          format: uuid
+        complaint_id:
           type: string
-          example: Complaint retrieved successfully
-        data:
-          $ref: '#/components/schemas/Complaint'
-
-    ComplaintMediaResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
+          format: uuid
+        performed_by:
           type: string
-          example: Media uploaded successfully
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ComplaintMedia'
-
-    ActivityLogListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
+          format: uuid
+          nullable: true
+        action_type:
           type: string
-          example: Activity logs retrieved successfully
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ActivityLog'
+          example: complaint_created
+        old_value:
+          type: string
+          nullable: true
+        new_value:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        first_name:
+          type: string
+          nullable: true
+        last_name:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
 
     Notification:
       type: object
@@ -833,7 +321,6 @@ components:
           format: uuid
         type:
           type: string
-          example: new_complaint_submitted
         entity_type:
           type: string
           enum: [complaint, verification]
@@ -842,370 +329,351 @@ components:
           format: uuid
         message:
           type: string
-          example: New complaint submitted "Broken Street Light"
         is_read:
           type: boolean
-          example: false
         read_at:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/Timestamp'
           nullable: true
         expires_at:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/Timestamp'
           nullable: true
         created_at:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/Timestamp'
 
-    NotificationListResponse:
+    DashboardStat:
       type: object
       properties:
-        status:
+        id:
           type: string
-          example: ok
-        count:
-          type: integer
-          example: 2
-        notifications:
-          type: array
-          items:
-            $ref: '#/components/schemas/Notification'
-        page:
-          type: integer
-          example: 1
-        limit:
-          type: integer
-          example: 20
-        timestamp:
+        label:
           type: string
-          format: date-time
+        value:
+          type: integer
+        icon:
+          type: string
+        accentColor:
+          type: string
+        iconBackground:
+          type: string
 
-    UnreadNotificationCountResponse:
+    ChartSegment:
       type: object
       properties:
-        count:
+        label:
+          type: string
+        value:
           type: integer
-          example: 5
+        color:
+          type: string
 
-    OpenNotificationResponse:
+    TrendPoint:
       type: object
       properties:
-        status:
+        label:
           type: string
-          example: ok
-        entity_type:
-          type: string
-          enum: [complaint, verification]
-        entity_id:
+        value:
+          type: integer
+
+    RecentComplaintItem:
+      type: object
+      properties:
+        id:
           type: string
           format: uuid
-        timestamp:
+        referenceId:
           type: string
-          format: date-time
+        title:
+          type: string
+        status:
+          type: string
+        date:
+          type: string
+        emoji:
+          type: string
 
-    MarkAllNotificationsReadResponse:
+    SystemMetric:
+      type: object
+      properties:
+        label:
+          type: string
+        value:
+          type: integer
+        icon:
+          type: string
+        accentColor:
+          type: string
+
+    AdminDashboardData:
+      type: object
+      properties:
+        stats:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardStat'
+        statusBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChartSegment'
+        trendPoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrendPoint'
+        recentComplaints:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecentComplaintItem'
+        systemOverview:
+          type: array
+          items:
+            $ref: '#/components/schemas/SystemMetric'
+
+    AdminComplaintDetails:
       type: object
       properties:
         status:
           type: string
           example: ok
-        message:
-          type: string
-          example: All notifications marked as read
-        updatedCount:
-          type: integer
-          example: 3
-        timestamp:
-          type: string
-          format: date-time
-
-    HotlineListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
-          type: string
-          example: Emergency hotlines retrieved successfully
-        data:
+        complaint:
+          $ref: '#/components/schemas/Complaint'
+        category:
+          type: object
+          properties:
+            category_name:
+              type: string
+            description:
+              type: string
+              nullable: true
+        assignments:
           type: array
           items:
-            $ref: '#/components/schemas/EmergencyHotline'
+            $ref: '#/components/schemas/ComplaintAssignment'
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplaintMedia'
+        activityLogs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityLog'
+        timestamp:
+          $ref: '#/components/schemas/Timestamp'
 
 paths:
-  /auth/register:
-    post:
-      tags:
-        - Auth
-      summary: Register resident
-      description: Create a new resident account. Submit community verification separately.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterRequest'
-            examples:
-              example1:
-                value:
-                  firstName: Juan
-                  lastName: Dela Cruz
-                  email: juan.delacruz@example.com
-                  password: P@ssw0rd123
-                  phoneNumber: "09171234567"
-      responses:
-        '201':
-          description: Registration successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Registration successful
-                  data:
-                    $ref: '#/components/schemas/User'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /auth/login:
-    post:
-      tags:
-        - Auth
-      summary: Login user
-      description: Authenticate a user and return JWT tokens.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-            examples:
-              example1:
-                value:
-                  email: resident@example.com
-                  password: P@ssw0rd123
+  /health:
+    get:
+      tags: [Health]
+      summary: Service health check
       responses:
         '200':
-          description: Login successful
+          description: Service is healthy
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
+                  service:
                     type: string
-                    example: Login successful
+                    example: Community Response Hub Backend
+                  status:
+                    type: string
+                    example: healthy
+                  uptimeSeconds:
+                    type: number
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
+
+  /db:
+    get:
+      tags: [Database]
+      summary: Database connectivity check
+      description: Admin only.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Database reachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  database:
+                    type: boolean
+                  ping:
+                    type: integer
+                  environment:
+                    type: string
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: Forbidden
+
+  /db/stats:
+    get:
+      tags: [Database]
+      summary: Database table counts
+      description: Admin only. Returns raw row counts for users, complaints, and categories.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Stats retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
                   data:
                     type: object
                     properties:
-                      user:
-                        $ref: '#/components/schemas/User'
-                      tokens:
-                        $ref: '#/components/schemas/AuthTokens'
-        '401':
-          description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                      user_count:
+                        type: string
+                      complaint_count:
+                        type: string
+                      category_count:
+                        type: string
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
 
-  /auth/me:
-    get:
-      tags:
-        - Auth
-      summary: Get current user
-      description: Get the profile of the authenticated user.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Current user profile
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Current user retrieved successfully
-                  data:
-                    $ref: '#/components/schemas/User'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /auth/logout:
+  /auth/register:
     post:
-      tags:
-        - Auth
-      summary: Logout user
-      description: Invalidate the current refresh token.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Logout successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /auth/refresh-token:
-    post:
-      tags:
-        - Auth
-      summary: Refresh access token
-      description: Generate a new access token using a valid refresh token.
+      tags: [Auth]
+      summary: Register resident
+      description: Rate limited (20 requests / 15 min per IP).
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - refreshToken
+              required: [firstName, lastName, email, password]
               properties:
-                refreshToken:
+                firstName:
                   type: string
-                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                lastName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                phoneNumber:
+                  type: string
+                address:
+                  type: string
       responses:
-        '200':
-          description: Token refreshed successfully
+        '201':
+          description: Registration successful
+        '400':
+          description: Validation error or email already registered
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Token refreshed successfully
-                  data:
-                    $ref: '#/components/schemas/AuthTokens'
-        '401':
-          description: Invalid refresh token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ApiError'
+        '429':
+          description: Too many attempts
 
-  /users/me/verification:
+  /auth/login:
     post:
-      tags:
-        - Verifications
-      summary: Submit community verification
-      description: Resident uploads proof of residency. File is deleted after admin review.
-      security:
-        - bearerAuth: []
+      tags: [Auth]
+      summary: Login
+      description: Rate limited (20 requests / 15 min per IP).
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              $ref: '#/components/schemas/VerificationSubmitRequest'
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
       responses:
         '200':
-          description: Verification submitted successfully
+          description: Login successful
+        '401':
+          description: Invalid credentials
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Verification submitted successfully
-                  data:
-                    $ref: '#/components/schemas/ResidentVerification'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: Account inactive
+        '429':
+          description: Too many attempts
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user profile
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ApiError'
 
-  /users/{userId}/verification:
-    get:
-      tags:
-        - Verifications
-      summary: Get resident verification
-      description: Resident (own record) or Admin. Latest RESIDENT_VERIFICATIONS row for user.
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      description: Stateless JWT — client should discard tokens locally.
       security:
         - bearerAuth: []
-      parameters:
-        - in: path
-          name: userId
-          required: true
-          schema:
-            type: integer
-          example: 1
       responses:
         '200':
-          description: Verification retrieved successfully
+          description: Logout acknowledged
+
+  /auth/refresh-token:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: New access token issued
+        '401':
+          description: Invalid or expired refresh token
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Verification retrieved successfully
-                  data:
-                    $ref: '#/components/schemas/ResidentVerification'
-        '403':
-          description: Forbidden
-        '404':
-          description: Verification not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ApiError'
 
   /users:
     get:
-      tags:
-        - Users
-      summary: Get users
-      description: Admin only. Returns user list with optional filters.
+      tags: [Users]
+      summary: List users
+      description: Admin only.
       security:
         - bearerAuth: []
       parameters:
@@ -1213,79 +681,143 @@ paths:
           name: roleId
           schema:
             type: integer
-          description: Filter by role ID
         - in: query
           name: isActive
           schema:
-            type: boolean
-          description: Filter by active status
+            type: string
+            enum: ['true', 'false']
         - in: query
-          name: status
+          name: verificationStatus
           schema:
             type: string
-            enum:
-              - PENDING
-              - APPROVED
-              - REJECTED
-          description: Filter by latest RESIDENT_VERIFICATIONS.STATUS
-        - in: query
-          name: page
-          schema:
-            type: integer
-            default: 1
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            default: 10
+            enum: [pending, approved, rejected, not_submitted]
       responses:
         '200':
-          description: User list retrieved successfully
+          description: User list
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
+                  status:
                     type: string
-                    example: Users retrieved successfully
-                  data:
+                    example: ok
+                  count:
+                    type: integer
+                  users:
                     type: array
                     items:
-                      $ref: '#/components/schemas/User'
-                  pagination:
-                    type: object
-                    properties:
-                      page:
-                        type: integer
-                        example: 1
-                      limit:
-                        type: integer
-                        example: 10
-                      totalItems:
-                        type: integer
-                        example: 50
-                      totalPages:
-                        type: integer
-                        example: 5
-        '401':
-          description: Unauthorized
+                      $ref: '#/components/schemas/UserSummary'
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
+        '403':
+          description: Forbidden
+
+    post:
+      tags: [Users]
+      summary: Create user
+      description: Admin only. Creates a pre-verified user. Returns `temporaryPassword` when no password is supplied.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [first_name, last_name, email, role_id]
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone_number:
+                  type: string
+                  nullable: true
+                address:
+                  type: string
+                  nullable: true
+                role_id:
+                  type: integer
+                  description: '1=resident, 2=responder, 3=admin (typical seed values)'
+                password:
+                  type: string
+                  minLength: 6
+      responses:
+        '201':
+          description: User created
+        '400':
+          description: Validation error or duplicate email
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden
+                $ref: '#/components/schemas/ApiError'
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  user:
+                    $ref: '#/components/schemas/UserSummary'
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
+
+  /users/responders:
+    get:
+      tags: [Users]
+      summary: List active responders
+      description: Admin only. Used for complaint assignment dropdowns.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Responder list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_id:
+                          type: string
+                          format: uuid
+                        first_name:
+                          type: string
+                        last_name:
+                          type: string
+                        email:
+                          type: string
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
 
   /users/{userId}:
     get:
-      tags:
-        - Users
-      summary: Get user details
-      description: Admin only, or the authenticated user accessing their own userId.
+      tags: [Users]
+      summary: Get user by ID
+      description: Admin or the user themselves.
       security:
         - bearerAuth: []
       parameters:
@@ -1293,38 +825,24 @@ paths:
           name: userId
           required: true
           schema:
-            type: integer
-          example: 1
+            type: string
+            format: uuid
       responses:
         '200':
-          description: User details retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: User retrieved successfully
-                  data:
-                    $ref: '#/components/schemas/User'
+          description: User details
         '403':
           description: Forbidden
         '404':
-          description: User not found
+          description: Not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ApiError'
 
     patch:
-      tags:
-        - Users
-      summary: Update user
-      description: Update user profile. Users may update own profile; Admin may update any user.
+      tags: [Users]
+      summary: Update user profile
+      description: Admin or the user themselves.
       security:
         - bearerAuth: []
       parameters:
@@ -1332,304 +850,36 @@ paths:
           name: userId
           required: true
           schema:
-            type: integer
-          example: 1
+            type: string
+            format: uuid
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateProfileRequest'
-            examples:
-              example1:
-                value:
-                  firstName: Juan
-                  lastName: Dela Cruz
-                  phoneNumber: "09171234567"
+              type: object
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                phone_number:
+                  type: string
+                address:
+                  type: string
+                profile_image_url:
+                  type: string
       responses:
         '200':
-          description: User updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: User updated successfully
-                  data:
-                    $ref: '#/components/schemas/User'
-        '403':
-          description: Forbidden
-        '404':
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /users/{userId}/verification/review:
-    patch:
-      tags:
-        - Verifications
-      summary: Review community verification
-      description: Admin only. Approve or reject RESIDENT_VERIFICATIONS. Deletes document after decision. Sets USER.IS_VERIFIED on APPROVED.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: userId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/VerificationReviewRequest'
-            examples:
-              example1:
-                value:
-                  status: APPROVED
-                  remarks: Valid barangay ID presented.
-      responses:
-        '200':
-          description: Verification reviewed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Verification reviewed successfully
-                  data:
-                    $ref: '#/components/schemas/ResidentVerification'
-        '403':
-          description: Forbidden
-        '404':
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /users/{userId}/activate:
-    patch:
-      tags:
-        - Users
-      summary: Activate user
-      description: Admin only. Activate a user account.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: userId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      responses:
-        '200':
-          description: User activated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
+          description: User updated
+        '400':
+          description: No fields to update
         '403':
           description: Forbidden
 
-  /users/{userId}/deactivate:
-    patch:
-      tags:
-        - Users
-      summary: Deactivate user
-      description: Admin only. Deactivate a user account.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: userId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      responses:
-        '200':
-          description: User deactivated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '403':
-          description: Forbidden
-
-  /categories:
-    get:
-      tags:
-        - Categories
-      summary: Get complaint categories
-      description: Retrieve all complaint categories.
-      responses:
-        '200':
-          description: Category list retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Categories retrieved successfully
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ComplaintCategory'
+  /users/me/verification:
     post:
-      tags:
-        - Categories
-      summary: Create complaint category
-      description: Admin only. Create a new complaint category.
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ComplaintCategoryCreateRequest'
-            examples:
-              example1:
-                value:
-                  categoryName: Noise Complaint
-                  description: Loud music, karaoke, or other excessive noise issues
-      responses:
-        '201':
-          description: Category created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Category created successfully
-                  data:
-                    $ref: '#/components/schemas/ComplaintCategory'
-        '403':
-          description: Forbidden
-
-  /categories/{categoryId}:
-    get:
-      tags:
-        - Categories
-      summary: Get category details
-      description: Retrieve a complaint category by ID.
-      parameters:
-        - in: path
-          name: categoryId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      responses:
-        '200':
-          description: Category retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Category retrieved successfully
-                  data:
-                    $ref: '#/components/schemas/ComplaintCategory'
-    patch:
-      tags:
-        - Categories
-      summary: Update category
-      description: Admin only. Update a complaint category.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: categoryId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ComplaintCategoryUpdateRequest'
-      responses:
-        '200':
-          description: Category updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Category updated successfully
-                  data:
-                    $ref: '#/components/schemas/ComplaintCategory'
-        '403':
-          description: Forbidden
-    delete:
-      tags:
-        - Categories
-      summary: Delete category
-      description: Admin only. Delete a complaint category.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: categoryId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      responses:
-        '200':
-          description: Category deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '403':
-          description: Forbidden
-
-  /complaints:
-    post:
-      tags:
-        - Complaints
-      summary: Create complaint
-      description: Submit a new community complaint with optional media. Status is PENDING; priority defaults to MEDIUM. `reference_id` (e.g. CMP-2026-00001) is assigned automatically on create; do not send it in the request body. Use `complaint_id` (UUID) in subsequent API paths.
+      tags: [Verifications]
+      summary: Submit residency verification
       security:
         - bearerAuth: []
       requestBody:
@@ -1637,371 +887,399 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ComplaintCreateRequest'
-            examples:
-              example1:
-                value:
-                  categoryId: 1
-                  title: Loud karaoke until 2 AM
-                  description: Neighbor is singing loudly after midnight for several nights.
-                  locationText: Block 4, Main Road
-                  latitude: 14.5995
-                  longitude: 120.9842
+              type: object
+              required: [verificationType, address, file]
+              properties:
+                verificationType:
+                  type: string
+                  example: ID
+                address:
+                  type: string
+                file:
+                  type: string
+                  format: binary
+                  description: JPG, PNG, or PDF (max 5 MB image / 10 MB PDF)
       responses:
-        '201':
-          description: Complaint created successfully
+        '200':
+          description: Verification submitted
+        '400':
+          description: Validation error or missing document
+
+  /users/{userId}/verification/review:
+    patch:
+      tags: [Verifications]
+      summary: Approve or reject verification
+      description: Admin only. Sets `is_verified` on approval.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verificationStatus]
+              properties:
+                verificationStatus:
+                  type: string
+                  enum: [approved, rejected]
+                remarks:
+                  type: string
+                  description: Required when rejecting
+      responses:
+        '200':
+          description: Verification reviewed
+        '403':
+          description: Forbidden
+        '404':
+          description: User or verification not found
+
+  /users/{userId}/activate:
+    patch:
+      tags: [Users]
+      summary: Activate user account
+      description: Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User activated
+
+  /users/{userId}/deactivate:
+    patch:
+      tags: [Users]
+      summary: Deactivate user account
+      description: Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deactivated
+
+  /admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Admin dashboard data
+      description: Admin only. Returns stats cards, status breakdown, trend chart, recent complaints, and system overview metrics.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard data
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
+                  status:
                     type: string
-                    example: Complaint created successfully
+                    example: ok
                   data:
-                    $ref: '#/components/schemas/Complaint'
+                    $ref: '#/components/schemas/AdminDashboardData'
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
+        '403':
+          description: Forbidden
+
+  /admin/complaints/{complaintId}/details:
+    get:
+      tags: [Admin]
+      summary: Admin complaint detail aggregate
+      description: Admin only. Returns complaint, category, assignment history, media, and activity logs in one response.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: string
+          description: UUID or reference_id
+      responses:
+        '200':
+          description: Aggregated complaint details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminComplaintDetails'
+        '404':
+          description: Complaint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List complaint categories
+      responses:
+        '200':
+          description: Category list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  count:
+                    type: integer
+                  categories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ComplaintCategory'
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
+
+    post:
+      tags: [Categories]
+      summary: Create category
+      description: Admin only.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [categoryName]
+              properties:
+                categoryName:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Category created
+
+  /categories/{categoryId}:
+    get:
+      tags: [Categories]
+      summary: Get category by ID
+      parameters:
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Category details
+        '404':
+          description: Not found
+
+    patch:
+      tags: [Categories]
+      summary: Update category
+      description: Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categoryName:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Category updated
+
+    delete:
+      tags: [Categories]
+      summary: Delete category
+      description: Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Category deleted
+
+  /complaints:
+    post:
+      tags: [Complaints]
+      summary: Create complaint
+      description: Verified resident only. Media is uploaded separately via `POST /complaints/{id}/media`. Rate limited on write endpoints.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [categoryId, title, description, locationText]
+              properties:
+                categoryId:
+                  type: integer
+                title:
+                  type: string
+                  minLength: 5
+                  maxLength: 100
+                description:
+                  type: string
+                  minLength: 10
+                locationText:
+                  type: string
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+                priorityLevel:
+                  type: string
+                  enum: [low, normal, high, urgent]
+      responses:
+        '201':
+          description: Complaint created
         '400':
           description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Not verified
 
     get:
-      tags:
-        - Complaints
-      summary: Get complaints
-      description: Responder or Admin dashboard. Complainant residentId omitted except for Admin role.
+      tags: [Complaints]
+      summary: List complaints
+      description: Role-aware listing. Admin sees all; resident sees own; responder sees assigned.
       security:
         - bearerAuth: []
       parameters:
         - in: query
+          name: statusGroup
+          schema:
+            type: string
+            enum: [active, closed, resolved]
+          description: 'active=pending|under_review|assigned|in_progress; closed=cancelled|rejected; resolved=resolved'
+        - in: query
           name: status
           schema:
             type: string
-            enum:
-              - PENDING
-              - VERIFIED
-              - ASSIGNED
-              - IN_PROGRESS
-              - RESOLVED
-              - REJECTED
-          description: Filter by complaint status
+            enum: [pending, under_review, assigned, in_progress, resolved, cancelled, rejected]
         - in: query
           name: categoryId
           schema:
             type: integer
-          description: Filter by category ID
         - in: query
           name: priorityLevel
           schema:
             type: string
-            enum:
-              - LOW
-              - MEDIUM
-              - HIGH
-              - CRITICAL
-          description: Filter by priority level
+            enum: [low, normal, high, urgent]
         - in: query
-          name: assignedTo
+          name: assignedToUserId
           schema:
-            type: integer
-          description: Filter by active COMPLAINT_ASSIGNMENTS.ASSIGNED_TO
+            type: string
+          description: Responder UUID, or `unassigned`
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Matches title, reference_id, or description
         - in: query
           name: page
           schema:
             type: integer
             default: 1
         - in: query
-          name: limit
+          name: pageSize
           schema:
             type: integer
             default: 10
+            maximum: 100
       responses:
         '200':
-          description: Complaint list retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedComplaintResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden
-
-  /complaints/my:
-    get:
-      tags:
-        - Complaints
-      summary: Get my complaints
-      description: Retrieve complaints submitted by the authenticated user.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: query
-          name: status
-          schema:
-            type: string
-            enum:
-              - PENDING
-              - VERIFIED
-              - ASSIGNED
-              - IN_PROGRESS
-              - RESOLVED
-              - REJECTED
-        - in: query
-          name: page
-          schema:
-            type: integer
-            default: 1
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            default: 10
-      responses:
-        '200':
-          description: My complaints retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedComplaintResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /complaints/{complaintId}:
-    get:
-      tags:
-        - Complaints
-      summary: Get complaint details
-      description: Responder sees complaint without residentId. Admin and owning Resident see full record. Response includes `reference_id` for display and `complaint_id` (UUID) for internal routing.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: complaintId
-          required: true
-          schema:
-            type: integer
-          example: 101
-      responses:
-        '200':
-          description: Complaint retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SingleComplaintResponse'
-        '404':
-          description: Complaint not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /complaints/{complaintId}/status:
-    patch:
-      tags:
-        - Complaints
-      summary: Update complaint status
-      description: Responder or Admin. Use /resolve endpoint to mark RESOLVED with proof.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: complaintId
-          required: true
-          schema:
-            type: integer
-          example: 101
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ComplaintStatusUpdateRequest'
-            examples:
-              example1:
-                value:
-                  complaintStatus: VERIFIED
-                  remarks: Complaint validated by barangay staff.
-      responses:
-        '200':
-          description: Complaint status updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SingleComplaintResponse'
-        '403':
-          description: Forbidden
-        '404':
-          description: Complaint not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /complaints/{complaintId}/assign:
-    patch:
-      tags:
-        - Complaints
-      summary: Assign complaint
-      description: Creates COMPLAINT_ASSIGNMENTS row (deactivates prior active). Sets complaint status to ASSIGNED.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: complaintId
-          required: true
-          schema:
-            type: integer
-          example: 101
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ComplaintAssignRequest'
-            examples:
-              example1:
-                value:
-                  assignedTo: 4
-                  remarks: Assigned to responder on duty.
-      responses:
-        '200':
-          description: Complaint assigned successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SingleComplaintResponse'
-        '403':
-          description: Forbidden
-
-  /complaints/{complaintId}/cancel:
-    patch:
-      tags:
-        - Complaints
-      summary: Cancel complaint (resident)
-      description: |
-        Verified resident only. Cancels a complaint owned by the authenticated resident when status is `pending` or `assigned`.
-        Sets status to `cancelled` and stores the reason in `remarks`.
-        Path accepts public `reference_id` (e.g. CMP-2026-00001) or internal `complaint_id` (UUID).
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: complaintId
-          required: true
-          schema:
-            type: string
-          description: Complaint reference_id or UUID
-          example: CMP-2026-00001
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ComplaintCancelRequest'
-            examples:
-              example1:
-                value:
-                  cancellationReason: Issue has already been resolved.
-      responses:
-        '200':
-          description: Complaint cancelled successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SingleComplaintResponse'
-        '400':
-          description: Invalid status or validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden — not the complaint owner or not a resident
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Complaint not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /complaints/{complaintId}/assignments:
-    get:
-      tags:
-        - Assignments
-      summary: Get complaint assignments
-      description: Responder or Admin. Assignment history from COMPLAINT_ASSIGNMENTS.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: complaintId
-          required: true
-          schema:
-            type: integer
-          example: 101
-        - in: query
-          name: activeOnly
-          schema:
-            type: boolean
-            default: false
-          description: If true, return only rows where IS_ACTIVE is true
-      responses:
-        '200':
-          description: Assignments retrieved successfully
+          description: Paginated complaint list
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
+                  status:
                     type: string
-                    example: Assignments retrieved successfully
-                  data:
+                    example: ok
+                  count:
+                    type: integer
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  pageSize:
+                    type: integer
+                  complaints:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ComplaintAssignment'
-        '403':
-          description: Forbidden
-        '404':
-          description: Complaint not found
+                      $ref: '#/components/schemas/Complaint'
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
+
+  /complaints/my:
+    get:
+      tags: [Complaints]
+      summary: List my complaints
+      description: Authenticated resident's own complaints.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Complaint list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  count:
+                    type: integer
+                  complaints:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Complaint'
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
 
-  /complaints/{complaintId}/priority:
-    patch:
-      tags:
-        - Complaints
-      summary: Update complaint priority
-      description: Responder or Admin only. Change the priority level of a complaint.
+  /complaints/{complaintId}:
+    get:
+      tags: [Complaints]
+      summary: Get complaint by ID or reference
       security:
         - bearerAuth: []
       parameters:
@@ -2009,35 +1287,89 @@ paths:
           name: complaintId
           required: true
           schema:
-            type: integer
-          example: 101
+            type: string
+      responses:
+        '200':
+          description: Complaint details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  data:
+                    $ref: '#/components/schemas/Complaint'
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+
+    delete:
+      tags: [Complaints]
+      summary: Delete pending complaint
+      description: Verified resident only. Only `pending` complaints owned by the caller can be deleted (e.g. after failed media upload).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Complaint deleted
+        '400':
+          description: Complaint is not pending
+        '403':
+          description: Forbidden
+
+  /complaints/{complaintId}/status:
+    patch:
+      tags: [Complaints]
+      summary: Update complaint status
+      description: |
+        Admin or assigned responder.
+        Responders may only set `in_progress` or `resolved`.
+        Resolving requires remarks (min 10 chars) and at least one resolution evidence upload by the responder.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ComplaintPriorityUpdateRequest'
-            examples:
-              example1:
-                value:
-                  priorityLevel: CRITICAL
-                  remarks: Escalated due to repeated incidents.
+              type: object
+              required: [complaintStatus]
+              properties:
+                complaintStatus:
+                  type: string
+                  enum: [pending, under_review, assigned, in_progress, resolved, cancelled, rejected]
+                remarks:
+                  type: string
       responses:
         '200':
-          description: Priority updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SingleComplaintResponse'
+          description: Status updated
+        '400':
+          description: Invalid status or missing resolution evidence
         '403':
           description: Forbidden
 
-  /complaints/{complaintId}/resolve:
+  /complaints/{complaintId}/assign:
     patch:
-      tags:
-        - Complaints
-      summary: Resolve complaint
-      description: Resolve with statement and optional proof. Sets status to RESOLVED.
+      tags: [Complaints]
+      summary: Assign or reassign complaint
+      description: Admin only. Sets status to `assigned`.
       security:
         - bearerAuth: []
       parameters:
@@ -2045,40 +1377,123 @@ paths:
           name: complaintId
           required: true
           schema:
-            type: integer
-          example: 101
+            type: string
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              $ref: '#/components/schemas/ComplaintResolveRequest'
-            examples:
-              example1:
-                value:
-                  resolutionStatement: Issue addressed and resolved.
+              type: object
+              required: [assignedToUserId]
+              properties:
+                assignedToUserId:
+                  type: string
+                  format: uuid
       responses:
         '200':
-          description: Complaint resolved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SingleComplaintResponse'
+          description: Complaint assigned
+        '400':
+          description: Invalid status for assignment
         '403':
           description: Forbidden
-        '404':
-          description: Complaint not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+
+  /complaints/{complaintId}/reject:
+    patch:
+      tags: [Complaints]
+      summary: Reject complaint
+      description: Admin only. Sets status to `rejected`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 10
+      responses:
+        '200':
+          description: Complaint rejected
+        '400':
+          description: Reason too short
+
+  /complaints/{complaintId}/cancel:
+    patch:
+      tags: [Complaints]
+      summary: Cancel complaint
+      description: Verified resident only. Allowed when status is `pending` or `assigned`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cancellationReason]
+              properties:
+                cancellationReason:
+                  type: string
+                  minLength: 10
+      responses:
+        '200':
+          description: Complaint cancelled
+        '400':
+          description: Invalid status
+        '403':
+          description: Forbidden
+
+  /complaints/{complaintId}/priority:
+    patch:
+      tags: [Complaints]
+      summary: Update complaint priority
+      description: Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: complaintId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [priorityLevel]
+              properties:
+                priorityLevel:
+                  type: string
+                  enum: [low, normal, high, urgent]
+      responses:
+        '200':
+          description: Priority updated
+        '403':
+          description: Forbidden
 
   /complaints/{complaintId}/media:
     post:
-      tags:
-        - Media
+      tags: [Media]
       summary: Upload complaint media
-      description: Upload image or video evidence for a complaint.
+      description: Up to 5 files per request. Images and videos supported via Cloudinary.
       security:
         - bearerAuth: []
       parameters:
@@ -2086,33 +1501,31 @@ paths:
           name: complaintId
           required: true
           schema:
-            type: integer
-          example: 101
+            type: string
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ComplaintMediaUploadRequest'
+              type: object
+              required: [files]
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
       responses:
         '201':
-          description: Media uploaded successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ComplaintMediaResponse'
+          description: Media uploaded
         '400':
-          description: Invalid media upload
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          description: No files provided
+        '403':
+          description: Forbidden
 
     get:
-      tags:
-        - Media
-      summary: Get complaint media
-      description: Retrieve all media files attached to a complaint.
+      tags: [Media]
+      summary: List complaint media
       security:
         - bearerAuth: []
       parameters:
@@ -2120,22 +1533,29 @@ paths:
           name: complaintId
           required: true
           schema:
-            type: integer
-          example: 101
+            type: string
       responses:
         '200':
-          description: Media retrieved successfully
+          description: Media list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ComplaintMediaResponse'
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ComplaintMedia'
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
 
   /complaints/{complaintId}/media/{mediaId}:
     delete:
-      tags:
-        - Media
+      tags: [Media]
       summary: Delete complaint media
-      description: Delete a specific media record attached to a complaint.
       security:
         - bearerAuth: []
       parameters:
@@ -2143,28 +1563,24 @@ paths:
           name: complaintId
           required: true
           schema:
-            type: integer
-          example: 101
+            type: string
         - in: path
           name: mediaId
           required: true
           schema:
-            type: integer
-          example: 1
+            type: string
+            format: uuid
       responses:
         '200':
-          description: Media deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
+          description: Media deleted
+        '404':
+          description: Media not found
 
-  /complaints/{complaintId}/logs:
+  /activity-logs/complaint/{complaintId}:
     get:
-      tags:
-        - Activity Logs
-      summary: Get complaint activity logs
-      description: Retrieve the audit trail for a complaint.
+      tags: [Activity Logs]
+      summary: Get activity logs for a complaint
+      description: Admin, owning resident, or assigned responder.
       security:
         - bearerAuth: []
       parameters:
@@ -2172,359 +1588,36 @@ paths:
           name: complaintId
           required: true
           schema:
-            type: integer
-          example: 101
+            type: string
+          description: UUID or reference_id
       responses:
         '200':
-          description: Activity logs retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ActivityLogListResponse'
-
-  /logs:
-    get:
-      tags:
-        - Activity Logs
-      summary: Get all activity logs
-      description: Admin or Responder only. Retrieve all activity logs across complaints.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-            default: 1
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: Logs retrieved successfully
+          description: Activity logs
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
+                  status:
                     type: string
-                    example: Logs retrieved successfully
-                  data:
+                    example: ok
+                  count:
+                    type: integer
+                  logs:
                     type: array
                     items:
                       $ref: '#/components/schemas/ActivityLog'
-                  pagination:
-                    type: object
-                    properties:
-                      page:
-                        type: integer
-                        example: 1
-                      limit:
-                        type: integer
-                        example: 20
-                      totalItems:
-                        type: integer
-                        example: 100
-                      totalPages:
-                        type: integer
-                        example: 5
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
         '403':
           description: Forbidden
-
-  /hotlines:
-    get:
-      tags:
-        - Emergency Hotlines
-      summary: Get emergency hotlines
-      description: Retrieve all emergency hotline entries.
-      responses:
-        '200':
-          description: Hotlines retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HotlineListResponse'
-    post:
-      tags:
-        - Emergency Hotlines
-      summary: Create emergency hotline
-      description: Admin only. Create a new emergency hotline entry.
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EmergencyHotlineCreateRequest'
-      responses:
-        '201':
-          description: Hotline created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Hotline created successfully
-                  data:
-                    $ref: '#/components/schemas/EmergencyHotline'
-        '403':
-          description: Forbidden
-
-  /hotlines/{hotlineId}:
-    get:
-      tags:
-        - Emergency Hotlines
-      summary: Get hotline details
-      description: Retrieve a single emergency hotline entry by ID.
-      parameters:
-        - in: path
-          name: hotlineId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      responses:
-        '200':
-          description: Hotline retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Hotline retrieved successfully
-                  data:
-                    $ref: '#/components/schemas/EmergencyHotline'
-    patch:
-      tags:
-        - Emergency Hotlines
-      summary: Update hotline
-      description: Admin only. Update an emergency hotline entry.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: hotlineId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EmergencyHotlineUpdateRequest'
-      responses:
-        '200':
-          description: Hotline updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Hotline updated successfully
-                  data:
-                    $ref: '#/components/schemas/EmergencyHotline'
-        '403':
-          description: Forbidden
-    delete:
-      tags:
-        - Emergency Hotlines
-      summary: Delete hotline
-      description: Admin only. Delete an emergency hotline entry.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: hotlineId
-          required: true
-          schema:
-            type: integer
-          example: 1
-      responses:
-        '200':
-          description: Hotline deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '403':
-          description: Forbidden
-
-  /dashboard/summary:
-    get:
-      tags:
-        - Dashboard
-      summary: Get dashboard summary
-      description: Admin or Responder only. Retrieve top-level complaint and user counts.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Dashboard summary retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Dashboard summary retrieved successfully
-                  data:
-                    $ref: '#/components/schemas/DashboardSummary'
-        '403':
-          description: Forbidden
-
-  /dashboard/recent-complaints:
-    get:
-      tags:
-        - Dashboard
-      summary: Get recent complaints
-      description: Admin or Responder only. Recent complaints without complainant PII.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            default: 5
-      responses:
-        '200':
-          description: Recent complaints retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Recent complaints retrieved successfully
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/DashboardRecentComplaint'
-        '403':
-          description: Forbidden
-
-  /dashboard/statistics:
-    get:
-      tags:
-        - Dashboard
-      summary: Get dashboard statistics
-      description: Admin or Responder only. Retrieve complaint statistics for charts.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Dashboard statistics retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Dashboard statistics retrieved successfully
-                  data:
-                    type: object
-                    properties:
-                      byStatus:
-                        type: object
-                        example:
-                          PENDING: 15
-                          VERIFIED: 20
-                          ASSIGNED: 18
-                          IN_PROGRESS: 12
-                          RESOLVED: 50
-                          REJECTED: 5
-                      byPriority:
-                        type: object
-                        example:
-                          LOW: 25
-                          MEDIUM: 40
-                          HIGH: 30
-                          CRITICAL: 10
-                      byCategory:
-                        type: object
-                        example:
-                          1: 12
-                          2: 8
-                          3: 10
-        '403':
-          description: Forbidden
-
-  /dashboard/status-breakdown:
-    get:
-      tags:
-        - Dashboard
-      summary: Get complaint status breakdown
-      description: Admin or Responder only. Retrieve complaint counts grouped by status.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Status breakdown retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Status breakdown retrieved successfully
-                  data:
-                    type: object
-                    example:
-                      PENDING: 15
-                      VERIFIED: 20
-                      ASSIGNED: 18
-                      IN_PROGRESS: 12
-                      RESOLVED: 50
-                      REJECTED: 5
-        '403':
-          description: Forbidden
+        '404':
+          description: Complaint not found
 
   /notifications:
     get:
-      tags:
-        - Notifications
-      summary: Get notifications for current user
-      description: Returns notifications belonging to the authenticated user, newest first.
+      tags: [Notifications]
+      summary: List notifications for current user
       security:
         - bearerAuth: []
       parameters:
@@ -2533,69 +1626,62 @@ paths:
           schema:
             type: integer
             default: 1
-            minimum: 1
         - in: query
           name: limit
           schema:
             type: integer
             default: 20
-            minimum: 1
             maximum: 100
         - in: query
           name: is_read
           schema:
             type: boolean
-          description: Filter by read status
       responses:
         '200':
-          description: Notifications retrieved successfully
+          description: Notification list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotificationListResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  count:
+                    type: integer
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
 
   /notifications/unread-count:
     get:
-      tags:
-        - Notifications
+      tags: [Notifications]
       summary: Get unread notification count
-      description: Returns the number of unread notifications for the authenticated user.
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Unread count retrieved successfully
+          description: Unread count
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UnreadNotificationCountResponse'
-              example:
-                count: 5
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 5
 
   /notifications/{notificationId}/open:
     put:
-      tags:
-        - Notifications
-      summary: Open notification
-      description: Marks a notification as read and returns redirect information for the related record.
+      tags: [Notifications]
+      summary: Mark notification read and get redirect target
       security:
         - bearerAuth: []
       parameters:
@@ -2607,84 +1693,49 @@ paths:
             format: uuid
       responses:
         '200':
-          description: Notification opened successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OpenNotificationResponse'
-              example:
-                status: ok
-                entity_type: complaint
-                entity_id: 550e8400-e29b-41d4-a716-446655440000
-                timestamp: '2026-06-06T12:00:00.000Z'
-        '400':
-          description: Invalid notification ID
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Notification not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /notifications/read-all:
-    put:
-      tags:
-        - Notifications
-      summary: Mark all notifications as read
-      description: Marks all unread notifications belonging to the authenticated user as read.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Notifications marked as read
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MarkAllNotificationsReadResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /dashboard/category-breakdown:
-    get:
-      tags:
-        - Dashboard
-      summary: Get complaint category breakdown
-      description: Admin or Responder only. Retrieve complaint counts grouped by category.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Category breakdown retrieved successfully
+          description: Notification opened
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
+                  status:
+                    type: string
+                    example: ok
+                  entity_type:
+                    type: string
+                    enum: [complaint, verification]
+                  entity_id:
+                    type: string
+                    format: uuid
+                  reference_id:
+                    type: string
+                    nullable: true
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'
+        '404':
+          description: Notification not found
+
+  /notifications/read-all:
+    put:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All notifications marked read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
                   message:
                     type: string
-                    example: Category breakdown retrieved successfully
-                  data:
-                    type: object
-                    example:
-                      1: 12
-                      2: 8
-                      3: 10
-        '403':
-          description: Forbidden
+                  updatedCount:
+                    type: integer
+                  timestamp:
+                    $ref: '#/components/schemas/Timestamp'

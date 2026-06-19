@@ -1,0 +1,11 @@
+# Postman workspace resources (paths relative to docs/)
+workspace:
+  id: be3a9b50-0c54-4122-8342-42b5ba83e9e1
+
+localResources:
+  collections:
+    - ../postman/Community-Response-Hub.postman_collection.json
+  environments:
+    - ../postman/CRH-Local.postman_environment.json
+  specs:
+    - ../swagger.yml

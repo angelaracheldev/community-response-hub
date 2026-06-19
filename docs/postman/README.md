@@ -1,5 +1,7 @@
 # Postman — Community Response Hub API
 
+Collection aligned with `docs/swagger.yml` and the current backend routes.
+
 ## Import
 
 1. Open Postman → **Import**
@@ -7,6 +9,10 @@
    - `Community-Response-Hub.postman_collection.json`
    - `CRH-Local.postman_environment.json`
 3. Choose environment **CRH Local** (top-right dropdown)
+
+### Postman workspace (optional)
+
+If you use Postman's Git workspace integration, open the `docs/` folder as the workspace root. Config lives in `docs/.postman/resources.yaml`.
 
 ## Run locally
 
@@ -23,16 +29,34 @@ API base: `http://localhost:5000/api/v1`
 
 1. **Setup → DB Health** — confirm `"database": true`
 2. **Auth → Login (Admin)** — saves `accessToken` automatically
-3. **Users (admin) → List Users** — saves `userId` and `assignedToUserId`
-4. **Complaints → List Complaints** — saves `complaintId`
-5. **Complaint Media → Upload Complaint Media** — select an image in Body → form-data → `files`
-6. **Complaint Media → List Complaint Media** — confirm `media_url` (Cloudinary)
-7. **Complaints → Update Complaint Status** / **Assign Complaint**
-8. **Activity Logs → Get Logs by Complaint**
+3. **Admin → Get Dashboard** — stats, trends, recent complaints
+4. **Users (admin) → List Responders** — saves `assignedToUserId`
+5. **Complaints → List Complaints** — saves `complaintId` and `referenceId`
+6. **Admin → Get Complaint Details** — aggregated complaint view
+7. **Complaint Media → Upload Complaint Media** — select an image in Body → form-data → `files`
+8. **Complaints → Assign Complaint** / **Update Complaint Status**
+9. **Activity Logs → Get Logs by Complaint**
 
-For notifications: run **Auth → Login (Admin)**, then **Notifications → Get Notifications** (uses seed data). Test **Get Unread Count**, **Open Notification**, and **Mark All As Read**. Create a complaint as resident to generate a new admin notification.
+For notifications: **Auth → Login (Admin)**, then **Notifications → Get Notifications**. Test **Get Unread Count**, **Open Notification**, and **Mark All As Read**.
 
-For resident flows: run **Auth → Register (Resident)** (or login), then **Complaints → Create Complaint**, **Complaint Media → Upload**, **My Complaints**, and **Cancel Complaint (resident)** when status is pending or assigned.
+For resident flows: **Auth → Register (Resident)** (or login), **Users (resident) → Submit Verification (me)** (multipart `file`), then **Complaints → Create Complaint**, **Complaint Media → Upload**, **My Complaints**, **Cancel Complaint**, or **Delete Pending Complaint**.
+
+For admin complaint actions: **Reject Complaint**, **Update Complaint Priority**, **Create User**.
+
+## Collection folders
+
+| Folder | Endpoints |
+|--------|-----------|
+| Setup | Health, DB, categories (no auth) |
+| Auth | Register, login, me, logout, refresh |
+| Categories | CRUD (admin for writes) |
+| Users (admin) | List, create, responders, CRUD, verification review |
+| Users (resident) | Profile, submit verification |
+| Admin | Dashboard, complaint details aggregate |
+| Complaints | List, create, status, assign, priority, reject, cancel, delete |
+| Complaint Media | Upload, list, delete |
+| Activity Logs | Logs by complaint |
+| Notifications | List, unread filter, count, open, mark all read |
 
 ## Complaint media (Cloudinary)
 
@@ -43,10 +67,11 @@ For resident flows: run **Auth → Register (Resident)** (or login), then **Comp
 | Delete Complaint Media | `DELETE /complaints/:id/media/:mediaId` | DB row only in v1 |
 
 | Cancel Complaint | `PATCH /complaints/:id/cancel` | Resident only. Body: `cancellationReason` (min 10 chars). Status must be `pending` or `assigned`. |
+| Delete Pending Complaint | `DELETE /complaints/:id` | Resident only. Own `pending` complaints only. |
+| Reject Complaint | `PATCH /complaints/:id/reject` | Admin only. Body: `reason` (min 10 chars). |
+| Update Priority | `PATCH /complaints/:id/priority` | Admin only. Body: `priorityLevel` (`low` \| `normal` \| `high` \| `urgent`). |
 
 **Path `:id`** accepts either **`complaintId`** (UUID) or **`referenceId`** (e.g. `CMP-2026-00001`). Both are saved by List/Create/**My Complaints** tests.
-
-**`referenceId`** is the human-readable complaint code (e.g. `CMP-2026-00001`). Prefer it for **Cancel Complaint** and resident-facing flows.
 
 View uploads in [Cloudinary Media Library](https://console.cloudinary.com) under folder `community-response-hub/complaints`.
 
@@ -56,8 +81,8 @@ View uploads in [Cloudinary Media Library](https://console.cloudinary.com) under
 |----------|--------|
 | `accessToken` | Login / Register tests |
 | `refreshToken` | Login / Register tests |
-| `userId` | List Users |
-| `assignedToUserId` | List Users (first responder) |
+| `userId` | List Users, Create User |
+| `assignedToUserId` | List Users, List Responders |
 | `complaintId` | List, Create, or My Complaints (UUID) |
 | `referenceId` | List, Create, or My Complaints (CMP-YEAR-#####) |
 | `mediaId` | Upload or List Complaint Media |

@@ -1,72 +1,38 @@
-const { validationResult } = require('express-validator');
+const { handleService } = require('../utils/controllerHelpers');
 const authService = require('../services/auth.service');
 
-async function register(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', errors: errors.array() });
-  }
-
-  try {
+const register = handleService(
+  (req) => {
     const { firstName, lastName, email, password, phoneNumber, address } = req.body;
-    const result = await authService.register({ firstName, lastName, email, password, phoneNumber, address });
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.status(result.status).json(result.body);
-  } catch (error) {
-    console.error('Register failed:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to register user', error: error.message });
+    return authService.register({ firstName, lastName, email, password, phoneNumber, address });
+  },
+  { validate: true, logLabel: 'Register failed', fallbackMessage: 'Unable to register user', defaultStatus: 201 }
+);
+
+const login = handleService(
+  (req) => authService.login(req.body),
+  { validate: true, logLabel: 'Login failed', fallbackMessage: 'Unable to login' }
+);
+
+const getMe = handleService(
+  (req) => authService.getMe(req.user),
+  { logLabel: 'Get me failed', fallbackMessage: 'Unable to retrieve profile' }
+);
+
+const logout = handleService(
+  () => authService.logout(),
+  { logLabel: 'Logout failed', fallbackMessage: 'Unable to logout' }
+);
+
+const refreshToken = handleService(
+  (req) => authService.refreshToken(req.body.refreshToken),
+  {
+    validate: true,
+    logLabel: 'Refresh token failed',
+    fallbackMessage: 'Invalid or expired refresh token',
+    statusOnError: 401,
   }
-}
-
-async function login(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', errors: errors.array() });
-  }
-
-  try {
-    const { email, password } = req.body;
-    const result = await authService.login({ email, password });
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Login failed:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to login', error: error.message });
-  }
-}
-
-function getMe(req, res) {
-  const result = authService.getMe(req.user);
-  return res.json(result.body);
-}
-
-function logout(req, res) {
-  const result = authService.logout();
-  return res.json(result.body);
-}
-
-async function refreshToken(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', errors: errors.array() });
-  }
-
-  try {
-    const { refreshToken: refreshTokenValue } = req.body;
-    const result = await authService.refreshToken(refreshTokenValue);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Refresh token failed:', error.message);
-    return res.status(401).json({ status: 'error', message: 'Invalid or expired refresh token', error: error.message });
-  }
-}
+);
 
 module.exports = {
   register,

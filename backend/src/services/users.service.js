@@ -188,99 +188,12 @@ async function deactivateUser(id) {
 }
 
 async function getResponders() {
-  const result = await pool.query(`
-    SELECT
-      user_id,
-      first_name,
-      last_name
-    FROM users
-    WHERE role = 'responder'
-      AND is_active = true
-    ORDER BY first_name
-  `);
-
-  return {
-    status: 200,
-    body: {
-      users: result.rows,
-    },
-  };
-}
-
-async function updatePriority(
-  id,
-  {
-    priorityLevel,
-    performedBy,
-  }
-) {
-  const complaintRes =
-    await complaintsRepository.findComplaintById(
-      id
-    );
-
-  if (!complaintRes.rowCount) {
-    return {
-      error: {
-        status: 404,
-        body: {
-          status: 'error',
-          message:
-            'Complaint not found',
-        },
-      },
-    };
-  }
-
-  const complaint =
-    complaintRes.rows[0];
-
-  const oldPriority =
-    complaint.priority_level;
-
-  if (
-    oldPriority === priorityLevel
-  ) {
-    return {
-      error: {
-        status: 400,
-        body: {
-          status: 'error',
-          message:
-            'Priority is already set to this value',
-        },
-      },
-    };
-  }
-
-  await complaintsRepository.updatePriority(
-    {
-      id,
-      priorityLevel,
-    }
-  );
-
-  await activityLogsRepository.insertLog(
-    {
-      complaintId: id,
-      performedBy,
-      actionType:
-        'priority_updated',
-
-      oldValue: oldPriority,
-      newValue: priorityLevel,
-
-      description: `Priority changed from ${oldPriority} to ${priorityLevel}`,
-    }
-  );
-
+  const result = await usersRepository.getResponders();
   return {
     body: {
       status: 'ok',
-      message:
-        'Priority updated successfully',
-      timestamp:
-        new Date().toISOString(),
+      users: result.rows,
+      timestamp: new Date().toISOString(),
     },
   };
 }
@@ -293,7 +206,6 @@ module.exports = {
   submitVerification,
   reviewVerification,
   activateUser,
-  deactivateUser, 
+  deactivateUser,
   getResponders,
-  updatePriority,
 };

@@ -1,187 +1,71 @@
-const { validationResult } = require('express-validator');
+const { handleService } = require('../utils/controllerHelpers');
 const complaintsService = require('../services/complaints.service');
 
-async function createComplaint(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', errors: errors.array() });
-  }
+const createComplaint = handleService(
+  (req) => complaintsService.createComplaint(req.user, req.body),
+  { validate: true, logLabel: 'Failed to create complaint', fallbackMessage: 'Unable to create complaint', defaultStatus: 201 }
+);
 
-  try {
-    const result = await complaintsService.createComplaint(req.user, req.body);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.status(result.status).json(result.body);
-  } catch (error) {
-    console.error('Failed to create complaint:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to create complaint', error: error.message });
-  }
-}
+const listComplaints = handleService(
+  (req) => complaintsService.listComplaints(req.user, req.query),
+  { logLabel: 'Failed to list complaints', fallbackMessage: 'Unable to retrieve complaints' }
+);
 
-async function listComplaints(req, res) {
-  try {
-    const result = await complaintsService.listComplaints(req.user, req.query);
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to list complaints:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to retrieve complaints', error: error.message });
-  }
-}
+const listMyComplaints = handleService(
+  (req) => complaintsService.listMyComplaints(req.user),
+  { logLabel: 'Failed to list user complaints', fallbackMessage: 'Unable to retrieve user complaints' }
+);
 
-async function listMyComplaints(req, res) {
-  try {
-    const result = await complaintsService.listMyComplaints(req.user);
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to list user complaints:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to retrieve user complaints', error: error.message });
-  }
-}
+const getComplaintById = handleService(
+  (req) => complaintsService.getComplaintById(req.params.id, req.user),
+  { logLabel: 'Failed to fetch complaint', fallbackMessage: 'Unable to retrieve complaint' }
+);
 
-async function getComplaintById(req, res) {
-  try {
-    const result = await complaintsService.getComplaintById(req.params.id, req.user);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to fetch complaint:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to retrieve complaint', error: error.message });
-  }
-}
+const updateComplaintStatus = handleService(
+  (req) => complaintsService.updateComplaintStatus(req.params.id, req.body, req.user),
+  { validate: true, logLabel: 'Failed to update complaint status', fallbackMessage: 'Unable to update status' }
+);
 
-async function updateComplaintStatus(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', errors: errors.array() });
-  }
-
-  try {
-    const result = await complaintsService.updateComplaintStatus(req.params.id, req.body, req.user);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to update complaint status:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to update status', error: error.message });
-  }
-}
-
-async function assignComplaint(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', errors: errors.array() });
-  }
-
-  try {
-    const { assignedToUserId } = req.body;
-    const result = await complaintsService.assignComplaint(
+const assignComplaint = handleService(
+  (req) =>
+    complaintsService.assignComplaint(
       req.params.id,
-      {
-        assignedToUserId,
-        assignedByUserId: req.user.user_id,
-      },
+      { assignedToUserId: req.body.assignedToUserId, assignedByUserId: req.user.user_id },
       req.user
-    );
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to assign complaint:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to assign complaint', error: error.message });
-  }
-}
+    ),
+  { validate: true, logLabel: 'Failed to assign complaint', fallbackMessage: 'Unable to assign complaint' }
+);
 
-async function cancelComplaint(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', errors: errors.array() });
-  }
+const cancelComplaint = handleService(
+  (req) => complaintsService.cancelComplaint(req.params.id, req.user, req.body),
+  { validate: true, logLabel: 'Failed to cancel complaint', fallbackMessage: 'Unable to cancel complaint' }
+);
 
-  try {
-    const result = await complaintsService.cancelComplaint(req.params.id, req.user, req.body);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to cancel complaint:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to cancel complaint', error: error.message });
-  }
-}
+const deleteFailedComplaint = handleService(
+  (req) => complaintsService.deleteFailedComplaint(req.params.id, req.user),
+  { logLabel: 'Failed to delete complaint', fallbackMessage: 'Unable to delete complaint' }
+);
 
-async function deleteFailedComplaint(req, res) {
-  try {
-    const result = await complaintsService.deleteFailedComplaint(req.params.id, req.user);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to delete complaint:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to delete complaint', error: error.message });
-  }
-}
+const updateComplaintPriority = handleService(
+  (req) => complaintsService.updateComplaintPriority(req.params.id, req.body, req.user),
+  { logLabel: 'Failed to update priority', fallbackMessage: 'Unable to update priority' }
+);
 
-async function updateComplaintPriority(req, res) {
-  try {
-    const result = await complaintsService.updateComplaintPriority(
-      req.params.id,
-      req.body,
-      req.user
-    );
-
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-
-    return res.json(result.body);
-  } catch (err) {
-    console.error('Failed to update priority:', err.message);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Unable to update priority',
-    });
-  }
-}
-
-async function rejectComplaint(req, res) {
-  try {
+const rejectComplaint = handleService(
+  async (req) => {
     const { reason } = req.body;
-
     if (!reason || reason.trim().length < 10) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Reason must be at least 10 characters'
-      });
+      return {
+        error: {
+          status: 400,
+          body: { status: 'error', message: 'Reason must be at least 10 characters' },
+        },
+      };
     }
-
-    const result = await complaintsService.rejectComplaint(
-      req.params.id,
-      req.user,
-      reason
-    );
-
-    if (result.error) {
-      return res
-        .status(result.error.status)
-        .json(result.error.body);
-    }
-
-    return res.json(result.body);
-  } catch (err) {
-    console.error(err);
-
-    return res.status(500).json({
-      status: 'error',
-      message: 'Unable to reject complaint'
-    });
-  }
-}
+    return complaintsService.rejectComplaint(req.params.id, req.user, reason);
+  },
+  { logLabel: 'Failed to reject complaint', fallbackMessage: 'Unable to reject complaint' }
+);
 
 module.exports = {
   createComplaint,
@@ -193,6 +77,5 @@ module.exports = {
   cancelComplaint,
   deleteFailedComplaint,
   updateComplaintPriority,
-  rejectComplaint
+  rejectComplaint,
 };
-

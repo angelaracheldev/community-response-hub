@@ -1,63 +1,20 @@
+const { handleService } = require('../utils/controllerHelpers');
 const mediaService = require('../services/media.service');
 
-async function uploadMedia(req, res) {
-  try {
-    const result = await mediaService.uploadComplaintMedia(
-      req.params.id,
-      req.user,
-      req.files
-    );
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.status(result.status).json(result.body);
-  } catch (error) {
-    console.error('Failed to upload complaint media:', error.message);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Unable to upload media',
-      error: error.message,
-    });
-  }
-}
+const uploadMedia = handleService(
+  (req) => mediaService.uploadComplaintMedia(req.params.id, req.user, req.files),
+  { logLabel: 'Failed to upload complaint media', fallbackMessage: 'Unable to upload media', defaultStatus: 201 }
+);
 
-async function listMedia(req, res) {
-  try {
-    const result = await mediaService.listComplaintMedia(req.params.id, req.user);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to list complaint media:', error.message);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Unable to retrieve media',
-      error: error.message,
-    });
-  }
-}
+const listMedia = handleService(
+  (req) => mediaService.listComplaintMedia(req.params.id, req.user),
+  { logLabel: 'Failed to list complaint media', fallbackMessage: 'Unable to retrieve media' }
+);
 
-async function deleteMedia(req, res) {
-  try {
-    const result = await mediaService.deleteComplaintMedia(
-      req.params.id,
-      req.params.mediaId,
-      req.user
-    );
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to delete complaint media:', error.message);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Unable to delete media',
-      error: error.message,
-    });
-  }
-}
+const deleteMedia = handleService(
+  (req) => mediaService.deleteComplaintMedia(req.params.id, req.params.mediaId, req.user),
+  { logLabel: 'Failed to delete complaint media', fallbackMessage: 'Unable to delete media' }
+);
 
 module.exports = {
   uploadMedia,

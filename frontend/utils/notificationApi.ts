@@ -27,14 +27,7 @@ export type OpenNotificationResult = {
   reference_id?: string | null;
 };
 
-function apiErrorMessage(
-  data: { message?: string; errors?: { msg?: string }[] },
-  fallback: string
-): string {
-  if (data.message) return data.message;
-  if (data.errors?.length) return data.errors[0].msg ?? fallback;
-  return fallback;
-}
+import { apiErrorMessage } from './apiHelpers';
 
 export async function fetchNotifications(
   params?: { page?: number; limit?: number; is_read?: boolean }

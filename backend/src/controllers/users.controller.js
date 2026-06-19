@@ -1,181 +1,73 @@
-const { validationResult } = require('express-validator');
+const { handleService } = require('../utils/controllerHelpers');
 const usersService = require('../services/users.service');
 const verificationMediaService = require('../services/verificationMedia.service');
-const db = require('../config/database');
 
+const createUser = handleService(
+  (req) => usersService.createUser(req.body),
+  { validate: true, logLabel: 'Failed to create user', fallbackMessage: 'Unable to create user', defaultStatus: 201 }
+);
 
-async function createUser(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', errors: errors.array() });
-  }
+const listUsers = handleService(
+  (req) => usersService.listUsers(req.query),
+  { logLabel: 'Failed to fetch users', fallbackMessage: 'Unable to retrieve users' }
+);
 
-  try {
-    const result = await usersService.createUser(req.body);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.status(result.status).json(result.body);
-  } catch (error) {
-    console.error('Failed to create user:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to create user', error: error.message });
-  }
-}
+const getUserById = handleService(
+  (req) => usersService.getUserById(req.params.id, req.user),
+  { logLabel: 'Failed to fetch user by id', fallbackMessage: 'Unable to retrieve user' }
+);
 
-async function listUsers(req, res) {
-  try {
-    const result = await usersService.listUsers(req.query);
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to fetch users:', error.message);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Unable to retrieve users',
-      error: error.message,
-    });
-  }
-}
+const getCurrentUser = handleService(
+  (req) => usersService.getUserById(req.user.user_id, req.user),
+  { logLabel: 'Failed to fetch current user', fallbackMessage: 'Unable to retrieve current user' }
+);
 
-async function getUserById(req, res) {
-  try {
-    const result = await usersService.getUserById(req.params.id, req.user);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to fetch user by id:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to retrieve user', error: error.message });
-  }
-}
+const updateUser = handleService(
+  (req) => usersService.updateUser(req.params.id, req.user, req.body),
+  { logLabel: 'Failed to update user', fallbackMessage: 'Unable to update user' }
+);
 
-async function getCurrentUser(req, res) {
-  try {
-    const result = await usersService.getUserById(req.user.user_id, req.user);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to fetch current user:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to retrieve current user', error: error.message });
-  }
-}
-
-async function updateUser(req, res) {
-  try {
-    const result = await usersService.updateUser(req.params.id, req.user, req.body);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to update user:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to update user', error: error.message });
-  }
-}
-
-async function submitVerification(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', errors: errors.array() });
-  }
-
-  try {
+const submitVerification = handleService(
+  async (req) => {
     const { verificationType, address } = req.body;
     let documentUrl = req.body.documentUrl;
     if (req.file) {
       documentUrl = await verificationMediaService.uploadVerificationDocument(req.file);
     }
-    const result = await usersService.submitVerification(req.user, {
+    return usersService.submitVerification(req.user, {
       verificationType,
       documentUrl,
       address,
     });
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to submit verification:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to submit verification', error: error.message });
-  }
-}
+  },
+  { validate: true, logLabel: 'Failed to submit verification', fallbackMessage: 'Unable to submit verification' }
+);
 
-async function reviewVerification(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', errors: errors.array() });
-  }
-
-  try {
-    const { verificationStatus, remarks } = req.body;
-    const result = await usersService.reviewVerification(req.params.id, req.user.user_id, verificationStatus, remarks);
-    if (result.error) {
-      return res.status(result.error.status).json(result.error.body);
-    }
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to review verification:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to review verification', error: error.message });
-  }
-}
-
-async function activateUser(req, res) {
-  try {
-    const result = await usersService.activateUser(req.params.id);
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to activate user:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to activate user', error: error.message });
-  }
-}
-
-async function deactivateUser(req, res) {
-  try {
-    const result = await usersService.deactivateUser(req.params.id);
-    return res.json(result.body);
-  } catch (error) {
-    console.error('Failed to deactivate user:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Unable to deactivate user', error: error.message });
-  }
-}
-
-async function getResponders(req, res) {
-  try {
-    const result = await usersService.listUsers({});
-
-    const responders = result.body.users.filter(
-      (u) => u.role_name === 'responder'
-    );
-
-    res.json({ users: responders });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: 'Failed to fetch responders',
-    });
-  }
-}
-
-
-async function updatePriority(req, res) {
-  const result =
-    await complaintsService.updatePriority(
+const reviewVerification = handleService(
+  (req) =>
+    usersService.reviewVerification(
       req.params.id,
-      {
-        priorityLevel:
-          req.body.priorityLevel,
-        performedBy:
-          req.user.userId,
-      }
-    );
+      req.user.user_id,
+      req.body.verificationStatus,
+      req.body.remarks
+    ),
+  { validate: true, logLabel: 'Failed to review verification', fallbackMessage: 'Unable to review verification' }
+);
 
-  if (result.error) {
-    return res
-      .status(result.error.status)
-      .json(result.error.body);
-  }
+const activateUser = handleService(
+  (req) => usersService.activateUser(req.params.id),
+  { logLabel: 'Failed to activate user', fallbackMessage: 'Unable to activate user' }
+);
 
-  return res.json(result.body);
-}
+const deactivateUser = handleService(
+  (req) => usersService.deactivateUser(req.params.id),
+  { logLabel: 'Failed to deactivate user', fallbackMessage: 'Unable to deactivate user' }
+);
+
+const getResponders = handleService(
+  () => usersService.getResponders(),
+  { logLabel: 'Failed to fetch responders', fallbackMessage: 'Failed to fetch responders' }
+);
 
 module.exports = {
   createUser,
@@ -188,5 +80,4 @@ module.exports = {
   activateUser,
   deactivateUser,
   getResponders,
-  updatePriority,
 };

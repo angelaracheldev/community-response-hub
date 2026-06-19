@@ -65,29 +65,66 @@ Communities still rely on informal channels (SMS, social media, walk-ins) with n
 
 ```
 community-response-hub/
-├── backend/          # init-db.sql, .env.example
-├── frontend/         # Expo app (resident, admin, auth)
-├── docs/swagger.yml  # API specification
-└── docker-compose.yml
+├── backend/              # Node.js API — routes, services, init-db.sql, migrations
+├── frontend/             # Expo app (resident, admin, auth)
+├── docs/                 # Documentation and API tooling
+│   ├── swagger.yml       # OpenAPI 3 spec
+│   ├── postman/          # Postman collection + environment
+│   ├── DATABASE_SETUP.md
+│   └── PROJECT_STRUCTURE.md
+└── docker-compose.yml    # Local PostgreSQL (+ optional backend container)
 ```
+
+See [docs/PROJECT_STRUCTURE.md](./docs/PROJECT_STRUCTURE.md) for a full walkthrough of each folder.
 
 ---
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js 18+
+- Docker Desktop (for PostgreSQL)
+- Cloudinary account (for complaint/verification media uploads)
+
+### 1. Clone and start the database
+
 ```bash
-# Clone and start database
 git clone https://github.com/angelaracheldev/community-response-hub.git
 cd community-response-hub
 docker-compose up -d
+```
 
-# Frontend
+### 2. Configure and run the backend
+
+```bash
+cp backend/.env.example backend/.env.local
+# Edit backend/.env.local — set DB_* and Cloudinary credentials
+cd backend && npm install && npm run dev
+```
+
+Database connection details: [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md)
+
+### 3. Run the frontend
+
+```bash
 cd frontend && npm install && npm start
 ```
 
-Copy `backend/.env.example` to `backend/.env.local` and see [DATABASE_SETUP.md](./DATABASE_SETUP.md) for DB connection details.
-
 **API base URL (local):** `http://localhost:5000/api/v1`
+
+---
+
+## Documentation
+
+| Resource | Description |
+|----------|-------------|
+| [docs/swagger.yml](./docs/swagger.yml) | OpenAPI 3 API specification |
+| [docs/postman/](./docs/postman/README.md) | Postman collection, environment, and test flows |
+| [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md) | PostgreSQL setup with Docker Compose |
+| [docs/PROJECT_STRUCTURE.md](./docs/PROJECT_STRUCTURE.md) | Repository layout guide |
+
+**Quick API test:** Import `docs/postman/Community-Response-Hub.postman_collection.json` and `CRH-Local.postman_environment.json` into Postman, then run **Auth → Login (Admin)**. Seed admin: `admin@example.com` / `Admin123!`
 
 ---
 
