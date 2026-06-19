@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import { useSocket } from '../hooks/useSocket';
 import { refreshAccessTokenIfNeeded } from '../utils/authFetch';
 import { getAuthToken } from '../utils/sessionAuth';
@@ -17,5 +18,13 @@ export default function RootLayout() {
     return () => subscription.remove();
   }, []);
 
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { flex: 1 } }} />;
+  return (
+    <>
+      <Head>
+        <title>Community Response Hub</title>
+        <meta name="description" content="Report, track, and resolve community complaints" />
+      </Head>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { flex: 1 } }} />
+    </>
+  );
 }

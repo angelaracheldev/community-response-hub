@@ -1,7 +1,11 @@
 const bcrypt = require('bcrypt');
 const usersRepository = require('../repositories/users.repository');
 const verificationsRepository = require('../repositories/verifications.repository');
-const DEFAULT_ADMIN_CREATED_PASSWORD = 'TemporaryWelcome2026!';
+const crypto = require('crypto');
+
+function defaultAdminCreatedPassword() {
+  return process.env.ADMIN_CREATED_DEFAULT_PASSWORD || crypto.randomBytes(16).toString('base64url');
+}
 
 async function createUser(body) {
   const roleId = Number(body.role_id);
@@ -21,7 +25,8 @@ async function createUser(body) {
   }
 
   const salt = await bcrypt.genSalt(12);
-  const passwordHash = await bcrypt.hash(body.password || DEFAULT_ADMIN_CREATED_PASSWORD, salt);
+  const generatedPassword = body.password || defaultAdminCreatedPassword();
+  const passwordHash = await bcrypt.hash(generatedPassword, salt);
   const result = await usersRepository.insertUser({
     roleId,
     firstName: body.first_name,
@@ -40,7 +45,7 @@ async function createUser(body) {
       status: 'ok',
       message: 'User created successfully',
       user: result.rows[0],
-      temporaryPassword: body.password ? undefined : DEFAULT_ADMIN_CREATED_PASSWORD,
+      temporaryPassword: body.password ? undefined : generatedPassword,
       timestamp: new Date().toISOString(),
     },
   };

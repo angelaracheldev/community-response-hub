@@ -1,6 +1,9 @@
 node_modules/
 .expo/
 
+# Expo / frontend web build output (Railway builds this in Docker)
+frontend/dist/
+
 # Environment variables (keep secrets out of version control)
 .env.local
 .env

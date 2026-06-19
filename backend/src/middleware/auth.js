@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../config');
 const authRepository = require('../repositories/auth.repository');
+const { safeErrorPayload } = require('../utils/safeError');
 
 async function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -30,7 +31,7 @@ async function authMiddleware(req, res, next) {
     next();
   } catch (error) {
     console.error('Auth middleware error:', error.message);
-    return res.status(401).json({ status: 'error', message: 'Invalid or expired token', error: error.message });
+    return res.status(401).json(safeErrorPayload('Invalid or expired token', error));
   }
 }
 

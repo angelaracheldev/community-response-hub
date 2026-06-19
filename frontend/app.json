@@ -1,5 +1,14 @@
 {
-  "plugins": [
-    "expo-secure-store"
-  ]
+  "expo": {
+    "name": "Community Response Hub",
+    "slug": "community-response-hub",
+    "description": "Report, track, and resolve community complaints",
+    "web": {
+      "name": "Community Response Hub",
+      "shortName": "CRH"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
 }

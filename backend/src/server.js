@@ -15,5 +15,4 @@ server.listen(port, host, () => {
   console.log(`Backend service running at http://${host}:${port}`);
 });
 
-app.use('/activity-logs', require('./routes/activityLogs.routes'));
 module.exports = { server, io };

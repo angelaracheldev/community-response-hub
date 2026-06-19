@@ -1,4 +1,5 @@
 const dbService = require('../services/db.service');
+const { safeErrorPayload } = require('../utils/safeError');
 
 async function healthCheck(req, res) {
   try {
@@ -6,12 +7,7 @@ async function healthCheck(req, res) {
     return res.json(result.body);
   } catch (error) {
     console.error('Database health check failed:', error.message);
-    return res.status(500).json({
-      status: 'error',
-      database: false,
-      message: 'Unable to connect to database',
-      error: error.message,
-    });
+    return res.status(500).json(safeErrorPayload('Unable to connect to database', error));
   }
 }
 
@@ -21,11 +17,7 @@ async function getStats(req, res) {
     return res.json(result.body);
   } catch (error) {
     console.error('Database stats query failed:', error.message);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Unable to read database statistics',
-      error: error.message,
-    });
+    return res.status(500).json(safeErrorPayload('Unable to read database statistics', error));
   }
 }
 
