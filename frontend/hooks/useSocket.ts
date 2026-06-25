@@ -84,8 +84,6 @@ export function useSocket(getToken: TokenGetter = getAuthToken): Socket | null {
 
     return () => {
       cancelled = true;
-      disconnectSocket();
-      setSocket(null);
     };
   }, []);
 

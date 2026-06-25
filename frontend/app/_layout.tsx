@@ -1,14 +1,11 @@
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
-import { useSocket } from '../hooks/useSocket';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { refreshAccessTokenIfNeeded } from '../utils/authFetch';
-import { getAuthToken } from '../utils/sessionAuth';
 
 export default function RootLayout() {
-  useSocket(getAuthToken);
-
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
@@ -19,12 +16,14 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
-      <Head>
-        <title>Community Response Hub</title>
-        <meta name="description" content="Report, track, and resolve community complaints" />
-      </Head>
+    <SafeAreaProvider>
+      {Platform.OS === 'web' ? (
+        <Head>
+          <title>Community Response Hub</title>
+          <meta name="description" content="Report, track, and resolve community complaints" />
+        </Head>
+      ) : null}
       <Stack screenOptions={{ headerShown: false, contentStyle: { flex: 1 } }} />
-    </>
+    </SafeAreaProvider>
   );
 }

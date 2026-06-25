@@ -111,7 +111,28 @@ Database connection details: [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md)
 cd frontend && npm install && npm start
 ```
 
-**API base URL (local):** `http://localhost:5000/api/v1`
+**API base URL (local):** `http://localhost:5000/api/v1`  
+**API base URL (production):** `https://community-response-hub-production.up.railway.app/api/v1`
+
+### 4. Build Android APK (optional)
+
+The mobile app uses [EAS Build](https://docs.expo.dev/build/introduction/). You need an [Expo account](https://expo.dev/signup). Production API URL is already set in `frontend/.env.example` and `eas.json`.
+
+```bash
+cd frontend
+npm install
+cp .env.example .env   # optional if using production Railway API locally / on device
+npm run eas:login
+npm run build:configure   # links project to Expo (first time only)
+npm run build:android:apk # cloud build; download APK from the Expo dashboard when done
+```
+
+Or run EAS directly: `npx eas login` (from the `frontend` folder, after `npm install`).
+
+| Script | Output |
+|--------|--------|
+| `npm run build:android:apk` | Installable `.apk` for testing / sideloading |
+| `npm run build:android:aab` | Google Play `.aab` bundle |
 
 ---
 
