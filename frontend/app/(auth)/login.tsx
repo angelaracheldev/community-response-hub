@@ -1,3 +1,4 @@
+// Filepath = frontend\app\(auth)\login.tsx
 import React, { useState } from 'react';
 import { Text, View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Modal, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,8 +9,15 @@ import { connectSocket } from '../../hooks/useSocket';
 import { extractAccessToken, extractRefreshToken, setAuthTokens } from '../../utils/sessionAuth';
 import { fetchCurrentUser } from '../../utils/userProfile';
 import { authLoginStyles as styles } from '../../styles/auth/login';
+import { getFirstLoginStatus } from '../../utils/firstLoginApi';
+import FirstLoginWizard from '../../components/auth/FirstLoginWizard';
+
 
 export default function LoginScreen() {
+  const [showFirstLoginWizard, setShowFirstLoginWizard] = useState(false);
+  const [pendingRole, setPendingRole] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string>('');
+
   const router = useRouter();
 
   // Login Form State
@@ -49,6 +57,27 @@ export default function LoginScreen() {
     setTimeout(() => setSuccessToast(null), 6000);
   };
 
+  const navigateByRole = async (role?: string | null) => {
+    let resolvedRole = role;
+
+    if (!resolvedRole) {
+      const profile = await fetchCurrentUser();
+      resolvedRole = profile?.role_name;
+    }
+
+    if (resolvedRole === 'admin') {
+      router.replace('/(admin)/dashboard');
+    } else if (resolvedRole === 'responder') {
+      router.replace('/(respondent)/dashboard');
+    } else if (resolvedRole === 'resident') {
+      router.replace('/(resident)/home');
+    } else {
+      triggerLoginError(
+        'This account is not authorized to sign in here.'
+      );
+    }
+  };
+
   const handleLogin = async () => {
     setLoginError(null);
 
@@ -58,6 +87,7 @@ export default function LoginScreen() {
     }
 
     setIsLoading(true);
+
 
     try {
       const response = await fetch(`${API_BASE}/auth/login`, {
@@ -74,6 +104,8 @@ export default function LoginScreen() {
 
       const data = await response.json();
 
+
+
       if (response.ok) {
         const accessToken = extractAccessToken(data);
         const refreshToken = extractRefreshToken(data);
@@ -82,29 +114,50 @@ export default function LoginScreen() {
           return;
         }
 
-        const loginUser = (data as { data?: { user?: { role_name?: string } } })?.data?.user;
-        let roleName = loginUser?.role_name;
-
         await setAuthTokens(accessToken, refreshToken);
+        const loginUser = (data as {
+          data?: {
+            user?: {
+              role_name?: string;
+              email?: string;
+            };
+          };
+        })?.data?.user; let roleName = loginUser?.role_name;
+
+
+        const backendEmail = loginUser?.email; // ✅ FIX
+        setPendingRole(roleName ?? null);
+
+if (!loginUser?.email) {
+  triggerLoginError('Login failed: email not returned from server.');
+  return;
+}
+
+setPendingEmail(loginUser.email);
+        const onboarding = await getFirstLoginStatus();
+
+        console.log(
+          'ONBOARDING STATUS',
+          JSON.stringify(onboarding, null, 2)
+        );
+
+        const needsOnboarding =
+          !onboarding.onboarding.is_email_verified ||
+          onboarding.onboarding.must_change_password;
+
+        if (needsOnboarding) {
+          setPendingRole(roleName ?? null);
+          setShowFirstLoginWizard(true);
+          return;
+        }
+
+
         await connectSocket();
-
-        if (!roleName) {
-          const profile = await fetchCurrentUser();
-          roleName = profile?.role_name;
-        }
-
-        if (roleName === 'admin') {
-          router.replace('/(admin)/dashboard');
-        } else if (roleName === 'responder') {
-          router.replace('/(respondent)/dashboard');
-        } else if (roleName === 'resident') {
-          router.replace('/(resident)/home');
-        } else {
-          triggerLoginError('This account is not authorized to sign in here.');
-        }
+        await navigateByRole(roleName);
       } else {
         triggerLoginError(data.message || 'Invalid email or password. Please try again.');
       }
+
     } catch (error) {
       console.error('API Network Connectivity Error:', error);
       triggerLoginError('Network connectivity error. Please check your connection or backend server.');
@@ -205,7 +258,7 @@ export default function LoginScreen() {
         // Success Handling without Alert: Close Modal & trigger floating Toast banner
         setShowResendModal(false);
         triggerSuccessToast('Verification document submitted successfully! Please wait for admin review.');
-        
+
         // Reset states
         setResendEmail('');
         setResendPhone('');
@@ -222,9 +275,13 @@ export default function LoginScreen() {
       setResendLoading(false);
       setResendMessage('');
     }
+
   };
 
+
+
   return (
+
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -251,7 +308,7 @@ export default function LoginScreen() {
 
           {/* Form Fields */}
           <View style={styles.formContainer}>
-            
+
             {/* Inline Login Error Banner */}
             {loginError ? (
               <View style={styles.errorBanner}>
@@ -312,8 +369,8 @@ export default function LoginScreen() {
             </View>
 
             {/* Login Button */}
-            <TouchableOpacity 
-              style={[styles.button, isLoading && styles.disabledButton]} 
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.disabledButton]}
               onPress={handleLogin}
               disabled={isLoading}
             >
@@ -327,7 +384,7 @@ export default function LoginScreen() {
               )}
             </TouchableOpacity>
 
-          
+
           </View>
 
           {/* Footer Section */}
@@ -341,6 +398,7 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
 
       {/* Resend Verification Modal */}
       <Modal
@@ -489,7 +547,21 @@ export default function LoginScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {pendingEmail ? (
+  <FirstLoginWizard
+    visible={showFirstLoginWizard}
+    email={pendingEmail}
+    onComplete={() => {
+      setShowFirstLoginWizard(false);
+      navigateByRole(pendingRole);
+    }}
+  />
+) : null}
     </SafeAreaView>
+
+
   );
+
 }
 

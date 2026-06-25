@@ -1,12 +1,45 @@
+//Filepath = backend\src\services\users.service.js
 const bcrypt = require('bcrypt');
 const usersRepository = require('../repositories/users.repository');
 const verificationsRepository = require('../repositories/verifications.repository');
 const verificationMediaService = require('./verificationMedia.service');
+const { provisionAdminCreatedUser } = require('./auth/adminUserProvision.service');
+const activityLogsRepository = require('../repositories/activityLogs.repository');
 const crypto = require('crypto');
 
+// function defaultAdminCreatedPassword() {
+//   return process.env.ADMIN_CREATED_DEFAULT_PASSWORD || crypto.randomBytes(16).toString('base64url');
+// }
+
 function defaultAdminCreatedPassword() {
-  return process.env.ADMIN_CREATED_DEFAULT_PASSWORD || crypto.randomBytes(16).toString('base64url');
+  if (process.env.ADMIN_CREATED_DEFAULT_PASSWORD) {
+    return process.env.ADMIN_CREATED_DEFAULT_PASSWORD;
+  }
+
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; 
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const numbers = '0123456789';
+  const special = '!@#$%^&*()-_=+';
+
+  const all = upper + lower + numbers + special;
+
+  let password =
+    upper[Math.floor(Math.random() * upper.length)] +
+    lower[Math.floor(Math.random() * lower.length)] +
+    numbers[Math.floor(Math.random() * numbers.length)] +
+    special[Math.floor(Math.random() * special.length)];
+
+  for (let i = 0; i < 12; i++) {
+    password += all[Math.floor(Math.random() * all.length)];
+  }
+
+  return password
+    .split('')
+    .sort(() => Math.random() - 0.5)
+    .join('');
 }
+
+
 
 async function createUser(body, { file, reviewedBy } = {}) {
   const roleId = Number(body.role_id);
@@ -28,6 +61,18 @@ async function createUser(body, { file, reviewedBy } = {}) {
   const salt = await bcrypt.genSalt(12);
   const generatedPassword = body.password || defaultAdminCreatedPassword();
   const passwordHash = await bcrypt.hash(generatedPassword, salt);
+  // const result = await usersRepository.insertUser({
+  //   roleId,
+  //   firstName: body.first_name,
+  //   lastName: body.last_name,
+  //   email: body.email,
+  //   passwordHash,
+  //   salt,
+  //   phoneNumber: body.phone_number,
+  //   address: body.address,
+  //   isVerified: true,
+  // });
+
   const result = await usersRepository.insertUser({
     roleId,
     firstName: body.first_name,
@@ -37,10 +82,27 @@ async function createUser(body, { file, reviewedBy } = {}) {
     salt,
     phoneNumber: body.phone_number,
     address: body.address,
-    isVerified: true,
+    isVerified: roleName !== 'resident',
   });
-
+ 
+ 
   const user = result.rows[0];
+  await provisionAdminCreatedUser(
+    user,
+    roleName,
+    generatedPassword
+  );
+if (reviewedBy) {
+  await activityLogsRepository.createActivityLog({
+    userId: user.user_id,
+    performedBy: reviewedBy,
+    actionType: 'User Account Created',
+    description:
+      `User Created: ${user.first_name} ${user.last_name} | ` +
+      `Role: ${roleName} | ` +
+      `Created By: ${reviewedBy}`,
+  });
+}
 
   if (roleName === 'resident' && body.address && file) {
     const documentUrl = await verificationMediaService.uploadVerificationDocument(file);

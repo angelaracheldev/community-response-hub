@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     container_name: community-response-hub-db
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_USER: ${DB_USER:-localhos}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-123456}
       POSTGRES_DB: ${DB_NAME:-community_response_hub}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
@@ -15,7 +15,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-community_response_hub} -h localhost -p 5432"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-community_response_hub} -h localhost -p 5432" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,6 +36,11 @@ services:
       API_HOST: 0.0.0.0
       NODE_ENV: development
       FRONTEND_URL: http://localhost:8081
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: codepaws123@gmail.com
+      SMTP_PASS: yudbkxygyglblmhl
+      MAIL_FROM: codepaws123@gmail.com
     ports:
       - "5000:5000"
     depends_on:

@@ -1,3 +1,4 @@
+// Filepath = backend\src\validators\users.validator.js
 const { body } = require('express-validator');
 
 const submitVerificationValidation = [

@@ -58,12 +58,59 @@ async function insertUser({
   isVerified = false,
   isActive = true,
 }) {
+  // old INSERT INTO users
+  // return db.query(
+  //   `INSERT INTO users (role_id, first_name, last_name, email, password_hash, salt, phone_number, address, is_verified, is_active)
+  //    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  //    RETURNING user_id, user_code, first_name, last_name, email, phone_number, address, role_id, is_verified, is_active, created_at`,
+  //   [roleId, firstName, lastName, email.toLowerCase(), passwordHash, salt, phoneNumber || null, address || null, isVerified, isActive]
+  // );
+  // new INSERT INTO
   return db.query(
-    `INSERT INTO users (role_id, first_name, last_name, email, password_hash, salt, phone_number, address, is_verified, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-     RETURNING user_id, user_code, first_name, last_name, email, phone_number, address, role_id, is_verified, is_active, created_at`,
-    [roleId, firstName, lastName, email.toLowerCase(), passwordHash, salt, phoneNumber || null, address || null, isVerified, isActive]
-  );
+  `INSERT INTO users (
+      role_id,
+      first_name,
+      last_name,
+      email,
+      password_hash,
+      salt,
+      phone_number,
+      address,
+      is_verified,
+      is_active,
+      is_email_verified,
+      must_change_password
+    )
+    VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+    )
+    RETURNING
+      user_id,
+      user_code,
+      first_name,
+      last_name,
+      email,
+      phone_number,
+      address,
+      role_id,
+      is_verified,
+      is_active,
+      created_at`,
+  [
+    roleId,
+    firstName,
+    lastName,
+    email.toLowerCase(),
+    passwordHash,
+    salt,
+    phoneNumber || null,
+    address || null,
+    isVerified,
+    isActive,
+    false,
+    true,
+  ]
+);
 }
 
 async function findActiveUsersByRoleName(roleName) {
