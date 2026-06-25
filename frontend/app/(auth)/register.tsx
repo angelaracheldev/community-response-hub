@@ -69,6 +69,12 @@ export default function RegisterScreen() {
 
   const formattedAddress = formatStructuredAddress(address);
 
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+
   const clearError = (key: string) => {
     if (errors[key]) {
       setErrors((prev) => {
@@ -128,6 +134,10 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
+    if (!otpVerified) {
+  alert('Please verify your email first.');
+  return;
+}
     const stepErrors = validateRegisterStep3({
       hasIdFile: Boolean(idFile),
       addressConfirmed,
@@ -173,11 +183,11 @@ export default function RegisterScreen() {
 
         try {
           const verificationFile = {
-  uri: idFile.uri,
-  name: idFile.fileName ?? 'id.jpg',
-  type: idFile.mimeType ?? 'image/jpeg',
-  size: idFile.fileSize ?? 0,
-};
+            uri: idFile.uri,
+            name: idFile.fileName ?? 'id.jpg',
+            type: idFile.mimeType ?? 'image/jpeg',
+            size: idFile.fileSize ?? 0,
+          };
           const formData = await buildVerificationFormData(formattedAddress, verificationFile);
           await submitVerification(formData);
         } catch (verificationError) {
@@ -195,6 +205,79 @@ export default function RegisterScreen() {
   };
 
   const inputStyle = (key: string) => [styles.input, errors[key] ? styles.inputError : null];
+
+  const handleSendOTP = async () => {
+    try {
+      setSendingOtp(true);
+
+      const response = await fetch(
+        `${API_BASE}/email/send-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            purpose: 'registration',
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || 'Failed to send OTP');
+        return;
+      }
+
+      setOtpSent(true);
+
+      alert('Verification code sent to your email.');
+    } catch (error) {
+      console.error(error);
+      alert('Unable to send OTP');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    try {
+      setVerifyingOtp(true);
+
+      const response = await fetch(
+        `${API_BASE}/email/verify-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            otp,
+            purpose: 'registration',
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        alert(data.message || 'Invalid OTP');
+        return;
+      }
+
+      setOtpVerified(true);
+
+      alert('Email verified successfully.');
+    } catch (error) {
+      console.error(error);
+      alert('OTP verification failed.');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -429,6 +512,65 @@ export default function RegisterScreen() {
 
             {step === 3 && (
               <>
+              {/* This Section is for Email Verification with OTP */}
+                <View style={styles.summaryCard}>
+                  <Text style={styles.summaryTitle}>
+                    Email Verification
+                  </Text>
+
+                  <Text style={styles.summaryText}>
+                    Verify your email before creating your account.
+                  </Text>
+
+                  {!otpVerified ? (
+                    <>
+                      <TouchableOpacity
+                        style={styles.button}
+                        onPress={handleSendOTP}
+                        disabled={sendingOtp}
+                      >
+                        <Text style={styles.buttonText}>
+                          {sendingOtp ? 'Sending...' : 'Send OTP'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {otpSent && (
+                        <>
+                          <TextInput
+                            style={styles.input}
+                            placeholder="Enter 6-digit OTP"
+                            value={otp}
+                            onChangeText={setOtp}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                          />
+
+                          <TouchableOpacity
+                            style={styles.button}
+                            onPress={handleVerifyOTP}
+                            disabled={verifyingOtp}
+                          >
+                            <Text style={styles.buttonText}>
+                              {verifyingOtp ? 'Verifying...' : 'Verify OTP'}
+                            </Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <Text
+                      style={{
+                        color: 'green',
+                        fontWeight: '600',
+                        marginTop: 8,
+                      }}
+                    >
+                      ✓ Email Verified
+                    </Text>
+                  )}
+                </View>
+
+                  {/* This section is to Upload Verification Documents */}
                 <View style={styles.summaryCard}>
                   <Text style={styles.summaryTitle}>Address on file</Text>
                   <Text style={styles.summaryText}>{formattedAddress}</Text>

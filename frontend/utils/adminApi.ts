@@ -301,12 +301,11 @@ export async function createUser(payload: {
   email: string;
   phone_number: string | null;
   role_id: number;
-  password?: string;
   address?: string | null;
   idFile?: CreateUserIdFile | null;
 }): Promise<AdminUser> {
   const hasResidentVerification = payload.role_id === 1 && payload.idFile;
-
+  
   let response: Response;
 
   if (hasResidentVerification && payload.idFile) {
@@ -321,9 +320,7 @@ export async function createUser(payload: {
     if (payload.address) {
       formData.append('address', payload.address);
     }
-    if (payload.password) {
-      formData.append('password', payload.password);
-    }
+   
 
     await appendLocalFileToFormData(formData, 'file', {
       uri: payload.idFile.uri,
@@ -336,7 +333,7 @@ export async function createUser(payload: {
       headers: { Accept: 'application/json' },
       body: formData,
     });
-  } else {
+    } else {
     response = await authFetch(`${API_BASE}/users`, {
       method: 'POST',
       headers: {
@@ -344,6 +341,7 @@ export async function createUser(payload: {
       },
       body: JSON.stringify(payload),
     });
+    if (!response.ok) throw new Error((await response.json()).message);
   }
 
   const data = await parseJson<{ user?: AdminUser }>(response, 'Failed to create user');
@@ -351,6 +349,7 @@ export async function createUser(payload: {
     throw new Error('Create user response did not include a user');
   }
   return data.user;
+  
 }
 
 export async function fetchResponders(): Promise<AdminUser[]> {

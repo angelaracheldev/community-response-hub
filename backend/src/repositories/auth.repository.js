@@ -1,3 +1,4 @@
+// Filepath = backend\src\repositories\auth.repository.js
 const db = require('../config/database');
 
 async function findUserIdByEmail(email) {
@@ -19,7 +20,7 @@ async function insertUser({ roleId, firstName, lastName, email, passwordHash, sa
 
 async function findUserWithRoleByEmail(email) {
   return db.query(
-    `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.password_hash, u.phone_number, u.address, u.role_id, r.role_name, u.is_verified, u.is_active
+    `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.password_hash, u.phone_number, u.address, u.role_id, r.role_name, u.is_verified, u.is_active, u.is_email_verified, u.must_change_password
      FROM users u
      LEFT JOIN roles r ON u.role_id = r.role_id
      WHERE u.email = $1`,
@@ -29,7 +30,7 @@ async function findUserWithRoleByEmail(email) {
 
 async function findUserWithRoleById(userId) {
   return db.query(
-    `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.profile_image_url, u.role_id, r.role_name, u.is_verified, u.is_active
+    `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.profile_image_url, u.role_id, r.role_name, u.is_verified, u.is_active, u.is_email_verified, u.must_change_password
      FROM users u
      LEFT JOIN roles r ON u.role_id = r.role_id
      WHERE u.user_id = $1`,

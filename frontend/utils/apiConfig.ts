@@ -1,3 +1,5 @@
+console.log('>>> apiConfig.ts module START');
+
 function normalizeRoot(url: string): string {
   return url.replace(/\/$/, '');
 }

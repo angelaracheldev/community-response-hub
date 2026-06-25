@@ -1,3 +1,4 @@
+// Filepath = frontend\components\admin\UserCreateModal.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Modal,
@@ -24,12 +25,18 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
   const isResident = defaultRoleId === 1;
   const roleLabel = defaultRoleId === 1 ? 'Resident' : defaultRoleId === 2 ? 'Responder' : 'Staff';
 
+  // Success Modal
+  const [resultModalVisible, setResultModalVisible] = useState(false);
+  const [resultTitle, setResultTitle] = useState('');
+  const [resultMessage, setResultMessage] = useState('');
+  const [resultSuccess, setResultSuccess] = useState(false);
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [password, setPassword] = useState('');
+
   const [idFile, setIdFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,7 +48,7 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
       setEmail('');
       setPhone('');
       setAddress('');
-      setPassword('');
+
       setIdFile(null);
       setErrorMessage(null);
     }
@@ -63,21 +70,23 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
   };
 
   const handleSubmit = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
-      setErrorMessage('First name, last name, email, and temporary password are required.');
+    console.log({
+      firstName,
+      lastName,
+      email,
+    });
+    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
+      setErrorMessage('First name, last name, and email are required.');
       return;
     }
 
-    if (password.trim().length < 6) {
-      setErrorMessage('Temporary password must be at least 6 characters.');
+    if (!address.trim()) {
+      setErrorMessage('Address is required.');
       return;
     }
 
     if (isResident) {
-      if (!address.trim()) {
-        setErrorMessage('Address is required for residents.');
-        return;
-      }
+
       if (!idFile) {
         setErrorMessage('Valid ID document is required for residents.');
         return;
@@ -93,22 +102,48 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
         last_name: lastName.trim(),
         email: email.trim().toLowerCase(),
         phone_number: phone.trim() || null,
-        role_id: defaultRoleId,
-        password: password.trim(),
-        address: isResident ? address.trim() : null,
+        role_id: Number(defaultRoleId),
+        // address: isResident ? address.trim() : null,
+        address: address.trim(),
         idFile: isResident && idFile
           ? {
-              uri: idFile.uri,
-              name: idFile.name,
-              type: idFile.mimeType || 'application/octet-stream',
-            }
+            uri: idFile.uri,
+            name: idFile.name,
+            type: idFile.mimeType || 'application/octet-stream',
+          }
           : null,
       });
 
-      onSuccess();
+      setResultSuccess(true);
+
+      setResultTitle('User Account Created');
+
+      setResultMessage(
+        roleLabel === 'Resident'
+          ? 'Resident account created successfully.'
+          : `User account created successfully.\n\nLogin credentials have been sent to the user's email address.`
+      );
+
+      setResultModalVisible(true);
     } catch (error: any) {
-      console.error('Create user structural failure:', error);
-      setErrorMessage(error.message || 'Something went wrong. Please check backend logs.');
+console.error('Create user structural failure:', error);
+
+if (error?.response) {
+  console.error(
+    'Server Response:',
+    await error.response.text()
+  );
+}      // setErrorMessage(error.message || 'Something went wrong. Please check backend logs.');
+      setResultSuccess(false);
+
+      setResultTitle('Failed');
+
+      setResultMessage(
+        error.message ||
+        'Unable to create user. \nEmail delivery failed. \nPlease try again.'
+      );
+
+      setResultModalVisible(true);
     } finally {
       setSubmitting(false);
     }
@@ -170,19 +205,21 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
               editable={!submitting}
             />
 
+            <Text style={styles.label}>Address *</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={address}
+              onChangeText={setAddress}
+              placeholder="Complete residential address"
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={3}
+              editable={!submitting}
+            />
+
             {isResident ? (
               <>
-                <Text style={styles.label}>Address *</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={address}
-                  onChangeText={setAddress}
-                  placeholder="Complete residential address"
-                  placeholderTextColor="#999"
-                  multiline
-                  numberOfLines={3}
-                  editable={!submitting}
-                />
+
 
                 <Text style={styles.label}>Valid ID / Proof of Address *</Text>
                 {idFile ? (
@@ -201,19 +238,57 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
                   </TouchableOpacity>
                 )}
               </>
+
             ) : null}
 
-            <Text style={styles.label}>Temporary Password *</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Temporary password"
-              placeholderTextColor="#999"
-              secureTextEntry
-              editable={!submitting}
-            />
+
           </ScrollView>
+          <Modal
+            visible={resultModalVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setResultModalVisible(false)}
+          >
+            <View style={styles.resultOverlay}>
+              <View style={styles.resultContainer}>
+                <Text
+                  style={[
+                    styles.resultIcon,
+                    {
+                      color: resultSuccess
+                        ? '#16a34a'
+                        : '#dc2626',
+                    },
+                  ]}
+                >
+                  {resultSuccess ? '✓' : '✕'}
+                </Text>
+
+                <Text style={styles.resultTitle}>
+                  {resultTitle}
+                </Text>
+
+                <Text style={styles.resultMessage}>
+                  {resultMessage}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.resultButton}
+                  onPress={() => {
+                    setResultModalVisible(false);
+
+                    if (resultSuccess) {
+                      onSuccess();
+                    }
+                  }}
+                >
+                  <Text style={styles.resultButtonText}>
+                    OK
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
 
           <View style={styles.btnRow}>
             <TouchableOpacity
@@ -238,11 +313,62 @@ export function UserCreateModal({ visible, onClose, onSuccess, defaultRoleId }: 
           </View>
         </View>
       </View>
+
+
     </Modal>
+
+
+
   );
 }
 
 const styles = StyleSheet.create({
+
+  resultOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+
+  resultContainer: {
+    width: 380,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+  },
+
+  resultIcon: {
+    fontSize: 52,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+
+  resultTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+
+  resultMessage: {
+    textAlign: 'center',
+    color: '#555',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+
+  resultButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 30,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+
+  resultButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',

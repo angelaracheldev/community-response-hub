@@ -27,8 +27,34 @@ async function insertLog({
     [complaintId, performedBy, actionType, oldValue, newValue, description]
   );
 }
+// Activity Log when adding a user.
+async function createActivityLog({
+  userId,
+  performedBy,
+  actionType,
+  description,
+}) {
+  return db.query(
+    `
+      INSERT INTO activity_logs (
+        user_id,
+        performed_by,
+        action_type,
+        description
+      )
+      VALUES ($1, $2, $3, $4)
+    `,
+    [
+      userId,
+      performedBy,
+      actionType,
+      description,
+    ]
+  );
+}
 
 module.exports = {
   findByComplaintId,
   insertLog,
+  createActivityLog,
 };
