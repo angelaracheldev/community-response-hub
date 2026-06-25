@@ -7,9 +7,6 @@ const { provisionAdminCreatedUser } = require('./auth/adminUserProvision.service
 const activityLogsRepository = require('../repositories/activityLogs.repository');
 const crypto = require('crypto');
 
-// function defaultAdminCreatedPassword() {
-//   return process.env.ADMIN_CREATED_DEFAULT_PASSWORD || crypto.randomBytes(16).toString('base64url');
-// }
 
 function defaultAdminCreatedPassword() {
   if (process.env.ADMIN_CREATED_DEFAULT_PASSWORD) {
@@ -61,17 +58,7 @@ async function createUser(body, { file, reviewedBy } = {}) {
   const salt = await bcrypt.genSalt(12);
   const generatedPassword = body.password || defaultAdminCreatedPassword();
   const passwordHash = await bcrypt.hash(generatedPassword, salt);
-  // const result = await usersRepository.insertUser({
-  //   roleId,
-  //   firstName: body.first_name,
-  //   lastName: body.last_name,
-  //   email: body.email,
-  //   passwordHash,
-  //   salt,
-  //   phoneNumber: body.phone_number,
-  //   address: body.address,
-  //   isVerified: true,
-  // });
+ 
 
   const result = await usersRepository.insertUser({
     roleId,
