@@ -359,13 +359,22 @@ setPendingEmail(loginUser.email);
                   </Text>
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 onPress={() => triggerLoginError('Forgot password functionality coming soon!')}
                 style={{ marginTop: 8, alignSelf: 'flex-end' }}
                 disabled={isLoading}
               >
                 <Text style={[styles.forgotPasswordText, isLoading && { opacity: 0.5 }]}>Forgot?</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
+
+                {/* FORGOT PASSWORD */}
+              <TouchableOpacity
+  onPress={() => router.push('/(auth)/forgot-password')}
+  style={{ marginTop: 8, alignSelf: 'flex-end' }}
+  disabled={isLoading}
+>
+  <Text style={[styles.forgotPasswordText, isLoading && { opacity: 0.5 }]}>Forgot Password?</Text>
+</TouchableOpacity>
             </View>
 
             {/* Login Button */}
