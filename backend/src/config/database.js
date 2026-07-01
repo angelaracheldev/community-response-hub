@@ -8,10 +8,6 @@ types.setTypeParser(1114, (value) => {
   return new Date(`${String(value).replace(' ', 'T')}Z`);
 });
 
-console.log('DB_HOST =', process.env.DB_HOST);
-console.log('DB_PORT =', process.env.DB_PORT);
-console.log('DB_USER =', process.env.DB_USER);
-console.log('DB_NAME =', process.env.DB_NAME);
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,

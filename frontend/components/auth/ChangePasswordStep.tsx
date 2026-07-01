@@ -1,4 +1,3 @@
-
 // Filepath = frontend/components/auth/ChangePasswordStep.tsx
 import React, { useState } from 'react';
 import {

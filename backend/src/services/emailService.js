@@ -1,4 +1,5 @@
 // Filepath = backend\src\services\emailService.js
+const dns = require("dns");
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
@@ -8,6 +9,9 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
+  },
+  lookup: (hostname, _options, callback) => {
+    dns.lookup(hostname, { family: 4 }, callback);
   },
 });
 

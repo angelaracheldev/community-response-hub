@@ -1,4 +1,4 @@
-// Filepath = backend\src\services\auth\emailOtp.service.js
+// Filepath = \src\services\auth\emailOtp.service.js
 const crypto = require('crypto');
 const db = require('../../config/database');
 const { sendOTPEmail } = require('../emailService');
@@ -13,6 +13,8 @@ function generateOTP() {
 function hashOTP(otp) {
   return crypto.createHash('sha256').update(otp).digest('hex');
 }
+
+// 4. Verify OTP
 
 async function createAndSendOTP({ user_id, email, purpose }) {
   try {

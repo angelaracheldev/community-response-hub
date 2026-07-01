@@ -58,6 +58,7 @@ async function insertUser({
   isVerified = false,
   isActive = true,
 }) {
+  
   return db.query(
   `INSERT INTO users (
       role_id,
