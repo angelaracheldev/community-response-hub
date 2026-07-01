@@ -28,12 +28,41 @@ async function findUserWithRoleByEmail(email) {
   );
 }
 
+// async function findUserWithRoleById(userId) {
+//   return db.query(
+//     `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.profile_image_url, u.role_id, r.role_name, u.is_verified, u.is_active, u.is_email_verified, u.must_change_password
+//      FROM users u
+//      LEFT JOIN roles r ON u.role_id = r.role_id
+//      WHERE u.user_id = $1`,
+//     [userId]
+//   );
+// }
+
 async function findUserWithRoleById(userId) {
   return db.query(
-    `SELECT u.user_id, u.user_code, u.first_name, u.last_name, u.email, u.phone_number, u.address, u.profile_image_url, u.role_id, r.role_name, u.is_verified, u.is_active, u.is_email_verified, u.must_change_password
-     FROM users u
-     LEFT JOIN roles r ON u.role_id = r.role_id
-     WHERE u.user_id = $1`,
+    `
+    SELECT
+      u.user_id,
+      u.user_code,
+      u.first_name,
+      u.last_name,
+      u.email,
+      u.password_hash,
+      u.salt,
+      u.phone_number,
+      u.address,
+      u.profile_image_url,
+      u.role_id,
+      r.role_name,
+      u.is_verified,
+      u.is_active,
+      u.is_email_verified,
+      u.must_change_password
+    FROM users u
+    LEFT JOIN roles r
+      ON u.role_id = r.role_id
+    WHERE u.user_id = $1
+    `,
     [userId]
   );
 }

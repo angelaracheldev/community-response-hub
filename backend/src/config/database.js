@@ -1,3 +1,4 @@
+// Filepath = backend\src\config\database.js
 const { Pool, types } = require('pg');
 
 // TIMESTAMP WITHOUT TIME ZONE columns store UTC wall-clock values (Postgres in Docker).

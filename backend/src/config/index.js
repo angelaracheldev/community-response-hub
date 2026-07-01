@@ -1,3 +1,4 @@
+// Filepath = backend\src\config\index.js
 const path = require('path');
 const dotenv = require('dotenv');
 

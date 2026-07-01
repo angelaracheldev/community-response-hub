@@ -1,5 +1,4 @@
-console.log('>>> apiConfig.ts module START');
-
+// Filepath = frontend\utils\apiConfig.ts
 function normalizeRoot(url: string): string {
   return url.replace(/\/$/, '');
 }

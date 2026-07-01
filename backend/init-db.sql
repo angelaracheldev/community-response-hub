@@ -116,6 +116,8 @@ CREATE TABLE users (
     
     is_email_verified BOOLEAN DEFAULT false,
 
+    must_change_password BOOLEAN DEFAULT TRUE
+
     is_active BOOLEAN DEFAULT TRUE,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

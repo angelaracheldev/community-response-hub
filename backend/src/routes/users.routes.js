@@ -1,3 +1,4 @@
+// Filepath = backend\src\routes\users.routes.js
 const router = require('express').Router();
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const usersController = require('../controllers/users.controller');

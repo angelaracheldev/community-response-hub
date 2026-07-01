@@ -1,3 +1,4 @@
+// Filepath = backend\src\middleware\uploadVerification.js
 const multer = require('multer');
 
 const maxFileSize = Number(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024;

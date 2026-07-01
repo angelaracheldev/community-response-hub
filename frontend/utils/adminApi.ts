@@ -1,3 +1,4 @@
+// Filepath = frontend\utils\adminApi.ts
 import { API_BASE } from './apiConfig';
 import { authFetch } from './authFetch';
 import { parseJson } from './apiHelpers';

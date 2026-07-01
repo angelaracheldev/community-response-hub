@@ -1,3 +1,4 @@
+// Filepath = backend\src\services\auth.service.js
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../config');
@@ -64,6 +65,8 @@ async function login({ email, password }) {
   }
 
   const user = result.rows[0];
+  console.log("LOGIN HASH =", user.password_hash);
+console.log("LOGIN UPDATED =", user.updated_at);
   const match = await bcrypt.compare(password, user.password_hash);
   if (!match) {
     return { error: { status: 401, body: { status: 'error', message: 'Invalid credentials' } } };

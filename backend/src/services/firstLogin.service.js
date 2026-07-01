@@ -10,42 +10,6 @@ const {
   createAndSendOTP,
 } = require('./auth/emailOtp.service');
 
-// async function verifyFirstLoginOTP(email, otp) {
-//   console.log("RAW OTP:", `"${otp}"`);
-// console.log("HASH INPUT:", otp.toString());
-// // console.log("EXPECTED HASH:", hashed);
-// // console.log("CALCULATED HASH:", crypto.createHash('sha256').update(otp.toString()).digest('hex'));
-//   console.log('VERIFY OTP INPUT:', {
-//     email,
-//     otp,
-//     purpose: 'admin_created_user',
-//   });
-
-//   const result = await verifyOTP({
-//     email,
-//     otp,
-//     purpose: 'admin_created_user',
-//   });
-
-//   if (!result.success) {
-//     return {
-//       error: {
-//         status: 400,
-//         body: {
-//           status: 'error',
-//           message: result.message,
-//         },
-//       },
-//     };
-//   }
-
-//   return {
-//     body: {
-//       status: 'ok',
-//       message: 'OTP verified successfully',
-//     },
-//   };
-// }
 
 async function verifyFirstLoginOTP(email, otp) {
   console.log('VERIFY OTP INPUT:', {

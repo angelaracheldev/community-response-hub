@@ -1,3 +1,4 @@
+// Filepath = frontend\utils\sessionProfile.ts
 import { fetchCurrentUser } from './userProfile';
 
 export async function fetchSessionDisplayName(

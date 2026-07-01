@@ -1,3 +1,4 @@
+// Filepath = backend\src\validators\firstLogin.validator.js
 const { body } = require('express-validator');
 
 const verifyOtpValidation = [

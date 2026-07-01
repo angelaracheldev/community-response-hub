@@ -1,5 +1,4 @@
 // Filepath = frontend\utils\authFetch.ts
-console.log('>>> authFetch.ts module START');
 import { router } from 'expo-router';
 import { connectSocket, disconnectSocket } from '../hooks/useSocket';
 import { API_BASE } from './apiConfig';

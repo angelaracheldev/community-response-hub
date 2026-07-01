@@ -1,3 +1,4 @@
+// Filepath = frontend/hooks/useAppLayout.ts
 import { useWindowDimensions } from 'react-native';
 
 export type AppLayout = {

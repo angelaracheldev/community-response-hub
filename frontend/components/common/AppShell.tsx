@@ -1,3 +1,4 @@
+// Filepath = frontend\components\common\AppShell.tsx
 import React, { ReactNode, useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';

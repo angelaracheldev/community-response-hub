@@ -1,3 +1,4 @@
+// Filepath = frontend\styles\theme\index.ts
 export const colors = {
   primary: '#6366F1',
   primaryDark: '#4338CA',
