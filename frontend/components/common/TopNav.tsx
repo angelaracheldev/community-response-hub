@@ -1,8 +1,10 @@
+// Filepath = frontend\components\common\TopNav.tsx
 import React, { useState } from 'react';
 import { Modal, Pressable, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { NotificationDropdown } from '../NotificationDropdown';
 import { topNavStyles as styles } from '../../styles/common/topNav';
 import type { AppPortal } from '../../utils/appPortal.config';
+import ProfileSettingsModal from '../profile/ProfileSettingsModal';
 
 type Props = {
   pageTitle: string;
@@ -13,6 +15,7 @@ type Props = {
   onLogout: () => void;
   onMenuPress?: () => void;
   showMenuButton?: boolean;
+
 };
 
 export function TopNav({
@@ -29,6 +32,8 @@ export function TopNav({
   const [menuOpen, setMenuOpen] = useState(false);
   const showProfileText = width >= 768;
   const avatarLetter = (userName.trim().charAt(0) || '?').toUpperCase();
+  const [profileVisible, setProfileVisible] =
+    useState(false);
 
   return (
     <View style={styles.header}>
@@ -61,8 +66,16 @@ export function TopNav({
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.overlay} onPress={() => setMenuOpen(false)}>
           <View style={styles.dropdown}>
-            <TouchableOpacity style={styles.dropdownItem} onPress={() => setMenuOpen(false)}>
-              <Text style={styles.dropdownText}>Settings</Text>
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                setMenuOpen(false);
+                setProfileVisible(true);
+              }}
+            >
+              <Text style={styles.dropdownText}>
+                Profile Settings
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.dropdownItem, styles.dropdownItemDanger]}
@@ -76,6 +89,10 @@ export function TopNav({
           </View>
         </Pressable>
       </Modal>
+      <ProfileSettingsModal
+        visible={profileVisible}
+        onClose={() => setProfileVisible(false)}
+      />
     </View>
   );
 }

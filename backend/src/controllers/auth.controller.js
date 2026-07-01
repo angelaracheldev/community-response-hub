@@ -1,3 +1,4 @@
+// Filepath = backend\src\controllers\auth.controller.js
 const { handleService } = require('../utils/controllerHelpers');
 const authService = require('../services/auth.service');
 

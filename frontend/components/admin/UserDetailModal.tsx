@@ -1,3 +1,4 @@
+  // Filepath = frontend\components\admin\UserDetailModal.tsx
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,

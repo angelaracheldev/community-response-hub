@@ -1,3 +1,4 @@
+// Filepath = backend\src\validators\auth.validator.js
 const { body } = require('express-validator');
 
 const registerValidation = [

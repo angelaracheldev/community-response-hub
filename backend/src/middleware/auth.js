@@ -1,3 +1,4 @@
+// Filepath = backend\src\middleware\auth.js
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../config');
 const authRepository = require('../repositories/auth.repository');

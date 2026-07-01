@@ -1,5 +1,4 @@
 // Filepath = frontend\utils\firstLoginApi.ts
-console.log('>>> firstLoginApi.ts module START');
 import { authFetch } from './authFetch';
 import { API_BASE } from './apiConfig';
 

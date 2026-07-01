@@ -1,3 +1,4 @@
+// Filepath = frontend\tsconfig.json
 {
   "compilerOptions": {},
   "extends": "expo/tsconfig.base"
