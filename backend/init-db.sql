@@ -116,7 +116,7 @@ CREATE TABLE users (
     
     is_email_verified BOOLEAN DEFAULT false,
 
-    must_change_password BOOLEAN DEFAULT TRUE
+    must_change_password BOOLEAN DEFAULT TRUE,
 
     is_active BOOLEAN DEFAULT TRUE,
 
@@ -645,7 +645,9 @@ INSERT INTO users (
     password_hash,
     salt,
     phone_number,
-    is_verified
+    is_verified,
+    is_email_verified,
+    must_change_password
 )
 VALUES
 (
@@ -656,6 +658,8 @@ VALUES
     'hashed_password',
     NULL,
     '09171234567',
+    TRUE,
+    FALSE,
     TRUE
 ),
 (
@@ -666,6 +670,8 @@ VALUES
     'hashed_password',
     NULL,
     '09181234567',
+    TRUE,
+    FALSE,
     TRUE
 ),
 (
@@ -676,6 +682,8 @@ VALUES
     'hashed_password',
     NULL,
     '09221234567',
+    TRUE,
+    FALSE,
     TRUE
 ),
 (
@@ -686,6 +694,8 @@ VALUES
     'hashed_password',
     NULL,
     '09231234567',
+    TRUE,
+    FALSE,
     TRUE
 ),
 (
@@ -696,7 +706,9 @@ VALUES
     '$2b$12$mjPZgh2IKQD1KbGp1v3.L.GKs580H0wAIaAshJTC4nkl8b9nR5hly',
     '$2b$12$mjPZgh2IKQD1KbGp1v3.L.',
     '09991234567',
-    TRUE
+    TRUE,
+    TRUE,
+    FALSE
 );
 
 -- Residents Verifications

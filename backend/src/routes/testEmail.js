@@ -6,7 +6,7 @@ const { sendTestEmail } = require('../services/emailService');
 router.get('/test-email', async (req, res) => {
   try {
     
-    await sendTestEmail('fjunevincent369@gmail.com');
+    await sendTestEmail('sampletestghelay@gmail.com');
 
     console.log('TEST EMAIL ROUTE HIT');
 
