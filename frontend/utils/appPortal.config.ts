@@ -19,45 +19,45 @@ export type AppPortalConfig = {
 };
 
 export const RESIDENT_NAV_ITEMS: AdminNavItem[] = [
-  { id: 'home', label: 'Dashboard', route: '/(resident)/home', icon: '🏠' },
-  { id: 'submit', label: 'Add Complaint', route: '/(resident)/submit-complaint', icon: '✍️' },
-  { id: 'tracking', label: 'My Complaints', route: '/(resident)/tracking', icon: '📋' },
+  { id: 'home', label: 'Dashboard', route: '/(resident)/home', icon: 'home-outline' },
+  { id: 'submit', label: 'Add Complaint', route: '/(resident)/submit-complaint', icon: 'create-outline' },
+  { id: 'tracking', label: 'My Complaints', route: '/(resident)/tracking', icon: 'clipboard-outline' },
 ];
 
 export const RESIDENT_QUICK_ACTIONS: QuickAction[] = [
   {
     id: 'submit',
     label: 'Add Complaint',
-    icon: '✍️',
+    icon: 'create-outline',
     route: '/(resident)/submit-complaint',
     color: '#6366F1',
   },
   {
     id: 'tracking',
     label: 'My Complaints',
-    icon: '📋',
+    icon: 'clipboard-outline',
     route: '/(resident)/tracking',
     color: '#3B82F6',
   },
 ];
 
 export const RESPONDENT_NAV_ITEMS: AdminNavItem[] = [
-  { id: 'home', label: 'Home', route: '/(respondent)/dashboard', icon: '🏠' },
-  { id: 'assignments', label: 'My Assignments', route: '/(respondent)/assignments', icon: '📋' },
+  { id: 'home', label: 'Home', route: '/(respondent)/dashboard', icon: 'home-outline' },
+  { id: 'assignments', label: 'My Assignments', route: '/(respondent)/assignments', icon: 'clipboard-outline' },
 ];
 
 export const RESPONDENT_QUICK_ACTIONS: QuickAction[] = [
   {
     id: 'home',
     label: 'Home',
-    icon: '🏠',
+    icon: 'home-outline',
     route: '/(respondent)/dashboard',
     color: '#3B82F6',
   },
   {
     id: 'assignments',
     label: 'My Assignments',
-    icon: '📋',
+    icon: 'clipboard-outline',
     route: '/(respondent)/assignments',
     color: '#6366F1',
   },

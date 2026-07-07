@@ -3,6 +3,7 @@ import { Text, View, TextInput, TouchableOpacity, ScrollView, ActivityIndicator,
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { PageShell } from '../../components/common/PageShell';
+import { AppIcon } from '../../components/common/AppIcon';
 import { useResidentVerification } from '../../hooks/useResidentVerification';
 import { useComplaintCategories } from '../../hooks/useComplaintCategories';
 import {
@@ -385,7 +386,7 @@ export default function SubmitComplaintScreen() {
         {step === 3 && submittedComplaintId && (
           <>
             <View style={styles.successCard}>
-              <Text style={styles.successIcon}>✓</Text>
+              <AppIcon name="checkmark-circle" size={40} color="#059669" style={styles.successIcon} />
               <Text style={styles.successTitle}>Complaint submitted</Text>
               <Text style={styles.successMessage}>
                 Your report has been received and is awaiting review.

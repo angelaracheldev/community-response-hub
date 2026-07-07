@@ -10,6 +10,8 @@ import {
     Modal,
 } from 'react-native';
 
+import { AppIcon } from '../common/AppIcon';
+
 import {
     verifyFirstLoginOtp,
     resendFirstLoginOtp,
@@ -181,19 +183,11 @@ export function StatusModal({
                                 : modalStyles.iconCircleError,
                         ]}
                     >
-                        <Text
-                            style={[
-                                modalStyles.iconText,
-                                {
-                                    color:
-                                        state.type === 'success'
-                                            ? '#16a34a'
-                                            : '#dc2626',
-                                },
-                            ]}
-                        >
-                            {state.type === 'success' ? '✓' : '✕'}
-                        </Text>
+                        <AppIcon
+                            name={state.type === 'success' ? 'checkmark' : 'close'}
+                            size={28}
+                            color={state.type === 'success' ? '#16a34a' : '#dc2626'}
+                        />
                     </View>
 
                     <Text style={modalStyles.title}>{state.title}</Text>

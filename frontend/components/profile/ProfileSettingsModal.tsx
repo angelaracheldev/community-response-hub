@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppIcon } from '../common/AppIcon';
 
 import { useAppLayout } from '../../hooks/useAppLayout';
 
@@ -211,9 +212,7 @@ export default function ProfileSettingsModal({
 
             <View style={s.actionLeft}>
 
-              <Text style={s.actionIcon}>
-                🔒
-              </Text>
+              <AppIcon name="lock-closed-outline" size={22} color="#6366F1" />
 
               <View>
 
@@ -229,9 +228,7 @@ export default function ProfileSettingsModal({
 
             </View>
 
-            <Text style={s.chevron}>
-              ›
-            </Text>
+            <AppIcon name="chevron-forward" size={18} color="#9CA3AF" />
 
           </TouchableOpacity>
 
@@ -260,9 +257,7 @@ export default function ProfileSettingsModal({
 
             <View style={s.actionLeft}>
 
-              <Text style={s.actionIcon}>
-                ✉️
-              </Text>
+              <AppIcon name="mail-outline" size={22} color="#6366F1" />
 
               <View>
 
@@ -278,9 +273,7 @@ export default function ProfileSettingsModal({
 
             </View>
 
-            <Text style={s.chevron}>
-              ›
-            </Text>
+            <AppIcon name="chevron-forward" size={18} color="#9CA3AF" />
 
           </TouchableOpacity>
 
@@ -428,9 +421,7 @@ export default function ProfileSettingsModal({
               style={s.closeButton}
               onPress={onClose}
             >
-              <Text style={s.closeText}>
-                ✕
-              </Text>
+              <AppIcon name="close" size={20} color="#6B7280" />
             </TouchableOpacity>
 
           </View>

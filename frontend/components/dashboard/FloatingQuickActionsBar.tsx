@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { QuickAction } from '../../utils/adminDashboard.mock';
 import { getContentMaxWidth } from '../../styles/layout';
 import { floatingQuickActionsBarStyles as styles } from '../../styles/dashboard/floatingQuickActionsBar';
+import { AppIcon } from '../common/AppIcon';
 
 type Props = {
   actions: QuickAction[];
@@ -34,7 +35,7 @@ export function FloatingQuickActionsBar({ actions }: Props) {
               onPress={() => router.push(action.route as never)}
             >
               <View style={[styles.iconWrap, { backgroundColor: `${action.color}18` }]}>
-                <Text style={styles.icon}>{action.icon}</Text>
+                <AppIcon name={action.icon} size={20} color={action.color} />
               </View>
               <Text style={styles.label} numberOfLines={1}>
                 {action.label}
@@ -84,7 +85,7 @@ export function FloatingQuickActionsBar({ actions }: Props) {
             onPress={() => router.push(action.route as never)}
           >
             <View style={[styles.iconWrap, { backgroundColor: `${action.color}18` }]}>
-              <Text style={styles.icon}>{action.icon}</Text>
+              <AppIcon name={action.icon} size={20} color={action.color} />
             </View>
             <Text style={styles.label} numberOfLines={1}>
               {action.label}

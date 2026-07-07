@@ -11,6 +11,7 @@ import {
   Modal,
 } from 'react-native';
 
+import { AppIcon } from '../common/AppIcon';
 import {
   verifyEmailOtp,
   resendEmailOtp,
@@ -241,21 +242,11 @@ export function StatusModal({
                 : modalStyles.errorCircle,
             ]}
           >
-            <Text
-              style={[
-                modalStyles.icon,
-                {
-                  color:
-                    state.type === 'success'
-                      ? '#16a34a'
-                      : '#dc2626',
-                },
-              ]}
-            >
-              {state.type === 'success'
-                ? '✓'
-                : '✕'}
-            </Text>
+            <AppIcon
+              name={state.type === 'success' ? 'checkmark' : 'close'}
+              size={28}
+              color={state.type === 'success' ? '#16a34a' : '#dc2626'}
+            />
           </View>
 
           <Text style={modalStyles.title}>

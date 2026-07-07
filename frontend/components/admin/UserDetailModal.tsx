@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppIcon } from '../common/AppIcon';
 import { adminListStyles as s } from '../../styles/admin/list';
 import { userDetailModalStyles as mStyles } from '../../styles/admin/userDetailModal';
 import { useAppLayout } from '../../hooks/useAppLayout';
@@ -381,7 +382,7 @@ export function UserDetailModal({
                   ) : null}
                 </View>
                 <TouchableOpacity style={mStyles.headerCloseBtn} onPress={handleClose} accessibilityLabel="Close">
-                  <Text style={mStyles.headerCloseText}>✕</Text>
+                  <AppIcon name="close" size={20} color="#6B7280" />
                 </TouchableOpacity>
               </View>
               <ScrollView

@@ -10,6 +10,8 @@ import { extractAccessToken, extractRefreshToken, setAuthTokens } from '../../ut
 import { submitVerification } from '../../utils/userApi';
 import { buildVerificationFormData } from '../../utils/verificationUpload';
 import { authRegisterStyles as styles } from '../../styles/auth/register';
+import { AppIcon } from '../../components/common/AppIcon';
+import { IconLabel } from '../../components/common/IconLabel';
 import {
   FieldErrors,
   StructuredAddress,
@@ -558,15 +560,9 @@ export default function RegisterScreen() {
                       )}
                     </>
                   ) : (
-                    <Text
-                      style={{
-                        color: 'green',
-                        fontWeight: '600',
-                        marginTop: 8,
-                      }}
-                    >
-                      ✓ Email Verified
-                    </Text>
+                    <IconLabel icon="checkmark-circle-outline" iconColor="#059669" textStyle={{ color: 'green', fontWeight: '600', marginTop: 8 }}>
+                      Email Verified
+                    </IconLabel>
                   )}
                 </View>
 
@@ -605,7 +601,7 @@ export default function RegisterScreen() {
                   disabled={isLoading}
                 >
                   <View style={[styles.checkbox, addressConfirmed && styles.checkboxChecked]}>
-                    {addressConfirmed ? <Text style={styles.checkmark}>✓</Text> : null}
+                    {addressConfirmed ? <AppIcon name="checkmark" size={14} color="#FFFFFF" /> : null}
                   </View>
                   <Text style={styles.checkboxLabel}>
                     I confirm my ID shows the residential address I entered.

@@ -5,6 +5,7 @@ import { NotificationDropdown } from '../NotificationDropdown';
 import { topNavStyles as styles } from '../../styles/common/topNav';
 import type { AppPortal } from '../../utils/appPortal.config';
 import ProfileSettingsModal from '../profile/ProfileSettingsModal';
+import { AppIcon } from './AppIcon';
 
 type Props = {
   pageTitle: string;
@@ -40,7 +41,7 @@ export function TopNav({
       <View style={styles.left}>
         {showMenuButton ? (
           <TouchableOpacity style={styles.menuBtn} onPress={onMenuPress}>
-            <Text style={styles.menuIcon}>☰</Text>
+            <AppIcon name="menu-outline" size={22} color="#374151" />
           </TouchableOpacity>
         ) : null}
         <Text style={styles.pageTitle}>{pageTitle}</Text>
@@ -59,7 +60,7 @@ export function TopNav({
               <Text style={styles.userRole}>{userRole}</Text>
             </View>
           ) : null}
-          <Text style={styles.chevron}>▾</Text>
+          <AppIcon name="chevron-down" size={14} color="#6B7280" />
         </TouchableOpacity>
       </View>
 

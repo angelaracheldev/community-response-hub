@@ -11,6 +11,8 @@ import { fetchCurrentUser } from '../../utils/userProfile';
 import { authLoginStyles as styles } from '../../styles/auth/login';
 import { getFirstLoginStatus } from '../../utils/firstLoginApi';
 import FirstLoginWizard from '../../components/auth/FirstLoginWizard';
+import { AppIcon } from '../../components/common/AppIcon';
+import { IconLabel } from '../../components/common/IconLabel';
 
 
 export default function LoginScreen() {
@@ -290,7 +292,9 @@ setPendingEmail(loginUser.email);
         {/* Floating Global Success Toast */}
         {successToast ? (
           <View style={styles.floatingToastContainer}>
-            <Text style={styles.floatingToastText}>✅ {successToast}</Text>
+            <IconLabel icon="checkmark-circle-outline" iconColor="#059669" textStyle={styles.floatingToastText}>
+              {successToast}
+            </IconLabel>
           </View>
         ) : null}
 
@@ -312,7 +316,9 @@ setPendingEmail(loginUser.email);
             {/* Inline Login Error Banner */}
             {loginError ? (
               <View style={styles.errorBanner}>
-                <Text style={styles.errorBannerText}>⚠️ {loginError}</Text>
+                <IconLabel icon="warning-outline" iconColor="#DC2626" textStyle={styles.errorBannerText}>
+                  {loginError}
+                </IconLabel>
               </View>
             ) : null}
 
@@ -441,7 +447,9 @@ setPendingEmail(loginUser.email);
             {/* Inline Modal Error Banner */}
             {modalError ? (
               <View style={styles.modalErrorBanner}>
-                <Text style={styles.modalErrorBannerText}>⚠️ {modalError}</Text>
+                <IconLabel icon="warning-outline" iconColor="#DC2626" textStyle={styles.modalErrorBannerText}>
+                  {modalError}
+                </IconLabel>
               </View>
             ) : null}
 
@@ -517,7 +525,10 @@ setPendingEmail(loginUser.email);
                     onPress={pickVerificationImage}
                     disabled={resendLoading}
                   >
-                    <Text style={styles.uploadImageText}>📁 Select Document Image</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <AppIcon name="folder-open-outline" size={18} color="#2563EB" />
+                      <Text style={styles.uploadImageText}>Select Document Image</Text>
+                    </View>
                   </TouchableOpacity>
                 )}
 

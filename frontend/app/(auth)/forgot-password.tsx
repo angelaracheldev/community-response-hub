@@ -18,6 +18,8 @@ import {
   verifyPasswordResetOtp,
   resetPassword,
 } from '../../utils/forgotPasswordApi';
+import { AppIcon } from '../../components/common/AppIcon';
+import { IconLabel } from '../../components/common/IconLabel';
 
 type Step = 'email' | 'otp' | 'password';
 type FeedbackModal = { type: 'success' | 'error'; title: string; message: string } | null;
@@ -168,7 +170,11 @@ export default function ForgotPasswordScreen() {
                     Enter the email address linked to your account. We'll send you a one-time password.
                   </Text>
 
-                  {error ? <Text style={styles.error}>⚠️ {error}</Text> : null}
+                  {error ? (
+                    <IconLabel icon="warning-outline" iconColor="#DC2626" textStyle={styles.error}>
+                      {error}
+                    </IconLabel>
+                  ) : null}
 
                   <TextInput
                     style={styles.input}
@@ -208,7 +214,11 @@ export default function ForgotPasswordScreen() {
                     If the email address is valid, you will receive a one-time password via email. Please type it below.
                   </Text>
 
-                  {error ? <Text style={styles.error}>⚠️ {error}</Text> : null}
+                  {error ? (
+                    <IconLabel icon="warning-outline" iconColor="#DC2626" textStyle={styles.error}>
+                      {error}
+                    </IconLabel>
+                  ) : null}
 
                   <TextInput
                     style={styles.input}
@@ -247,7 +257,11 @@ export default function ForgotPasswordScreen() {
                     Choose a new password for your account. Must be at least 8 characters, with an uppercase letter, a lowercase letter, and a number.
                   </Text>
 
-                  {error ? <Text style={styles.error}>⚠️ {error}</Text> : null}
+                  {error ? (
+                    <IconLabel icon="warning-outline" iconColor="#DC2626" textStyle={styles.error}>
+                      {error}
+                    </IconLabel>
+                  ) : null}
 
                   <TextInput
                     style={styles.input}
@@ -299,7 +313,11 @@ export default function ForgotPasswordScreen() {
                 feedback?.type === 'success' ? modalStyles.iconCircleSuccess : modalStyles.iconCircleError,
               ]}
             >
-              <Text style={modalStyles.iconText}>{feedback?.type === 'success' ? '✓' : '✕'}</Text>
+              <AppIcon
+                name={feedback?.type === 'success' ? 'checkmark' : 'close'}
+                size={28}
+                color={feedback?.type === 'success' ? '#059669' : '#DC2626'}
+              />
             </View>
             <Text style={modalStyles.title}>{feedback?.title}</Text>
             <Text style={modalStyles.message}>{feedback?.message}</Text>

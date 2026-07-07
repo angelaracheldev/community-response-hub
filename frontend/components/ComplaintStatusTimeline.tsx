@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { ComplaintRecord } from '../utils/complaintApi';
 import { complaintStatusTimelineStyles as styles } from '../styles/complaint/statusTimeline';
+import { AppIcon } from './common/AppIcon';
 
 type TimelineStep = {
   label: string;
@@ -49,7 +50,7 @@ export default function ComplaintStatusTimeline({ complaint }: Props) {
         <View key={step.label} style={styles.item}>
           <View style={styles.markerColumn}>
             <View style={styles.dot}>
-              <Text style={styles.check}>✓</Text>
+              <AppIcon name="checkmark" size={14} color="#FFFFFF" />
             </View>
             {index < steps.length - 1 ? <View style={styles.line} /> : null}
           </View>

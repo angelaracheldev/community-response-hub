@@ -1,3 +1,5 @@
+import type { IconName } from '../components/common/AppIcon';
+
 export type TrendDirection = 'up' | 'down';
 
 export type StatTrend = {
@@ -9,7 +11,7 @@ export type DashboardStat = {
   id: string;
   label: string;
   value: number;
-  icon: string;
+  icon: IconName;
   accentColor: string;
   iconBackground: string;
   trend?: StatTrend;
@@ -32,20 +34,20 @@ export type RecentComplaintItem = {
   title: string;
   status: string;
   date: string;
-  emoji: string;
+  icon: IconName;
 };
 
 export type SystemMetric = {
   label: string;
   value: number;
-  icon: string;
+  icon: IconName;
   accentColor: string;
 };
 
 export type QuickAction = {
   id: string;
   label: string;
-  icon: string;
+  icon: IconName;
   route: string;
   color: string;
 };
@@ -54,14 +56,14 @@ export type AdminNavItem = {
   id: string;
   label: string;
   route: string;
-  icon: string;
+  icon: IconName;
 };
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', route: '/(admin)/dashboard', icon: '📊' },
-  { id: 'users', label: 'Manage Users', route: '/(admin)/users', icon: '👥' },
-  { id: 'complaints', label: 'Manage Complaints', route: '/(admin)/complaints', icon: '📋' },
-  { id: 'activity', label: 'Activity Logs', route: '/(admin)/activity-logs', icon: '📝' },
+  { id: 'dashboard', label: 'Dashboard', route: '/(admin)/dashboard', icon: 'bar-chart-outline' },
+  { id: 'users', label: 'Manage Users', route: '/(admin)/users', icon: 'people-outline' },
+  { id: 'complaints', label: 'Manage Complaints', route: '/(admin)/complaints', icon: 'clipboard-outline' },
+  { id: 'activity', label: 'Activity Logs', route: '/(admin)/activity-logs', icon: 'document-text-outline' },
 ];
 
 export const DEFAULT_STATUS_BREAKDOWN: ChartSegment[] = [
@@ -78,7 +80,7 @@ export const ADMIN_DASHBOARD_MOCK = {
       id: 'total-users',
       label: 'Total Users',
       value: 240,
-      icon: '👥',
+      icon: 'people-outline',
       accentColor: '#6366F1',
       iconBackground: '#EEF2FF',
       trend: { direction: 'up' as TrendDirection, label: '12% this month' },
@@ -87,7 +89,7 @@ export const ADMIN_DASHBOARD_MOCK = {
       id: 'total-complaints',
       label: 'Total Complaints',
       value: 120,
-      icon: '📋',
+      icon: 'clipboard-outline',
       accentColor: '#3B82F6',
       iconBackground: '#DBEAFE',
       trend: { direction: 'up' as TrendDirection, label: '8% this month' },
@@ -96,7 +98,7 @@ export const ADMIN_DASHBOARD_MOCK = {
       id: 'in-progress',
       label: 'In Progress',
       value: 12,
-      icon: '⏳',
+      icon: 'hourglass-outline',
       accentColor: '#F59E0B',
       iconBackground: '#FEF3C7',
       trend: { direction: 'down' as TrendDirection, label: '3% this week' },
@@ -105,7 +107,7 @@ export const ADMIN_DASHBOARD_MOCK = {
       id: 'resolved',
       label: 'Resolved',
       value: 50,
-      icon: '✅',
+      icon: 'checkmark-circle-outline',
       accentColor: '#10B981',
       iconBackground: '#D1FAE5',
       trend: { direction: 'up' as TrendDirection, label: '15% this month' },
@@ -128,7 +130,7 @@ export const ADMIN_DASHBOARD_MOCK = {
       title: 'Broken Street Light',
       status: 'in_progress',
       date: 'May 18, 2024 · 2:30 PM',
-      emoji: '💡',
+      icon: 'bulb-outline',
     },
     {
       id: '2',
@@ -136,7 +138,7 @@ export const ADMIN_DASHBOARD_MOCK = {
       title: 'Blocked Drainage',
       status: 'assigned',
       date: 'May 17, 2024 · 11:00 AM',
-      emoji: '🚰',
+      icon: 'water-outline',
     },
     {
       id: '3',
@@ -144,7 +146,7 @@ export const ADMIN_DASHBOARD_MOCK = {
       title: 'Loud Construction Noise',
       status: 'pending',
       date: 'May 16, 2024 · 9:15 PM',
-      emoji: '🔊',
+      icon: 'volume-high-outline',
     },
     {
       id: '4',
@@ -152,20 +154,20 @@ export const ADMIN_DASHBOARD_MOCK = {
       title: 'Fallen Tree Branch',
       status: 'resolved',
       date: 'May 15, 2024 · 7:45 AM',
-      emoji: '🌳',
+      icon: 'leaf-outline',
     },
   ] satisfies RecentComplaintItem[],
   systemOverview: [
-    { label: 'Active Users', value: 186, icon: '🟢', accentColor: '#10B981' },
-    { label: 'Open Complaints', value: 27, icon: '📂', accentColor: '#F59E0B' },
-    { label: 'Pending Verifications', value: 8, icon: '🪪', accentColor: '#6366F1' },
-    { label: 'Responders Online', value: 14, icon: '🛡️', accentColor: '#3B82F6' },
+    { label: 'Active Users', value: 186, icon: 'radio-button-on', accentColor: '#10B981' },
+    { label: 'Open Complaints', value: 27, icon: 'folder-open-outline', accentColor: '#F59E0B' },
+    { label: 'Pending Verifications', value: 8, icon: 'card-outline', accentColor: '#6366F1' },
+    { label: 'Responders Online', value: 14, icon: 'shield-checkmark-outline', accentColor: '#3B82F6' },
   ] satisfies SystemMetric[],
   quickActions: [
-    { id: 'users', label: 'Users', icon: '👥', route: '/(admin)/users', color: '#6366F1' },
-    { id: 'complaints', label: 'Complaints', icon: '📋', route: '/(admin)/complaints', color: '#3B82F6' },
-    { id: 'logs', label: 'Logs', icon: '📝', route: '/(admin)/activity-logs', color: '#10B981' },
-    { id: 'home', label: 'Home', icon: '🏠', route: '/(admin)/dashboard', color: '#F59E0B' },
+    { id: 'users', label: 'Users', icon: 'people-outline', route: '/(admin)/users', color: '#6366F1' },
+    { id: 'complaints', label: 'Complaints', icon: 'clipboard-outline', route: '/(admin)/complaints', color: '#3B82F6' },
+    { id: 'logs', label: 'Logs', icon: 'document-text-outline', route: '/(admin)/activity-logs', color: '#10B981' },
+    { id: 'home', label: 'Home', icon: 'home-outline', route: '/(admin)/dashboard', color: '#F59E0B' },
   ] satisfies QuickAction[],
 };
 

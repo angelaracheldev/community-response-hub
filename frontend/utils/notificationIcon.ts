@@ -1,7 +1,9 @@
+import type { IconName } from '../components/common/AppIcon';
+
 export type NotificationIconStyle = {
-  symbol: string;
+  name: IconName;
   backgroundColor: string;
-  symbolColor: string;
+  color: string;
 };
 
 export function getNotificationIcon(type: string): NotificationIconStyle {
@@ -10,22 +12,22 @@ export function getNotificationIcon(type: string): NotificationIconStyle {
     case 'complaint_reassigned':
     case 'new_complaint_submitted':
     case 'complaint_submitted':
-      return { symbol: '📋', backgroundColor: '#DBEAFE', symbolColor: '#2563EB' };
+      return { name: 'clipboard-outline', backgroundColor: '#DBEAFE', color: '#2563EB' };
     case 'complaint_unassigned':
-      return { symbol: '↩', backgroundColor: '#FEF3C7', symbolColor: '#D97706' };
+      return { name: 'return-down-back-outline', backgroundColor: '#FEF3C7', color: '#D97706' };
     case 'complaint_in_progress':
-      return { symbol: '↻', backgroundColor: '#FFEDD5', symbolColor: '#EA580C' };
+      return { name: 'sync-outline', backgroundColor: '#FFEDD5', color: '#EA580C' };
     case 'complaint_resolved':
     case 'verification_approved':
-      return { symbol: '✓', backgroundColor: '#D1FAE5', symbolColor: '#059669' };
+      return { name: 'checkmark', backgroundColor: '#D1FAE5', color: '#059669' };
     case 'new_resident_registration':
     case 'reverification_submitted':
     case 'verification_rejected':
-      return { symbol: '👤', backgroundColor: '#EDE9FE', symbolColor: '#7C3AED' };
+      return { name: 'person-outline', backgroundColor: '#EDE9FE', color: '#7C3AED' };
     case 'complaint_rejected':
     case 'complaint_cancelled':
-      return { symbol: '✕', backgroundColor: '#FEE2E2', symbolColor: '#DC2626' };
+      return { name: 'close', backgroundColor: '#FEE2E2', color: '#DC2626' };
     default:
-      return { symbol: '📋', backgroundColor: '#F3F4F6', symbolColor: '#6B7280' };
+      return { name: 'clipboard-outline', backgroundColor: '#F3F4F6', color: '#6B7280' };
   }
 }

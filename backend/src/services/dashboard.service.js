@@ -18,21 +18,21 @@ const STATUS_LABELS = {
   cancelled: 'Cancelled',
 };
 
-const CATEGORY_EMOJI = {
-  noise: '🔊',
-  parking: '🚗',
-  garbage: '🗑️',
-  animal: '🐾',
-  infrastructure: '🏗️',
+const CATEGORY_ICONS = {
+  noise: 'volume-high-outline',
+  parking: 'car-outline',
+  garbage: 'trash-outline',
+  animal: 'paw-outline',
+  infrastructure: 'construct-outline',
 };
 
-function emojiForCategory(name) {
-  if (!name) return '📋';
+function iconForCategory(name) {
+  if (!name) return 'clipboard-outline';
   const key = name.toLowerCase();
-  for (const [fragment, emoji] of Object.entries(CATEGORY_EMOJI)) {
-    if (key.includes(fragment)) return emoji;
+  for (const [fragment, icon] of Object.entries(CATEGORY_ICONS)) {
+    if (key.includes(fragment)) return icon;
   }
-  return '📋';
+  return 'clipboard-outline';
 }
 
 function formatRecentDate(value) {
@@ -67,7 +67,7 @@ async function getAdminDashboard() {
     title: row.title,
     status: row.status,
     date: formatRecentDate(row.created_at),
-    emoji: emojiForCategory(row.category_name),
+    icon: iconForCategory(row.category_name),
   }));
 
   const trendPoints = trendResult.rows.map((row) => ({
@@ -84,7 +84,7 @@ async function getAdminDashboard() {
             id: 'total-users',
             label: 'Total Users',
             value: Number(summary.user_count),
-            icon: '👥',
+            icon: 'people-outline',
             accentColor: '#6366F1',
             iconBackground: '#EEF2FF',
           },
@@ -92,7 +92,7 @@ async function getAdminDashboard() {
             id: 'total-complaints',
             label: 'Total Complaints',
             value: Number(summary.complaint_count),
-            icon: '📋',
+            icon: 'clipboard-outline',
             accentColor: '#3B82F6',
             iconBackground: '#DBEAFE',
           },
@@ -100,7 +100,7 @@ async function getAdminDashboard() {
             id: 'in-progress',
             label: 'In Progress',
             value: Number(summary.in_progress_count),
-            icon: '⏳',
+            icon: 'hourglass-outline',
             accentColor: '#F59E0B',
             iconBackground: '#FEF3C7',
           },
@@ -108,7 +108,7 @@ async function getAdminDashboard() {
             id: 'resolved',
             label: 'Resolved',
             value: Number(summary.resolved_count),
-            icon: '✅',
+            icon: 'checkmark-circle-outline',
             accentColor: '#10B981',
             iconBackground: '#D1FAE5',
           },
@@ -120,25 +120,25 @@ async function getAdminDashboard() {
           {
             label: 'Active Users',
             value: Number(summary.active_users_count),
-            icon: '🟢',
+            icon: 'radio-button-on',
             accentColor: '#10B981',
           },
           {
             label: 'Open Complaints',
             value: Number(summary.open_count),
-            icon: '📂',
+            icon: 'folder-open-outline',
             accentColor: '#F59E0B',
           },
           {
             label: 'Pending Verifications',
             value: Number(summary.pending_verifications_count),
-            icon: '🪪',
+            icon: 'card-outline',
             accentColor: '#6366F1',
           },
           {
             label: 'Active Responders',
             value: Number(summary.responder_count),
-            icon: '🛡️',
+            icon: 'shield-checkmark-outline',
             accentColor: '#3B82F6',
           },
         ],

@@ -3,6 +3,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import ComplaintStatusBadge from '../ComplaintStatusBadge';
 import { RecentComplaintItem } from '../../utils/adminDashboard.mock';
 import { recentComplaintsListStyles as styles } from '../../styles/dashboard/recentComplaintsList';
+import { AppIcon } from '../common/AppIcon';
 
 type Props = {
   title?: string;
@@ -37,7 +38,7 @@ export function RecentComplaintsList({
           disabled={!onItemPress}
         >
           <View style={styles.thumb}>
-            <Text style={styles.thumbEmoji}>{item.emoji}</Text>
+            <AppIcon name={item.icon} size={20} color="#6366F1" />
           </View>
           <View style={styles.content}>
             <Text style={styles.itemTitle} numberOfLines={1}>

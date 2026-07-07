@@ -3,6 +3,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ADMIN_NAV_ITEMS, AdminNavItem } from '../../utils/adminDashboard.mock';
 import { sideNavStyles as styles } from '../../styles/common/sideNav';
+import { AppIcon } from './AppIcon';
 
 type Props = {
   activeId?: string;
@@ -26,7 +27,7 @@ export function SideNav({
     <View style={styles.sidebar}>
       <View style={styles.brandRow}>
         <View style={styles.brand}>
-          <Text style={styles.brandIcon}>🛡️</Text>
+          <AppIcon name="shield-checkmark-outline" size={24} color="#FFFFFF" />
           <View>
             <Text style={styles.brandTitle}>Community</Text>
             <Text style={styles.brandSubtitle}>Response Hub</Text>
@@ -34,7 +35,7 @@ export function SideNav({
         </View>
         {onClose ? (
           <TouchableOpacity style={styles.closeBtn} onPress={onClose} accessibilityLabel="Close menu">
-            <Text style={styles.closeIcon}>✕</Text>
+            <AppIcon name="close" size={20} color="#94A3B8" />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -48,7 +49,11 @@ export function SideNav({
               style={[styles.navItem, isActive && styles.navItemActive]}
               onPress={() => navigate(item.route)}
             >
-              <Text style={styles.navIcon}>{item.icon}</Text>
+              <AppIcon
+                name={item.icon}
+                size={20}
+                color={isActive ? '#FFFFFF' : '#94A3B8'}
+              />
               <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>{item.label}</Text>
             </TouchableOpacity>
           );

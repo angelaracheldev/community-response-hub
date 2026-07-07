@@ -92,7 +92,8 @@ See [docs/PROJECT_STRUCTURE.md](./docs/PROJECT_STRUCTURE.md) for a full walkthro
 ```bash
 git clone https://github.com/angelaracheldev/community-response-hub.git
 cd community-response-hub
-docker-compose up -d
+cp .env.example .env   # optional; keeps docker-compose DB credentials in sync
+docker-compose up -d postgres
 ```
 
 ### 2. Configure and run the backend

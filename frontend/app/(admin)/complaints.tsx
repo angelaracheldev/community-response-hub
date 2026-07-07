@@ -13,6 +13,7 @@ import AdminComplaintDetailModal from '../../components/admin/AdminComplaintDeta
 import AdminSelect from '../../components/admin/AdminSelect';
 import { AdminListCard } from '../../components/admin/AdminListCard';
 import { AdminPagination } from '../../components/admin/AdminPagination';
+import { AppIcon } from '../../components/common/AppIcon';
 import { AdminSegmentTabs } from '../../components/admin/AdminSegmentTabs';
 import { adminListStyles as s } from '../../styles/admin/list';
 import { PageShell } from '../../components/common/PageShell';
@@ -238,7 +239,7 @@ export default function AdminComplaints() {
                   accessibilityLabel="Clear search"
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={styles.searchClearText}>✕</Text>
+                  <AppIcon name="close" size={16} color="#6B7280" />
                 </TouchableOpacity>
               ) : null}
             </View>

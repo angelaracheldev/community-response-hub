@@ -9,6 +9,8 @@ import {
   VerificationStatus,
 } from '../../utils/userApi';
 import { PageShell } from '../../components/common/PageShell';
+import { AppIcon } from '../../components/common/AppIcon';
+import { IconLabel } from '../../components/common/IconLabel';
 import { residentHomeStyles as styles } from '../../styles/app/residentHome';
 
 type SelectedFile = {
@@ -157,7 +159,9 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
             {/* APPROVED STATE */}
             {verificationStatus === 'approved' && (
               <View style={[styles.card, styles.verifiedCard]}>
-                <Text style={styles.cardTitleSuccess}>🛡️ Account Verified Securely</Text>
+                <IconLabel icon="shield-checkmark-outline" iconColor="#059669" textStyle={styles.cardTitleSuccess}>
+                  Account Verified Securely
+                </IconLabel>
                 <Text style={styles.cardDesc}>Your address at "{address}" is locked. You have authorization to file official subdivision reports.</Text>
                 {verificationType && (
                   <Text style={styles.cardDesc}>Verified with: {verificationType}</Text>
@@ -168,7 +172,9 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
             {/* PENDING STATE */}
             {verificationStatus === 'pending' && (
               <View style={[styles.card, styles.pendingCard]}>
-                <Text style={styles.cardTitlePending}>⏳ Verification Pending</Text>
+                <IconLabel icon="hourglass-outline" iconColor="#D97706" textStyle={styles.cardTitlePending}>
+                  Verification Pending
+                </IconLabel>
                 <Text style={styles.cardDesc}>Your verification document is awaiting admin approval. This typically takes 24-48 hours. Please check back soon.</Text>
                 {verificationType && (
                   <Text style={styles.cardDesc}>Document Type: {verificationType}</Text>
@@ -179,7 +185,9 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
             {/* REJECTED STATE */}
             {verificationStatus === 'rejected' && (
               <View style={[styles.card, styles.rejectedCard]}>
-                <Text style={styles.cardTitleError}>❌ Verification Rejected</Text>
+                <IconLabel icon="close-circle-outline" iconColor="#DC2626" textStyle={styles.cardTitleError}>
+                  Verification Rejected
+                </IconLabel>
                 <Text style={styles.cardDesc}>Your verification was rejected. Please review the reason below and resubmit with the correct information.</Text>
                 
                 {rejectionRemarks && (
@@ -205,9 +213,19 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
 
                 <Text style={styles.fieldLabel}>Upload Valid Government ID</Text>
                 <TouchableOpacity style={styles.uploadButton} onPress={pickVerificationDocument} disabled={isLoading}>
-                  <Text style={styles.uploadButtonText}>
-                    {selectedFile ? `✓ ${selectedFile.name}` : '📁 Upload Valid Government ID'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {selectedFile ? (
+                      <>
+                        <AppIcon name="checkmark" size={16} color="#059669" />
+                        <Text style={styles.uploadButtonText}>{selectedFile.name}</Text>
+                      </>
+                    ) : (
+                      <>
+                        <AppIcon name="folder-open-outline" size={16} color="#2563EB" />
+                        <Text style={styles.uploadButtonText}>Upload Valid Government ID</Text>
+                      </>
+                    )}
+                  </View>
                 </TouchableOpacity>
 
                 {fileError ? <Text style={styles.errorText}>{fileError}</Text> : null}
@@ -239,7 +257,9 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
             {/* NOT SUBMITTED STATE */}
             {verificationStatus === 'not_submitted' && (
               <View style={[styles.card, styles.actionCard]}>
-                <Text style={styles.cardTitleWarning}>⚠️ Verification Required</Text>
+                <IconLabel icon="warning-outline" iconColor="#D97706" textStyle={styles.cardTitleWarning}>
+                  Verification Required
+                </IconLabel>
                 <Text style={styles.cardDesc}>Verify community residency to scale permissions up to high-priority workflows.</Text>
                 
                 <TextInput
@@ -258,9 +278,19 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
 
                 <Text style={styles.fieldLabel}>Upload Valid Government ID</Text>
                 <TouchableOpacity style={styles.uploadButton} onPress={pickVerificationDocument} disabled={isLoading}>
-                  <Text style={styles.uploadButtonText}>
-                    {selectedFile ? `✓ ${selectedFile.name}` : '📁 Upload Valid Government ID'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {selectedFile ? (
+                      <>
+                        <AppIcon name="checkmark" size={16} color="#059669" />
+                        <Text style={styles.uploadButtonText}>{selectedFile.name}</Text>
+                      </>
+                    ) : (
+                      <>
+                        <AppIcon name="folder-open-outline" size={16} color="#2563EB" />
+                        <Text style={styles.uploadButtonText}>Upload Valid Government ID</Text>
+                      </>
+                    )}
+                  </View>
                 </TouchableOpacity>
 
                 {fileError ? <Text style={styles.errorText}>{fileError}</Text> : null}
@@ -289,17 +319,24 @@ const size = typeof asset.size === 'number' ? asset.size : 0;
               </View>
             )}
 
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>🚨 Emergency Direct Hotlines</Text>
+          <IconLabel icon="alert-circle-outline" iconColor="#DC2626" style={{ marginTop: 24 }} textStyle={styles.sectionTitle}>
+            Emergency Direct Hotlines
+          </IconLabel>
             {emergencyHotlines.map((hotline) => (
               <View key={hotline.id} style={styles.hotlineCard}>
                 <Text style={styles.hotlineName}>{hotline.name}</Text>
                 <TouchableOpacity onPress={() => alert(`Dialing: ${hotline.phone}`)}>
-                  <Text style={styles.hotlinePhone}>{hotline.phone} 📞</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.hotlinePhone}>{hotline.phone}</Text>
+                    <AppIcon name="call-outline" size={16} color="#2563EB" />
+                  </View>
                 </TouchableOpacity>
               </View>
             ))}
 
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>💡 Frequently Asked Questions</Text>
+          <IconLabel icon="bulb-outline" iconColor="#F59E0B" style={{ marginTop: 24 }} textStyle={styles.sectionTitle}>
+            Frequently Asked Questions
+          </IconLabel>
           {faqs.map((faq) => (
             <View key={faq.id} style={styles.faqBlock}>
               <Text style={styles.faqQuestion}>Q: {faq.q}</Text>

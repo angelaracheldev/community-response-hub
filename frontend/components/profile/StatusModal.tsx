@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { AppIcon } from '../common/AppIcon';
 
 export type StatusModalState = {
   visible: boolean;
@@ -54,19 +55,11 @@ export default function StatusModal({
                 : styles.errorCircle,
             ]}
           >
-            <Text
-              style={[
-                styles.icon,
-                {
-                  color:
-                    state.type === 'success'
-                      ? '#16a34a'
-                      : '#dc2626',
-                },
-              ]}
-            >
-              {state.type === 'success' ? '✓' : '✕'}
-            </Text>
+            <AppIcon
+              name={state.type === 'success' ? 'checkmark' : 'close'}
+              size={28}
+              color={state.type === 'success' ? '#16a34a' : '#dc2626'}
+            />
           </View>
 
           <Text style={styles.title}>

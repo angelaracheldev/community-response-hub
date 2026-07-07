@@ -5,6 +5,7 @@ import { formatRelativeTime } from '../utils/formatRelativeTime';
 import { getNotificationIcon } from '../utils/notificationIcon';
 import { NotificationMessage } from './NotificationMessage';
 import { notificationItemStyles as styles } from '../styles/notifications/item';
+import { AppIcon } from './common/AppIcon';
 
 type Props = {
   notification: Notification;
@@ -24,7 +25,7 @@ export function NotificationItem({ notification, onPress, opening = false }: Pro
       activeOpacity={0.7}
     >
       <View style={[styles.iconCircle, { backgroundColor: icon.backgroundColor }]}>
-        <Text style={[styles.iconSymbol, { color: icon.symbolColor }]}>{icon.symbol}</Text>
+        <AppIcon name={icon.name} size={18} color={icon.color} />
       </View>
 
       <View style={styles.content}>

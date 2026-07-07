@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'rea
 import { Notification } from '../utils/notificationApi';
 import { NotificationItem } from './NotificationItem';
 import { notificationListStyles as styles } from '../styles/notifications/list';
+import { AppIcon } from './common/AppIcon';
 
 type Props = {
   notifications: Notification[];
@@ -47,7 +48,7 @@ export function NotificationList({
   if (!loading && notifications.length === 0) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyIcon}>🔔</Text>
+        <AppIcon name="notifications-off-outline" size={32} color="#9CA3AF" />
         <Text style={styles.emptyText}>No notifications yet.</Text>
       </View>
     );

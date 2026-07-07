@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppIcon } from '../common/AppIcon';
 import ComplaintEvidenceGallery from '../ComplaintEvidenceGallery';
 import AdminSelect from './AdminSelect';
 import { adminListStyles as s } from '../../styles/admin/list';
@@ -221,7 +222,7 @@ export default function AdminComplaintDetailModal({
         ) : null}
       </View>
       <TouchableOpacity style={s.modalHeaderCloseBtn} onPress={onHeaderClose} accessibilityLabel="Close">
-        <Text style={s.modalHeaderCloseText}>✕</Text>
+        <AppIcon name="close" size={20} color="#6B7280" />
       </TouchableOpacity>
     </View>
   );

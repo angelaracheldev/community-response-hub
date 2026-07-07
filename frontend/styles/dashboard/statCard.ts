@@ -41,4 +41,9 @@ export const statCardStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  trendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
 });

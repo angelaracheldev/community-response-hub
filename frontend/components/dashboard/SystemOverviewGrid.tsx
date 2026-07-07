@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { SystemMetric } from '../../utils/adminDashboard.mock';
 import { systemOverviewGridStyles as styles } from '../../styles/dashboard/systemOverviewGrid';
+import { AppIcon } from '../common/AppIcon';
 
 type Props = {
   title?: string;
@@ -19,7 +20,7 @@ export function SystemOverviewGrid({ title = 'System Overview', metrics, columns
         {metrics.map((metric) => (
           <View key={metric.label} style={[styles.cell, { flexBasis: basis }]}>
             <View style={styles.card}>
-              <Text style={styles.icon}>{metric.icon}</Text>
+              <AppIcon name={metric.icon} size={22} color={metric.accentColor} />
               <Text style={styles.value}>{metric.value.toLocaleString()}</Text>
               <Text style={styles.label}>{metric.label}</Text>
             </View>

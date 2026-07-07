@@ -20,7 +20,8 @@ cd community-response-hub
 ### 2. Start the database
 
 ```bash
-docker-compose up -d
+cp .env.example .env   # optional; docker-compose reads DB_* from repo root
+docker-compose up -d postgres
 ```
 
 This will:
@@ -109,6 +110,10 @@ psql -h localhost -U postgres -d community_response_hub \
 # Example: create notifications table
 docker-compose exec -T postgres psql -U postgres -d community_response_hub \
   < backend/migrations/002_create_notifications_table.sql
+
+# Example: add must_change_password (first-login / change-password flows)
+docker-compose exec -T postgres psql -U postgres -d community_response_hub \
+  < backend/migrations/003_add_must_change_password.sql
 ```
 
 See `backend/migrations/` for the full list of migration scripts.

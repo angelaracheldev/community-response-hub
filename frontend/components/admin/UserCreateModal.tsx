@@ -13,6 +13,7 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import { colors } from '../../styles/theme';
 import { createUser } from '../../utils/adminApi';
+import { AppIcon } from '../common/AppIcon';
 
 interface UserCreateModalProps {
   visible: boolean;
@@ -251,18 +252,11 @@ if (error?.response) {
           >
             <View style={styles.resultOverlay}>
               <View style={styles.resultContainer}>
-                <Text
-                  style={[
-                    styles.resultIcon,
-                    {
-                      color: resultSuccess
-                        ? '#16a34a'
-                        : '#dc2626',
-                    },
-                  ]}
-                >
-                  {resultSuccess ? '✓' : '✕'}
-                </Text>
+                <AppIcon
+                  name={resultSuccess ? 'checkmark' : 'close'}
+                  size={28}
+                  color={resultSuccess ? '#16a34a' : '#dc2626'}
+                />
 
                 <Text style={styles.resultTitle}>
                   {resultTitle}
